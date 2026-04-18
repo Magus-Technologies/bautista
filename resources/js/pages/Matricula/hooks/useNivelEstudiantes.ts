@@ -113,7 +113,7 @@ export function useNivelEstudiantes(aperturaId: number, nivelId: number) {
     ).sort((a, b) => a.label.localeCompare(b.label));
 
     const handleMatricular = async (data: MatriculaFormData) => {
-        await api.post('/matriculas/', data);
+        await api.post('/matriculas', data);
         await cargar();
     };
 

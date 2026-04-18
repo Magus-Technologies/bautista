@@ -60,7 +60,7 @@ cargar();
 
     const handleMatricular = async (data: MatriculaFormData) => {
         setApiErrors({});
-        await api.post('/matriculas/', data);
+        await api.post('/matriculas', data);
         await cargar();
     };
 

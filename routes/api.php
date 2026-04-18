@@ -327,8 +327,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('aperturas/{aperturaId}/estudiantes',     [MatriculaApiController::class, 'indexMatriculas']);
         Route::get('aperturas/{aperturaId}/por-nivel',       [MatriculaApiController::class, 'indexPorNivel']);
         Route::get('aperturas/{aperturaId}/disponibles',     [MatriculaApiController::class, 'estudiantesDisponibles']);
-        Route::get('/',                                      [MatriculaApiController::class, 'indexAperturas']);
-        Route::post('/',                                     [MatriculaApiController::class, 'storeMatricula']);
+        Route::get('',                                       [MatriculaApiController::class, 'indexAperturas']);
+        Route::post('',                                      [MatriculaApiController::class, 'storeMatricula']);
         Route::delete('/{id}',                              [MatriculaApiController::class, 'destroyMatricula']);
     });
 
