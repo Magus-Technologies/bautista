@@ -14,7 +14,7 @@ export default function AppLogo({ variant = 'header', className }: AppLogoProps)
         return (
             <div className={cn("flex items-center gap-3", isCollapsed ? "justify-center px-0" : "px-2", className)}>
                 <img 
-                    src="http://localhost:8000/esama.png" 
+                    src="/esama.png" 
                     alt="IEP Bautista" 
                     className={cn(
                         "object-contain rounded-lg shadow-md ring-1 ring-white/10 transition-all duration-200",
@@ -38,7 +38,7 @@ export default function AppLogo({ variant = 'header', className }: AppLogoProps)
     return (
         <div className={cn("flex items-center gap-2", className)}>
              <img 
-                src="http://localhost:8000/esama.png" 
+                src="/esama.png" 
                 alt="IEP Bautista" 
                 className="size-8 object-contain rounded-md"
             />
