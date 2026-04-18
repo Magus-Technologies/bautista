@@ -23,6 +23,7 @@ class StoreDocenteRequest extends FormRequest
             'telefono'         => ['nullable', 'string', 'max:20'],
             'especialidad'     => ['nullable', 'string', 'max:200'],
             'planilla'         => ['nullable', 'in:0,1'],
+            'turno'            => ['nullable', 'in:M,T,N'],
         ];
     }
 

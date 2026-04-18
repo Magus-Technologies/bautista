@@ -3,6 +3,7 @@ import type { Docente } from './useDocentes';
 import { nombreCompleto, dniDocente } from './useDocentes';
 
 export const docentesColumns: Column<Docente>[] = [
+    { label: '#ID', render: (d) => d.docente_id },
     { label: 'Nombre Completo', render: (d) => nombreCompleto(d) },
     { label: 'DNI',             render: (d) => dniDocente(d) },
     { label: 'Especialidad',    render: (d) => d.especialidad ?? '—' },
@@ -17,6 +18,20 @@ export const docentesColumns: Column<Docente>[] = [
     {
         label: 'Género',
         render: (d) => d.perfil?.genero === 'M' ? 'Masculino' : d.perfil?.genero === 'F' ? 'Femenino' : '—',
+    },
+    {
+        label: 'Turno',
+        render: (d) => {
+            const map: Record<string, { label: string; cls: string }> = {
+                'M': { label: 'Mañana', cls: 'bg-amber-100 text-amber-700' },
+                'T': { label: 'Tarde',  cls: 'bg-indigo-100 text-indigo-700' },
+                'N': { label: 'Noche',  cls: 'bg-slate-100 text-slate-700' },
+            };
+            const entry = d.turno ? map[d.turno] : null;
+            return entry
+                ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${entry.cls}`}>{entry.label}</span>
+                : <span className="text-gray-400">—</span>;
+        },
     },
     { label: 'Teléfono', render: (d) => d.perfil?.telefono ?? '—' },
     {

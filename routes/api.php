@@ -208,6 +208,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('docente/anuncios/{id}', [DocenteApiController::class, 'destroyAnuncio']);
 
         // Asistencia
+        Route::get('docente/mi-asistencia', [DocenteApiController::class, 'miAsistencia']);
         Route::post('docente/asistencia/iniciar', [DocenteApiController::class, 'iniciarAsistencia']);
         Route::post('docente/asistencia/{id}/marcar', [DocenteApiController::class, 'marcarAsistencia']);
         Route::get('docente/curso/{id}/asistencia-matrix', [DocenteApiController::class, 'asistenciaMatrix']);

@@ -118,6 +118,7 @@ Route::middleware(['auth.token'])->group(function () {
         Route::get('/mis-alumnos', [\App\Http\Controllers\DocenteController::class, 'misAlumnos'])->middleware('permission:portal.docente.alumnos')->name('mis-alumnos.index');
         Route::get('/cursos/{id}/contenido', fn (int $id) => Inertia::render('PortalDocente/Contenido/Editor', ['docenteCursoId' => $id]))->name('cursos.contenido');
         Route::get('/cursos/{id}/asistencia', fn (int $id) => Inertia::render('PortalDocente/Asistencia/PasarLista', ['docenteCursoId' => $id]))->name('cursos.asistencia');
+        Route::get('/asistencia', fn () => Inertia::render('PortalDocente/Asistencia/MiAsistencia'))->name('asistencia');
         
         // Actividades y Calificaciones
         Route::get('/actividades/{id}', fn (int $id) => Inertia::render('PortalDocente/DetalleActividad', ['actividadId' => $id]))->name('actividades.detalle');

@@ -14,6 +14,7 @@ class DocenteResource extends JsonResource
             'nombre_completo' => $this->nombre_completo,
             'especialidad'    => $this->especialidad,
             'planilla'        => $this->planilla,
+            'turno'           => $this->turno,
             'estado'          => $this->estado,
             'perfil'      => $this->whenLoaded('perfil', fn () => [
                 'primer_nombre'    => $this->perfil->primer_nombre,

@@ -11,7 +11,7 @@ class Docente extends Model
 
     protected $fillable = [
         'id_insti', 'id_perfil', 'id_usuario',
-        'especialidad', 'planilla', 'estado',
+        'especialidad', 'planilla', 'turno', 'estado',
     ];
 
     public function perfil(): BelongsTo

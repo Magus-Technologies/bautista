@@ -306,4 +306,29 @@ class DocenteApiController extends Controller
         $alumnos = $this->docenteCursoService->obtenerAlumnosConMetricas($docenteCursoId);
         return response()->json($alumnos);
     }
+
+    /**
+     * Get personal attendance history for the authenticated docente.
+     */
+    public function miAsistencia(Request $request): JsonResponse
+    {
+        $docente = \App\Models\Docente::where('id_usuario', $request->user()->id)->first();
+
+        if (!$docente) {
+            return response()->json(['message' => 'No se encontró perfil de docente.'], 404);
+        }
+
+        $query = \App\Models\Asistencia::where('id_persona', $docente->docente_id)
+            ->where('tipo', 'D')
+            ->orderBy('fecha', 'desc');
+
+        if ($mes = $request->query('mes')) {
+            $query->whereMonth('fecha', $mes);
+        }
+        if ($anio = $request->query('anio')) {
+            $query->whereYear('fecha', $anio);
+        }
+
+        return response()->json($query->limit(100)->get());
+    }
 }

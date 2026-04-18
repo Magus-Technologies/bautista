@@ -19,6 +19,7 @@ export type Docente = {
     docente_id:  number;
     especialidad: string | null;
     planilla:     number;
+    turno:        'M' | 'T' | 'N' | null;
     estado:       '1' | '0' | '5';
     perfil:       Perfil | null;
     user:         UserAuth | null;
@@ -39,6 +40,7 @@ export type DocenteFormData = {
     telefono:         string;
     especialidad:     string;
     planilla:         string;
+    turno:            'M' | 'T' | 'N' | '';
     estado?:          string;
 };
 
@@ -55,6 +57,7 @@ export const defaultForm: DocenteFormData = {
     telefono:         '',
     especialidad:     '',
     planilla:         '1',
+    turno:            '',
 };
 
 export function nombreCompleto(d: Docente): string {

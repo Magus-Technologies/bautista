@@ -71,6 +71,18 @@ export default function DocenteFormModal({ open, onClose, editing, onSave, apiEr
                             </Select>
                             {err('planilla') && <p className="text-xs text-red-500">{err('planilla')}</p>}
                         </div>
+                        <div className="space-y-1">
+                            <OptLabel>Turno de Trabajo</OptLabel>
+                            <Select value={form.turno} onValueChange={(v) => set('turno', v)}>
+                                <SelectTrigger><SelectValue placeholder="Seleccionar turno" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="M">Mañana</SelectItem>
+                                    <SelectItem value="T">Tarde</SelectItem>
+                                    <SelectItem value="N">Noche</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {err('turno') && <p className="text-xs text-red-500">{err('turno')}</p>}
+                        </div>
                     </FormSection>
 
                     {editing && (

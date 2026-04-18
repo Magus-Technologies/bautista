@@ -3,9 +3,11 @@
 namespace App\Services\Implements;
 
 use App\Models\Asistencia;
-use App\Models\Estudiante;
 use App\Models\Docente;
+use App\Models\Estudiante;
+use App\Models\HorarioAsistencia;
 use App\Models\User;
+use Carbon\Carbon;
 use App\Repositories\Interfaces\AsistenciaRepositoryInterface;
 use App\Services\Interfaces\AsistenciaServiceInterface;
 use Illuminate\Support\Facades\Auth;
@@ -131,19 +133,49 @@ class AsistenciaService implements AsistenciaServiceInterface
             throw new \Exception("Usuario o registro no encontrado para este código.");
         }
 
-        $fecha = now()->toDateString();
-        $hora = now()->toTimeString();
-        $turno = now()->hour < 13 ? 'M' : 'T';
+        $fecha    = now()->toDateString();
+        $hora     = now()->toTimeString();
+        $instiId  = $user->insti_id ?? 1;
 
-        $asistencia = $this->repository->marcar([
-            'insti_id'   => $user->insti_id ?? 1,
+        // Determinar turno y estado (tardanza o asistencia)
+        if ($tipo === 'D') {
+            $docente = Docente::find($idPersona);
+            $turno   = $docente?->turno ?? (now()->hour < 13 ? 'M' : 'T');
+        } else {
+            $turno = now()->hour < 13 ? 'M' : 'T';
+        }
+
+        $payload = [
+            'insti_id'   => $instiId,
             'id_persona' => $idPersona,
             'tipo'       => $tipo,
             'fecha'      => $fecha,
             'turno'      => $turno,
-            $tipoMarcado === 'entrada' ? 'hora_entrada' : 'hora_salida' => $hora,
-            'estado'     => '1',
-        ]);
+        ];
+
+        if ($tipoMarcado === 'entrada') {
+            $horario = HorarioAsistencia::where('insti_id', $instiId)
+                ->where('tipo_usuario', $tipo === 'D' ? 'D' : 'E')
+                ->where('turno', $turno)
+                ->first();
+
+            $estado = '1';
+            if ($horario) {
+                $horaLimite = Carbon::parse($horario->hora_ingreso);
+                $horaActual = Carbon::parse($hora);
+                if ($horaActual->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
+            }
+
+            $payload['hora_entrada'] = $hora;
+            $payload['estado']       = $estado;
+        } else {
+            // Salida: solo actualiza hora_salida, nunca sobreescribe el estado
+            $payload['hora_salida'] = $hora;
+        }
+
+        $asistencia = $this->repository->marcar($payload);
 
         return [
             'message' => ($tipoMarcado === 'entrada' ? 'Entrada' : 'Salida') . ' registrada correctamente',

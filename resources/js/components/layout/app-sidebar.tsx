@@ -95,8 +95,9 @@ const navigation: NavItem[] = [
     // ── Portales ─────────────────────────────────────────────────────
     { type: 'section', label: 'PORTALES' },
     { type: 'group', title: 'Portal Docente', icon: Users, children: [
-        { title: 'Mis Cursos', href: '/docente/mis-cursos', permission: 'portal.docente.cursos' },
-        { title: 'Mis Alumnos', href: '/docente/mis-alumnos', permission: 'portal.docente.alumnos' },
+        { title: 'Mis Cursos',    href: '/docente/mis-cursos',  permission: 'portal.docente.cursos' },
+        { title: 'Mis Alumnos',   href: '/docente/mis-alumnos', permission: 'portal.docente.alumnos' },
+        { title: 'Mi Asistencia', href: '/docente/asistencia',  permission: 'portal.docente.ver' },
     ]},
     { type: 'group', title: 'Portal Estudiante', icon: GraduationCap, children: [
         { title: 'Mis Cursos', href: '/alumno/cursos', permission: 'portal.estudiante.cursos' },

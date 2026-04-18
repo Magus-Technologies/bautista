@@ -1,9 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { Clock, Pencil, Trash2 } from 'lucide-react';
+import { Clock, GraduationCap, Pencil, Trash2, UserCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ConfirmModal from '@/components/shared/ConfirmModal';
 import FormField from '@/components/shared/FormField';
-import ResourcePage from '@/components/shared/ResourcePage';
+import PageHeader from '@/components/shared/PageHeader';
 import ResourceTable from '@/components/shared/ResourceTable';
 import type { Column } from '@/components/shared/ResourceTable';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useResource } from '@/hooks/useResource';
+import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import axios from 'axios';
+import { cn } from '@/lib/utils';
 
 type Horario = {
     horario_id: number;
     insti_id: number;
     nivel_id: number | null;
     tipo_usuario: 'E' | 'D';
-    turno: 'M' | 'T';
+    turno: 'M' | 'T' | 'N';
     hora_ingreso: string;
     hora_salida: string;
     nivel?: {
@@ -38,40 +40,41 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Horarios de Asistencia', href: '/horarios' },
 ];
 
+const turnoLabel = (t: string) => t === 'M' ? 'Mañana' : t === 'T' ? 'Tarde' : 'Noche';
+
 export default function HorariosPage() {
-    const res = useResource<Horario>('/horarios-asistencia');
-    const [open, setOpen] = useState(false);
-    const [editing, setEditing] = useState<Horario | null>(null);
-    const [niveles, setNiveles] = useState<Nivel[]>([]);
+    const [activeTab, setActiveTab] = useState<'E' | 'D'>('E');
+    const [open, setOpen]               = useState(false);
+    const [editing, setEditing]         = useState<Horario | null>(null);
+    const [niveles, setNiveles]         = useState<Nivel[]>([]);
     const [confirmDelete, setConfirmDelete] = useState<Horario | null>(null);
     const [form, setForm] = useState({
-        nivel_id: '',
+        nivel_id:     '',
         tipo_usuario: 'E' as 'E' | 'D',
-        turno: 'M' as 'M' | 'T',
+        turno:        'M' as 'M' | 'T' | 'N',
         hora_ingreso: '',
-        hora_salida: ''
+        hora_salida:  '',
     });
 
+    const resEstudiante = useResource<Horario>('/horarios-asistencia', { tipo_usuario: 'E' });
+    const resDocente    = useResource<Horario>('/horarios-asistencia', { tipo_usuario: 'D' });
+    const res           = activeTab === 'E' ? resEstudiante : resDocente;
+
     useEffect(() => {
-        // Cargar niveles educativos
-        axios.get('/api/niveles').then(res => {
-            const data = res.data.data || res.data;
-            console.log('Niveles cargados:', data);
+        axios.get('/api/niveles').then(r => {
+            const data = r.data.data || r.data;
             setNiveles(Array.isArray(data) ? data : []);
-        }).catch(err => {
-            console.error('Error al cargar niveles:', err);
-            setNiveles([]);
-        });
+        }).catch(() => setNiveles([]));
     }, []);
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ 
-            nivel_id: '', 
-            tipo_usuario: 'E', 
-            turno: 'M', 
-            hora_ingreso: '', 
-            hora_salida: '' 
+        setForm({
+            nivel_id:     '',
+            tipo_usuario: activeTab,
+            turno:        'M',
+            hora_ingreso: '',
+            hora_salida:  '',
         });
         setOpen(true);
     };
@@ -79,17 +82,13 @@ export default function HorariosPage() {
     const openEdit = (h: Horario) => {
         setEditing(h);
         setForm({
-            nivel_id: h.nivel_id?.toString() || '',
+            nivel_id:     h.nivel_id?.toString() || '',
             tipo_usuario: h.tipo_usuario,
-            turno: h.turno,
+            turno:        h.turno,
             hora_ingreso: h.hora_ingreso.substring(0, 5),
-            hora_salida: h.hora_salida.substring(0, 5)
+            hora_salida:  h.hora_salida.substring(0, 5),
         });
         setOpen(true);
-    };
-
-    const handleDelete = async (h: Horario) => {
-        setConfirmDelete(h);
     };
 
     const confirmDeleteAction = async () => {
@@ -99,124 +98,103 @@ export default function HorariosPage() {
         }
     };
 
-    const columns: Column<Horario>[] = [
-        { 
-            label: '#', 
-            render: (h, index) => {
-                const currentPage = res.rows?.current_page || 1;
-                const perPage = res.rows?.per_page || 15;
-                return (currentPage - 1) * perPage + (index || 0) + 1;
-            }
-        },
-        { label: 'Nivel', render: (h) => h.nivel?.nombre_nivel || 'Sin nivel' },
-        { label: 'Tipo', render: (h) => h.tipo_usuario === 'E' ? 'Estudiante' : 'Docente' },
-        { label: 'Turno', render: (h) => h.turno === 'M' ? 'Mañana' : 'Tarde' },
-        { label: 'Ingreso', render: (h) => h.hora_ingreso.substring(0, 5) },
-        { label: 'Salida', render: (h) => h.hora_salida.substring(0, 5) },
-        {
-            label: 'Acciones',
-            render: (h) => (
-                <div className="flex gap-1">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => openEdit(h)} 
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleDelete(h)} 
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
-            )
-        }
-    ];
-
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
-
         const data = {
-            nivel_id: form.nivel_id ? parseInt(form.nivel_id) : null,
+            nivel_id:     form.tipo_usuario === 'E' && form.nivel_id ? parseInt(form.nivel_id) : null,
             tipo_usuario: form.tipo_usuario,
-            turno: form.turno,
+            turno:        form.turno,
             hora_ingreso: form.hora_ingreso,
-            hora_salida: form.hora_salida
+            hora_salida:  form.hora_salida,
         };
-
         if (editing) {
             await res.update(editing.horario_id, data);
         } else {
             await res.create(data);
         }
-
         setOpen(false);
     };
 
+    const columnsEstudiante: Column<Horario>[] = [
+        { label: '#', render: (_h, i) => ((res.rows?.current_page || 1) - 1) * (res.rows?.per_page || 15) + (i || 0) + 1 },
+        { label: 'Nivel', render: (h) => h.nivel?.nombre_nivel || <span className="text-gray-400">Sin nivel</span> },
+        { label: 'Turno', render: (h) => turnoLabel(h.turno) },
+        { label: 'Ingreso', render: (h) => h.hora_ingreso.substring(0, 5) },
+        { label: 'Salida',  render: (h) => h.hora_salida.substring(0, 5) },
+        { label: 'Acciones', render: (h) => <Actions h={h} onEdit={openEdit} onDelete={setConfirmDelete} /> },
+    ];
+
+    const columnsDocente: Column<Horario>[] = [
+        { label: '#', render: (_h, i) => ((res.rows?.current_page || 1) - 1) * (res.rows?.per_page || 15) + (i || 0) + 1 },
+        { label: 'Turno', render: (h) => turnoLabel(h.turno) },
+        { label: 'Ingreso', render: (h) => h.hora_ingreso.substring(0, 5) },
+        { label: 'Salida',  render: (h) => h.hora_salida.substring(0, 5) },
+        { label: 'Acciones', render: (h) => <Actions h={h} onEdit={openEdit} onDelete={setConfirmDelete} /> },
+    ];
+
     return (
-        <>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Horarios de Asistencia" />
-            <ResourcePage
-                breadcrumbs={breadcrumbs}
-                pageTitle="Horarios de Asistencia"
-                subtitle="Configuración de horarios de entrada y salida por nivel educativo"
-                icon={Clock}
-                iconColor="bg-blue-600"
-                btnLabel="Nuevo Horario"
-                onNew={openCreate}
-                search={res.search}
-                onSearch={res.setSearch}
-            >
+
+            <div className="flex flex-col gap-6 p-6">
+                <div className="flex items-center justify-between">
+                    <PageHeader
+                        icon={Clock}
+                        title="Horarios de Asistencia"
+                        subtitle="Configuración de horarios de entrada y salida"
+                        iconColor="bg-blue-600"
+                    />
+                    <Button onClick={openCreate} className="bg-[#00a65a] hover:bg-[#008d4c] text-white">
+                        + Nuevo Horario
+                    </Button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-1 border-b border-gray-200">
+                    <TabButton
+                        active={activeTab === 'E'}
+                        onClick={() => setActiveTab('E')}
+                        icon={GraduationCap}
+                        label="Estudiantes"
+                        count={resEstudiante.rows?.total}
+                    />
+                    <TabButton
+                        active={activeTab === 'D'}
+                        onClick={() => setActiveTab('D')}
+                        icon={UserCheck}
+                        label="Docentes"
+                        count={resDocente.rows?.total}
+                    />
+                </div>
+
+                {/* Tabla */}
                 {res.rows && (
                     <ResourceTable
                         rows={res.rows}
-                        columns={columns}
+                        columns={activeTab === 'E' ? columnsEstudiante : columnsDocente}
                         getKey={(h) => h.horario_id}
                         onPageChange={res.setPage}
                     />
                 )}
-            </ResourcePage>
+                {res.loading && (
+                    <div className="py-8 text-center text-sm text-gray-400 animate-pulse">Cargando...</div>
+                )}
+            </div>
 
+            {/* Modal crear/editar */}
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Editar Horario de Asistencia' : 'Nuevo Horario de Asistencia'}</DialogTitle>
+                        <DialogTitle>{editing ? 'Editar Horario' : 'Nuevo Horario'}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Nivel Educativo <span className="text-red-500">*</span></Label>
-                            <Select 
-                                value={form.nivel_id} 
-                                onValueChange={(v) => setForm({ ...form, nivel_id: v })}
-                                required
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccione un nivel" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {niveles.map(n => (
-                                        <SelectItem key={n.nivel_id} value={n.nivel_id.toString()}>
-                                            {n.nombre_nivel}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
                             <Label>Tipo de Usuario</Label>
-                            <Select 
-                                value={form.tipo_usuario} 
-                                onValueChange={(v: 'E' | 'D') => setForm({ ...form, tipo_usuario: v })}
+                            <Select
+                                value={form.tipo_usuario}
+                                onValueChange={(v: 'E' | 'D') => setForm({ ...form, tipo_usuario: v, nivel_id: '' })}
                             >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="E">Estudiante</SelectItem>
                                     <SelectItem value="D">Docente</SelectItem>
@@ -224,18 +202,38 @@ export default function HorariosPage() {
                             </Select>
                         </div>
 
+                        {form.tipo_usuario === 'E' && (
+                            <div className="space-y-2">
+                                <Label>Nivel Educativo <span className="text-red-500">*</span></Label>
+                                <Select
+                                    value={form.nivel_id}
+                                    onValueChange={(v) => setForm({ ...form, nivel_id: v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccione un nivel" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {niveles.map(n => (
+                                            <SelectItem key={n.nivel_id} value={n.nivel_id.toString()}>
+                                                {n.nombre_nivel}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label>Turno</Label>
-                            <Select 
-                                value={form.turno} 
-                                onValueChange={(v: 'M' | 'T') => setForm({ ...form, turno: v })}
+                            <Select
+                                value={form.turno}
+                                onValueChange={(v: 'M' | 'T' | 'N') => setForm({ ...form, turno: v })}
                             >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="M">Mañana</SelectItem>
                                     <SelectItem value="T">Tarde</SelectItem>
+                                    <SelectItem value="N">Noche</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -258,7 +256,8 @@ export default function HorariosPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="submit">Guardar</Button>
+                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                            <Button type="submit" className="bg-[#00a65a] hover:bg-[#008d4c] text-white">Guardar</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -268,11 +267,61 @@ export default function HorariosPage() {
                 open={!!confirmDelete}
                 onClose={() => setConfirmDelete(null)}
                 onConfirm={confirmDeleteAction}
-                title="Eliminar Horario de Asistencia"
-                message={confirmDelete ? `¿Está seguro de eliminar el horario de ${confirmDelete.nivel?.nombre_nivel || 'Sin nivel'} - ${confirmDelete.tipo_usuario === 'E' ? 'Estudiante' : 'Docente'} - ${confirmDelete.turno === 'M' ? 'Mañana' : 'Tarde'}?` : ''}
+                title="Eliminar Horario"
+                message={confirmDelete
+                    ? `¿Eliminar horario ${turnoLabel(confirmDelete.turno)} (${confirmDelete.tipo_usuario === 'E' ? 'Estudiante' : 'Docente'})?`
+                    : ''}
                 confirmText="Eliminar"
                 variant="danger"
             />
-        </>
+        </AppLayout>
+    );
+}
+
+function TabButton({ active, onClick, icon: Icon, label, count }: {
+    active: boolean;
+    onClick: () => void;
+    icon: React.ElementType;
+    label: string;
+    count?: number;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors',
+                active
+                    ? 'border-[#00a65a] text-[#00a65a]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            )}
+        >
+            <Icon className="size-4" />
+            {label}
+            {count !== undefined && (
+                <span className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-black',
+                    active ? 'bg-[#00a65a] text-white' : 'bg-gray-100 text-gray-500',
+                )}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+}
+
+function Actions({ h, onEdit, onDelete }: {
+    h: Horario;
+    onEdit: (h: Horario) => void;
+    onDelete: (h: Horario) => void;
+}) {
+    return (
+        <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(h)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(h)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
     );
 }

@@ -71,6 +71,7 @@ class DocenteRepository implements DocenteRepositoryInterface
             'id_usuario'  => $user->id,
             'especialidad'=> $data['especialidad'] ?? null,
             'planilla'    => $data['planilla']     ?? null,
+            'turno'       => $data['turno']        ?? null,
             'estado'      => '1',
         ]);
     }
@@ -105,6 +106,7 @@ class DocenteRepository implements DocenteRepositoryInterface
         $docente->update([
             'especialidad' => $data['especialidad'] ?? null,
             'planilla'     => $data['planilla']     ?? null,
+            'turno'        => $data['turno']        ?? $docente->turno,
             'estado'       => $data['estado']       ?? $docente->estado,
         ]);
 

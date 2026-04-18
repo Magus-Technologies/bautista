@@ -31,6 +31,7 @@ export function useDocenteForm({ editing, open, onSave, onClose, clearErrors }: 
                 telefono:         editing.perfil?.telefono         ?? '',
                 especialidad:     editing.especialidad             ?? '',
                 planilla:         editing.planilla.toString(),
+                turno:            (editing.turno                  ?? '') as 'M' | 'T' | 'N' | '',
                 estado:           editing.estado,
             });
         } else {

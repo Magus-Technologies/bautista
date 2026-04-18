@@ -44,9 +44,10 @@ class AsistenciaGeneralApiController extends Controller
         if ($fechaInicio && $fechaFin) {
             $logs = $this->repository->getPorPersonaRango((int)$id, $tipo, $fechaInicio, $fechaFin);
         } else {
-            $mes = $request->query('mes', date('m'));
-            $anio = $request->query('anio', date('Y'));
-            $logs = $this->repository->getPorPersonaMes(1, (int)$id, $tipo, (int)$anio, (int)$mes);
+            $mes     = $request->query('mes', date('m'));
+            $anio    = $request->query('anio', date('Y'));
+            $instiId = auth()->user()->insti_id ?? 1;
+            $logs    = $this->repository->getPorPersonaMes($instiId, (int)$id, $tipo, (int)$anio, (int)$mes);
         }
 
         return response()->json($logs);

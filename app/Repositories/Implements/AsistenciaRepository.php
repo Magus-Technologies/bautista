@@ -39,15 +39,21 @@ class AsistenciaRepository implements AsistenciaRepositoryInterface
 
     public function marcar(array $data): Asistencia
     {
-        return Asistencia::updateOrCreate(
-            [
-                'id_persona' => $data['id_persona'],
-                'tipo'       => $data['tipo'],
-                'fecha'      => $data['fecha'],
-                'turno'      => $data['turno'] ?? null,
-            ],
-            $data
-        );
+        $keys = [
+            'id_persona' => $data['id_persona'],
+            'tipo'       => $data['tipo'],
+            'fecha'      => $data['fecha'],
+            'turno'      => $data['turno'] ?? null,
+        ];
+
+        // Si es salida (no trae estado), no sobreescribir estado existente
+        $existing = Asistencia::where($keys)->first();
+        if ($existing && !isset($data['estado'])) {
+            $existing->update(array_diff_key($data, array_flip(['estado'])));
+            return $existing->fresh();
+        }
+
+        return Asistencia::updateOrCreate($keys, $data);
     }
 
     public function marcarBatch(int $instiId, array $registros): void

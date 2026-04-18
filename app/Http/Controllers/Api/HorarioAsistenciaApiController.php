@@ -21,6 +21,11 @@ class HorarioAsistenciaApiController extends Controller
     {
         $query = HorarioAsistencia::with(['nivel', 'institucion']);
 
+        // Filtrar por tipo de usuario (E=Estudiante, D=Docente)
+        if ($request->has('tipo_usuario') && in_array($request->tipo_usuario, ['E', 'D'])) {
+            $query->where('tipo_usuario', $request->tipo_usuario);
+        }
+
         // Búsqueda
         if ($request->has('search') && $request->search) {
             $search = $request->search;
