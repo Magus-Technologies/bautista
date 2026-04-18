@@ -82,7 +82,7 @@ export default function MatricularModal({
                 seguro_privado:      s?.seguro_privado ?? '',
                 mensualidad:         s?.mensualidad?.toString() ?? '',
                 fecha_ingreso:       s?.fecha_ingreso ?? '',
-                fecha_pago:          s?.fecha_pago ?? '',
+                fecha_pago:          s?.fecha_promovido ?? s?.fecha_pago ?? '',
                 foto:                null,
             });
             setMatricula({
@@ -262,9 +262,10 @@ errs.primer_nombre    = 'Requerido';
 errs.apellido_paterno = 'Requerido';
 }
 
-        if (!matricula.seccion_id)           {
-errs.seccion_id       = 'Requerido';
-}
+        if (!alumno.fecha_ingreso.trim())    errs.fecha_ingreso    = 'Requerido';
+        if (!alumno.fecha_pago.trim())       errs.fecha_pago       = 'Requerido';
+        if (!alumno.mensualidad.trim())      errs.mensualidad      = 'Requerido';
+        if (!matricula.seccion_id)           errs.seccion_id       = 'Requerido';
 
         if (Object.keys(errs).length) {
  setErrors(errs);
@@ -291,7 +292,6 @@ errs.seccion_id       = 'Requerido';
             });
 
             if (estudianteId) {
-                // Truco de Laravel para archivos en PUT
                 formData.append('_method', 'PUT');
                 await api.post(`/estudiantes/${estudianteId}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
@@ -301,6 +301,8 @@ errs.seccion_id       = 'Requerido';
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 estudianteId = res.data.data?.estu_id ?? res.data.estu_id;
+                // Guardar el id creado para que si falla la matrícula, al reintentar actualice en vez de duplicar
+                setAlumno(prev => ({ ...prev, estu_id: estudianteId as number }));
             }
 
             if (editingMatricula) {

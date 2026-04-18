@@ -225,16 +225,19 @@ export default function AlumnoTab({
                 <div className="col-span-2" />
 
                 <div className="space-y-1.5">
-                    <OptLabel>Fecha de Ingreso</OptLabel>
+                    <ReqLabel>Fecha de Ingreso</ReqLabel>
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_ingreso} onChange={e => setA('fecha_ingreso', e.target.value)} />
+                    {err('fecha_ingreso')}
                 </div>
                 <div className="space-y-1.5">
                     <ReqLabel>Mensualidad (S/)</ReqLabel>
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="number" step="0.01" value={alumno.mensualidad} onChange={e => setA('mensualidad', e.target.value)} placeholder="0.00" />
+                    {err('mensualidad')}
                 </div>
                 <div className="space-y-1.5">
-                    <ReqLabel>Fecha Pago</ReqLabel>
+                    <ReqLabel>Fecha de Pago</ReqLabel>
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_pago} onChange={e => setA('fecha_pago', e.target.value)} />
+                    {err('fecha_pago')}
                 </div>
 
                 {/* Foto */}
