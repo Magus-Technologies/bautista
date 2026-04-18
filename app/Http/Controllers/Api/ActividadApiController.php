@@ -104,17 +104,23 @@ class ActividadApiController extends Controller
         $actividad = ActividadCurso::findOrFail($actividadId);
         $cursoId = $actividad->id_curso;
 
-        // Get seccion_id and apertura_id from DocenteCurso for this course
+        // Buscar el DocenteCurso para este curso
         $docenteCurso = \App\Models\DocenteCurso::where('curso_id', $cursoId)->first();
 
         if (!$docenteCurso) {
             return response()->json([]);
         }
 
-        $estudiantes = \App\Models\Matricula::where('seccion_id', $docenteCurso->seccion_id)
-            ->where('apertura_id', $docenteCurso->apertura_id)
-            ->with(['estudiante.perfil'])
-            ->get()
+        // Obtener estudiantes de la sección — con fix de apertura_id NULL
+        $matriculasQuery = \App\Models\Matricula::where('seccion_id', $docenteCurso->seccion_id)
+            ->with(['estudiante.perfil']);
+
+        // Si el DocenteCurso tiene apertura_id, filtrar por él; si es NULL aceptar cualquiera
+        if (!is_null($docenteCurso->apertura_id)) {
+            $matriculasQuery->where('apertura_id', $docenteCurso->apertura_id);
+        }
+
+        $estudiantes = $matriculasQuery->get()
             ->pluck('estudiante')
             ->filter();
 
@@ -148,7 +154,7 @@ class ActividadApiController extends Controller
                 ->first();
 
             $estado = 'pendiente';
-            if ($notaRecord) {
+            if ($notaRecord && !is_null($notaRecord->nota)) {
                 $estado = 'calificado';
             } elseif ($archivos->count() > 0 || ($intento && $intento->estado == '0')) {
                 $estado = 'entregado';

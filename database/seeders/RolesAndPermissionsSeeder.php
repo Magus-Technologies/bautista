@@ -309,6 +309,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'portal.padre.pagos',
             'portal.padre.cursos',
             'portal.padre.profesores',
+            'portal.padre.horario',
         ];
 
         foreach ($permissions as $permission) {
