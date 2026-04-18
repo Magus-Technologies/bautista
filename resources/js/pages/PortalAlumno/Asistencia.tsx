@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import SectionCard from '@/components/shared/SectionCard';
 import AppLayout from '@/layouts/app-layout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
 
@@ -21,11 +22,67 @@ interface AsistenciaData {
     hora_salida?: string;
 }
 
+function AsistenciaCard({ asistencia, fecha, getStatusLabel }: {
+    asistencia: AsistenciaData;
+    fecha: Date;
+    getStatusLabel: (e: string) => string;
+}) {
+    return (
+        <div className={`rounded-xl border-2 p-4 transition-all ${
+            asistencia.estado === '1' ? 'border-emerald-200 bg-emerald-50/50'
+            : asistencia.estado === '0' ? 'border-red-200 bg-red-50/50'
+            : 'border-orange-200 bg-orange-50/50'
+        }`}>
+            <div className="flex items-start justify-between mb-2">
+                <div>
+                    <div className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                        {fecha.toLocaleDateString('es-PE', { weekday: 'short' })}
+                    </div>
+                    <div className="text-2xl font-black text-gray-900 leading-none">{fecha.getDate()}</div>
+                    <div className="text-xs text-gray-500">
+                        {fecha.toLocaleDateString('es-PE', { month: 'short', year: 'numeric' })}
+                    </div>
+                </div>
+                <span className={`rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest ${
+                    asistencia.estado === '1' ? 'bg-emerald-100 text-emerald-700'
+                    : asistencia.estado === '0' ? 'bg-red-100 text-red-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}>
+                    {getStatusLabel(asistencia.estado)}
+                </span>
+            </div>
+            <div className="space-y-1 text-xs">
+                {asistencia.turno && (
+                    <div className="flex items-center gap-2 text-gray-500">
+                        <CalendarIcon className="size-3" />
+                        <span className="font-bold">
+                            {asistencia.turno === 'M' ? 'Mañana' : asistencia.turno === 'T' ? 'Tarde' : asistencia.turno === 'N' ? 'Noche' : '-'}
+                        </span>
+                    </div>
+                )}
+                {asistencia.hora_entrada && (
+                    <div className="flex items-center gap-2 text-gray-500">
+                        <Clock className="size-3 text-emerald-500" />
+                        <span className="font-mono font-bold">Entrada: {asistencia.hora_entrada.substring(0, 5)}</span>
+                    </div>
+                )}
+                {asistencia.hora_salida && (
+                    <div className="flex items-center gap-2 text-gray-500">
+                        <Clock className="size-3 text-rose-500" />
+                        <span className="font-mono font-bold">Salida: {asistencia.hora_salida.substring(0, 5)}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function Asistencia() {
     const [asistencias, setAsistencias] = useState<AsistenciaData[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
+    const [showHistorial, setShowHistorial] = useState(false);
 
     // Calcular estadísticas
     const stats = useMemo(() => {
@@ -182,73 +239,57 @@ export default function Asistencia() {
                     </div>
                 )}
 
-                {/* Últimas Asistencias */}
+                {/* Últimas Asistencias — botón que abre modal */}
                 {!loading && asistencias.length > 0 && (
-                    <SectionCard title="Últimas Asistencias">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {asistencias.slice(0, 6).map((asistencia, idx) => {
+                    <SectionCard
+                        title="Últimas Asistencias"
+                        action={
+                            <button
+                                onClick={() => setShowHistorial(true)}
+                                className="text-xs font-bold text-emerald-600 hover:text-emerald-800 underline underline-offset-2"
+                            >
+                                Ver todas
+                            </button>
+                        }
+                    >
+                        {/* Preview: últimas 3 en mobile, 6 en desktop */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {asistencias.slice(0, 3).map((asistencia, idx) => {
                                 const fecha = new Date(asistencia.fecha);
                                 return (
-                                    <div 
-                                        key={asistencia.asistencia_id || idx}
-                                        className={`rounded-xl border-2 p-4 transition-all hover:shadow-md ${
-                                            asistencia.estado === '1' 
-                                                ? 'border-emerald-200 bg-emerald-50/50' 
-                                                : asistencia.estado === '0'
-                                                ? 'border-red-200 bg-red-50/50'
-                                                : 'border-orange-200 bg-orange-50/50'
-                                        }`}
-                                    >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <div className="text-sm font-black text-gray-800 uppercase tracking-wide">
-                                                    {fecha.toLocaleDateString('es-PE', { weekday: 'short' })}
-                                                </div>
-                                                <div className="text-2xl font-black text-gray-900">
-                                                    {fecha.getDate()}
-                                                </div>
-                                                <div className="text-xs text-gray-600">
-                                                    {fecha.toLocaleDateString('es-PE', { month: 'short', year: 'numeric' })}
-                                                </div>
-                                            </div>
-                                            <div className={`rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest ${
-                                                asistencia.estado === '1' 
-                                                    ? 'bg-emerald-100 text-emerald-700' 
-                                                    : asistencia.estado === '0'
-                                                    ? 'bg-red-100 text-red-700'
-                                                    : 'bg-orange-100 text-orange-700'
-                                            }`}>
-                                                {getStatusLabel(asistencia.estado)}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1 text-xs">
-                                            {asistencia.turno && (
-                                                <div className="flex items-center gap-2 text-gray-600">
-                                                    <CalendarIcon className="size-3" />
-                                                    <span className="font-bold">
-                                                        {asistencia.turno === 'M' ? 'Mañana' : asistencia.turno === 'T' ? 'Tarde' : '-'}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {asistencia.hora_entrada && (
-                                                <div className="flex items-center gap-2 text-gray-600">
-                                                    <Clock className="size-3 text-emerald-500" />
-                                                    <span className="font-mono font-bold">Entrada: {asistencia.hora_entrada}</span>
-                                                </div>
-                                            )}
-                                            {asistencia.hora_salida && (
-                                                <div className="flex items-center gap-2 text-gray-600">
-                                                    <Clock className="size-3 text-rose-500" />
-                                                    <span className="font-mono font-bold">Salida: {asistencia.hora_salida}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <AsistenciaCard key={asistencia.asistencia_id || idx} asistencia={asistencia} fecha={fecha} getStatusLabel={getStatusLabel} />
                                 );
                             })}
                         </div>
+                        <button
+                            onClick={() => setShowHistorial(true)}
+                            className="mt-4 w-full rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 transition-colors"
+                        >
+                            Ver historial completo ({asistencias.length} registros)
+                        </button>
                     </SectionCard>
                 )}
+
+                {/* Modal historial completo */}
+                <Dialog open={showHistorial} onOpenChange={setShowHistorial}>
+                    <DialogContent className="w-full max-w-lg sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl overflow-hidden">
+                        <DialogHeader className="px-5 py-4 border-b border-gray-100 bg-gray-50 shrink-0">
+                            <DialogTitle className="text-base font-black uppercase tracking-tight text-gray-900">
+                                Historial de Asistencia
+                            </DialogTitle>
+                            <p className="text-xs text-emerald-600 font-bold">{asistencias.length} registros encontrados</p>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {asistencias.map((asistencia, idx) => {
+                                const fecha = new Date(asistencia.fecha);
+                                return (
+                                    <AsistenciaCard key={asistencia.asistencia_id || idx} asistencia={asistencia} fecha={fecha} getStatusLabel={getStatusLabel} />
+                                );
+                            })}
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* View Toggle */}
                 <div className="flex justify-end gap-2">
@@ -285,14 +326,14 @@ export default function Asistencia() {
                         ) : (
                             <div className="space-y-4">
                                 {/* Calendar Header */}
-                                <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center justify-between mb-4">
                                     <button
                                         onClick={previousMonth}
                                         className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                                     >
                                         <ChevronLeft className="size-5 text-gray-600" />
                                     </button>
-                                    <h3 className="text-xl font-black text-gray-800 uppercase tracking-wide">
+                                    <h3 className="text-base sm:text-xl font-black text-gray-800 uppercase tracking-wide">
                                         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                                     </h3>
                                     <button
@@ -304,40 +345,49 @@ export default function Asistencia() {
                                 </div>
 
                                 {/* Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-2">
+                                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                                     {/* Day Names */}
                                     {dayNames.map(day => (
-                                        <div key={day} className="text-center py-2 text-xs font-black text-gray-500 uppercase tracking-wider">
-                                            {day}
+                                        <div key={day} className="text-center py-1 sm:py-2 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-wider">
+                                            <span className="sm:hidden">{day[0]}</span>
+                                            <span className="hidden sm:inline">{day}</span>
                                         </div>
                                     ))}
-                                    
+
                                     {/* Calendar Days */}
                                     {getCalendarDays().map((date, index) => {
                                         const asistencia = getAsistenciaForDate(date);
                                         const isToday = date && date.toDateString() === new Date().toDateString();
-                                        
+                                        const statusDot = asistencia?.estado === '1' ? 'bg-emerald-400' : asistencia?.estado === '0' ? 'bg-red-400' : asistencia?.estado === 'T' ? 'bg-orange-400' : '';
+
                                         return (
                                             <div
                                                 key={index}
-                                                className={`min-h-[100px] p-2 rounded-lg border transition-all ${
-                                                    date 
-                                                        ? isToday 
-                                                            ? 'bg-blue-50 border-blue-200' 
+                                                className={`min-h-[40px] sm:min-h-[100px] p-1 sm:p-2 rounded-lg border transition-all ${
+                                                    date
+                                                        ? isToday
+                                                            ? 'bg-blue-50 border-blue-200'
                                                             : 'bg-white border-gray-200 hover:border-gray-300'
                                                         : 'bg-gray-50 border-transparent'
                                                 }`}
                                             >
                                                 {date && (
                                                     <>
-                                                        <div className={`text-sm font-bold mb-2 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
+                                                        <div className={`text-xs sm:text-sm font-bold mb-0.5 sm:mb-2 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
                                                             {date.getDate()}
                                                         </div>
+                                                        {/* Mobile: punto de color */}
                                                         {asistencia && (
-                                                            <div className="space-y-1">
+                                                            <div className="sm:hidden flex justify-center mt-0.5">
+                                                                <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+                                                            </div>
+                                                        )}
+                                                        {/* Desktop: etiqueta + horas */}
+                                                        {asistencia && (
+                                                            <div className="hidden sm:block space-y-1">
                                                                 <div className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded ${
-                                                                    asistencia.estado === '1' 
-                                                                        ? 'bg-emerald-100 text-emerald-700' 
+                                                                    asistencia.estado === '1'
+                                                                        ? 'bg-emerald-100 text-emerald-700'
                                                                         : asistencia.estado === '0'
                                                                         ? 'bg-red-100 text-red-700'
                                                                         : 'bg-orange-100 text-orange-700'
@@ -364,19 +414,14 @@ export default function Asistencia() {
                                 </div>
 
                                 {/* Legend */}
-                                <div className="flex gap-4 justify-center mt-6 pt-6 border-t border-gray-200">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200"></div>
-                                        <span className="text-xs text-gray-600">Asistió</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded bg-red-100 border border-red-200"></div>
-                                        <span className="text-xs text-gray-600">Falta</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded bg-orange-100 border border-orange-200"></div>
-                                        <span className="text-xs text-gray-600">Tardanza</span>
-                                    </div>
+                                <div className="flex gap-4 justify-center mt-4 pt-4 border-t border-gray-200">
+                                    {[['bg-emerald-400', 'bg-emerald-100 border-emerald-200', 'Asistió'], ['bg-red-400', 'bg-red-100 border-red-200', 'Falta'], ['bg-orange-400', 'bg-orange-100 border-orange-200', 'Tardanza']].map(([dot, cls, label]) => (
+                                        <div key={label} className="flex items-center gap-1.5">
+                                            <div className={`sm:hidden w-3 h-3 rounded-full ${dot}`} />
+                                            <div className={`hidden sm:block w-4 h-4 rounded border ${cls}`} />
+                                            <span className="text-xs text-gray-600">{label}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

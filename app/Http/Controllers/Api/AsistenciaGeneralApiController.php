@@ -37,20 +37,28 @@ class AsistenciaGeneralApiController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $tipo = $request->query('tipo', 'E');
+        $tipo    = $request->query('tipo', 'E');
+        $perPage = (int) $request->query('per_page', 15);
+        $page    = (int) $request->query('page', 1);
+        $instiId = auth()->user()->insti_id ?? 1;
+
         $fechaInicio = $request->query('fecha_inicio');
-        $fechaFin = $request->query('fecha_fin');
+        $fechaFin    = $request->query('fecha_fin');
+
+        $query = \App\Models\Asistencia::where('insti_id', $instiId)
+            ->where('id_persona', (int)$id)
+            ->where('tipo', $tipo)
+            ->orderBy('fecha', 'desc');
 
         if ($fechaInicio && $fechaFin) {
-            $logs = $this->repository->getPorPersonaRango((int)$id, $tipo, $fechaInicio, $fechaFin);
+            $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
         } else {
-            $mes     = $request->query('mes', date('m'));
-            $anio    = $request->query('anio', date('Y'));
-            $instiId = auth()->user()->insti_id ?? 1;
-            $logs    = $this->repository->getPorPersonaMes($instiId, (int)$id, $tipo, (int)$anio, (int)$mes);
+            $mes  = $request->query('mes', date('m'));
+            $anio = $request->query('anio', date('Y'));
+            $query->whereYear('fecha', $anio)->whereMonth('fecha', $mes);
         }
 
-        return response()->json($logs);
+        return response()->json($query->paginate($perPage, ['*'], 'page', $page));
     }
 
     /**

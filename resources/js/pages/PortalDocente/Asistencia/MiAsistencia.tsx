@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { CalendarCheck, Clock, AlertCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import SectionCard from '@/components/shared/SectionCard';
@@ -47,6 +48,7 @@ export default function MiAsistencia() {
     const [loading, setLoading]           = useState(true);
     const [currentDate, setCurrentDate]   = useState(new Date());
     const [viewMode, setViewMode]         = useState<'calendar' | 'table'>('calendar');
+    const [showHistorial, setShowHistorial] = useState(false);
 
     const stats = useMemo(() => {
         const total            = asistencias.length;
@@ -156,13 +158,13 @@ export default function MiAsistencia() {
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'calendar' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                         <CalendarIcon className="inline-block size-4 mr-2" />Calendario
                     </button>
-                    <button onClick={() => setViewMode('table')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'table' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    <button onClick={() => setShowHistorial(true)}
+                        className="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-gray-100 text-gray-600 hover:bg-gray-200">
                         <Clock className="inline-block size-4 mr-2" />Lista
                     </button>
                 </div>
 
-                {viewMode === 'calendar' ? (
+                {viewMode === 'calendar' && (
                     <SectionCard title={`Calendario — ${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}>
                         {loading ? (
                             <div className="py-12 text-center text-sm font-black uppercase tracking-widest text-emerald-600 animate-pulse">Cargando...</div>
@@ -172,7 +174,7 @@ export default function MiAsistencia() {
                                     <button onClick={previousMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                                         <ChevronLeft className="size-5 text-gray-600" />
                                     </button>
-                                    <h3 className="text-xl font-black text-gray-800 uppercase tracking-wide">
+                                    <h3 className="text-base sm:text-xl font-black text-gray-800 uppercase tracking-wide">
                                         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                                     </h3>
                                     <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -180,20 +182,31 @@ export default function MiAsistencia() {
                                     </button>
                                 </div>
 
-                                <div className="grid grid-cols-7 gap-2">
+                                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                                     {dayNames.map(d => (
-                                        <div key={d} className="text-center py-2 text-xs font-black text-gray-500 uppercase tracking-wider">{d}</div>
+                                        <div key={d} className="text-center py-1 sm:py-2 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-wider">
+                                            <span className="sm:hidden">{d[0]}</span>
+                                            <span className="hidden sm:inline">{d}</span>
+                                        </div>
                                     ))}
                                     {getCalendarDays().map((date, i) => {
                                         const asis    = getAsistenciaForDate(date);
                                         const isToday = date?.toDateString() === new Date().toDateString();
+                                        const statusDot = asis?.estado === '1' ? 'bg-emerald-400' : asis?.estado === '0' ? 'bg-red-400' : asis?.estado === 'T' ? 'bg-orange-400' : '';
                                         return (
-                                            <div key={i} className={`min-h-[90px] p-2 rounded-lg border transition-all ${date ? isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200' : 'bg-gray-50 border-transparent'}`}>
+                                            <div key={i} className={`min-h-[40px] sm:min-h-[90px] p-1 sm:p-2 rounded-lg border transition-all ${date ? isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200' : 'bg-gray-50 border-transparent'}`}>
                                                 {date && (
                                                     <>
-                                                        <div className={`text-sm font-bold mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{date.getDate()}</div>
+                                                        <div className={`text-xs sm:text-sm font-bold mb-0.5 sm:mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{date.getDate()}</div>
+                                                        {/* Mobile: solo punto de color */}
                                                         {asis && (
-                                                            <div className="space-y-1">
+                                                            <div className="sm:hidden flex justify-center mt-1">
+                                                                <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+                                                            </div>
+                                                        )}
+                                                        {/* Desktop: etiqueta + horas */}
+                                                        {asis && (
+                                                            <div className="hidden sm:block space-y-1">
                                                                 <div className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${asis.estado === '1' ? 'bg-emerald-100 text-emerald-700' : asis.estado === '0' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
                                                                     {getStatusLabel(asis.estado)}
                                                                 </div>
@@ -209,9 +222,10 @@ export default function MiAsistencia() {
                                 </div>
 
                                 <div className="flex gap-4 justify-center pt-4 border-t border-gray-100">
-                                    {[['bg-emerald-100 border-emerald-200', 'Asistió'], ['bg-red-100 border-red-200', 'Falta'], ['bg-orange-100 border-orange-200', 'Tardanza']].map(([cls, label]) => (
-                                        <div key={label} className="flex items-center gap-2">
-                                            <div className={`w-4 h-4 rounded border ${cls}`} />
+                                    {[['bg-emerald-400', 'bg-emerald-100 border-emerald-200', 'Asistió'], ['bg-red-400', 'bg-red-100 border-red-200', 'Falta'], ['bg-orange-400', 'bg-orange-100 border-orange-200', 'Tardanza']].map(([dot, cls, label]) => (
+                                        <div key={label} className="flex items-center gap-1.5">
+                                            <div className={`sm:hidden w-3 h-3 rounded-full ${dot}`} />
+                                            <div className={`hidden sm:block w-4 h-4 rounded border ${cls}`} />
                                             <span className="text-xs text-gray-600">{label}</span>
                                         </div>
                                     ))}
@@ -219,59 +233,91 @@ export default function MiAsistencia() {
                             </div>
                         )}
                     </SectionCard>
-                ) : (
-                    <SectionCard title="Historial de Asistencia">
-                        <div className="overflow-x-auto">
+                )}
+
+                {/* Modal historial */}
+                <Dialog open={showHistorial} onOpenChange={setShowHistorial}>
+                    <DialogContent className="w-full max-w-lg sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 rounded-2xl overflow-hidden">
+                        <DialogHeader className="px-5 py-4 border-b border-gray-100 bg-gray-50 shrink-0">
+                            <DialogTitle className="text-base font-black uppercase tracking-tight text-gray-900">
+                                Historial de Asistencia
+                            </DialogTitle>
+                            <p className="text-xs text-emerald-600 font-bold">{asistencias.length} registros</p>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto">
                             {loading ? (
-                                <div className="py-12 text-center text-sm font-black uppercase tracking-widest text-emerald-600 animate-pulse">Cargando historial...</div>
+                                <div className="py-12 text-center text-sm font-black uppercase tracking-widest text-emerald-600 animate-pulse">Cargando...</div>
                             ) : asistencias.length === 0 ? (
                                 <div className="py-12 text-center text-gray-400">
                                     <AlertCircle className="mx-auto mb-2 size-8 opacity-20" />
-                                    <p>No hay registros de asistencia para este período.</p>
+                                    <p className="text-sm">No hay registros para este período.</p>
                                 </div>
                             ) : (
-                                <table className="w-full text-left border-separate border-spacing-0 overflow-hidden rounded-xl border border-gray-100">
-                                    <thead>
-                                        <tr className="bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest">
-                                            <th className="py-3 pl-4 rounded-tl-xl border-b border-emerald-700">Fecha</th>
-                                            <th className="py-3 border-b border-emerald-700">Turno</th>
-                                            <th className="py-3 border-b border-emerald-700">Entrada</th>
-                                            <th className="py-3 border-b border-emerald-700">Salida</th>
-                                            <th className="py-3 pr-4 text-center rounded-tr-xl border-b border-emerald-700">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
+                                <>
+                                    {/* Desktop — tabla */}
+                                    <div className="hidden sm:block overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest">
+                                                    <th className="py-3 pl-4">Fecha</th>
+                                                    <th className="py-3">Turno</th>
+                                                    <th className="py-3">Entrada</th>
+                                                    <th className="py-3">Salida</th>
+                                                    <th className="py-3 pr-4 text-center">Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {asistencias.map((log, idx) => (
+                                                    <tr key={log.asistencia_id ?? idx} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="py-3 pl-4 font-bold text-gray-800 text-sm">
+                                                            {new Date(log.fecha).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                        </td>
+                                                        <td className="py-3 text-xs font-black text-indigo-600 uppercase tracking-tighter">
+                                                            {log.turno === 'M' ? 'Mañana' : log.turno === 'T' ? 'Tarde' : log.turno === 'N' ? 'Noche' : '-'}
+                                                        </td>
+                                                        <td className="py-3 font-mono text-xs font-bold text-gray-600">
+                                                            <span className="flex items-center gap-1"><Clock className="size-3 text-emerald-500" />{log.hora_entrada ?? '--:--'}</span>
+                                                        </td>
+                                                        <td className="py-3 font-mono text-xs font-bold text-gray-600">
+                                                            <span className="flex items-center gap-1"><Clock className="size-3 text-rose-500" />{log.hora_salida ?? '--:--'}</span>
+                                                        </td>
+                                                        <td className="py-3 pr-4">
+                                                            <div className={`mx-auto w-fit rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(log.estado)}`}>
+                                                                {getStatusLabel(log.estado)}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Mobile — cards */}
+                                    <div className="sm:hidden flex flex-col gap-2 p-4">
                                         {asistencias.map((log, idx) => (
-                                            <tr key={log.asistencia_id ?? idx} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="py-4 pl-4 font-bold text-gray-800 text-sm">
-                                                    {new Date(log.fecha).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'short' })}
-                                                </td>
-                                                <td className="py-4 text-xs font-black text-indigo-600 uppercase tracking-tighter">
-                                                    {log.turno === 'M' ? 'Mañana' : log.turno === 'T' ? 'Tarde' : '-'}
-                                                </td>
-                                                <td className="py-4 font-mono text-xs font-bold text-gray-600">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="size-3 text-emerald-500" />{log.hora_entrada ?? '--:--'}
+                                            <div key={log.asistencia_id ?? idx} className={`rounded-xl border-2 p-3 ${getStatusColor(log.estado)}`}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-bold text-sm text-gray-800">
+                                                        {new Date(log.fecha).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' })}
                                                     </span>
-                                                </td>
-                                                <td className="py-4 font-mono text-xs font-bold text-gray-600">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="size-3 text-rose-500" />{log.hora_salida ?? '--:--'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 pr-4">
-                                                    <div className={`mx-auto w-fit rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(log.estado)}`}>
+                                                    <span className={`text-[10px] font-black uppercase rounded px-2 py-0.5 ${getStatusColor(log.estado)}`}>
                                                         {getStatusLabel(log.estado)}
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-4 text-xs text-gray-600">
+                                                    <span className="font-bold">{log.turno === 'M' ? 'Mañana' : log.turno === 'T' ? 'Tarde' : 'Noche'}</span>
+                                                    <span className="flex items-center gap-1"><Clock className="size-3 text-emerald-500" />{log.hora_entrada?.substring(0,5) ?? '--:--'}</span>
+                                                    <span className="flex items-center gap-1"><Clock className="size-3 text-rose-500" />{log.hora_salida?.substring(0,5) ?? '--:--'}</span>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                </>
                             )}
                         </div>
-                    </SectionCard>
-                )}
+                    </DialogContent>
+                </Dialog>
 
                 <div className="rounded-2xl bg-emerald-50 p-6 border border-emerald-100">
                     <div className="flex gap-4">

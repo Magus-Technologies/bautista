@@ -202,12 +202,12 @@ class AsistenciaService implements AsistenciaServiceInterface
                 $persona = User::with('perfil')->find($log->id_persona);
             }
 
-            $perfil = $persona && property_exists($persona, 'perfil') ? $persona->perfil : ($persona instanceof User ? $persona->perfil : null);
-            
-            $log->usuario_nombre = $perfil 
-                ? "{$perfil->primer_nombre} {$perfil->apellido_paterno}" 
-                : ($persona instanceof User ? $persona->name : '—');
-                
+            $perfil = $persona?->perfil;
+
+            $log->usuario_nombre = $perfil
+                ? trim("{$perfil->primer_nombre} {$perfil->apellido_paterno}")
+                : ($persona instanceof User ? ($persona->name ?? '—') : ($persona?->getNombreCompletoAttribute() ?? '—'));
+
             return $log;
         })->toArray();
     }

@@ -15,9 +15,10 @@ export type Usuario = {
 export type HistorialAsistencia = {
     asistencia_id: number;
     fecha: string;
-    turno: 'M' | 'T';
+    turno: 'M' | 'T' | 'N';
     hora_entrada?: string;
     hora_salida?: string;
+    estado: '1' | '0' | 'T';
 };
 
 export function useAsistencia() {

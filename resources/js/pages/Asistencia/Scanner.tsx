@@ -255,7 +255,7 @@ return;
                                             </p>
                                             <p className="text-[9px] font-black text-neutral-400 group-hover:text-neutral-500 uppercase tracking-widest flex items-center mt-0.5">
                                                 <Clock className="w-2.5 h-2.5 mr-1" />
-                                                {log.hora_entrada ? `${log.hora_entrada.substring(0,5)} (E)` : `${log.hora_salida.substring(0,5)} (S)`}
+                                                {log.hora_entrada ? `${log.hora_entrada.substring(0,5)} (E)` : log.hora_salida ? `${log.hora_salida.substring(0,5)} (S)` : '--:--'}
                                             </p>
                                         </div>
                                     </div>
