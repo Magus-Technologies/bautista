@@ -292,6 +292,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('padre/hijo/{id}/resumen', [PadreApiController::class, 'hijoDetalle']);
         Route::get('padre/hijo/{id}/profesores', [PadreApiController::class, 'profesoresHijo']);
         Route::get('padre/hijo/{id}/asistencia', [PadreApiController::class, 'asistenciaHijo']);
+        Route::get('padre/hijo/{id}/horario',    [PadreApiController::class, 'horarioHijo']);
     });
 
     // Usuarios

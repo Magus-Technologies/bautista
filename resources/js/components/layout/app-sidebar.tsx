@@ -110,6 +110,7 @@ const navigation: NavItem[] = [
         { title: 'Asistencia',  href: '/padre/asistencia',  permission: 'portal.padre.hijos' },
         { title: 'Mis Pagos',   href: '/padre/pagos',       permission: 'portal.padre.pagos' },
         { title: 'Profesores',  href: '/padre/profesores',  permission: 'portal.padre.profesores' },
+        { title: 'Horario',     href: '/padre/horario',     permission: 'portal.padre.ver' },
     ]},
 
     // ── Procedimientos ───────────────────────────────────────────────

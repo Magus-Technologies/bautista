@@ -14,6 +14,60 @@ use Illuminate\Http\Request;
 class PadreApiController extends Controller
 {
     /**
+     * Get weekly schedule for a specific child.
+     */
+    public function horarioHijo(Request $request, int $hijoId)
+    {
+        $userId = $request->user()->id;
+        $padre  = PadreApoderado::where('user_id', $userId)->firstOrFail();
+        $padre->estudiantes()->where('estudiantes.estu_id', $hijoId)->firstOrFail();
+
+        $matricula = Matricula::where('estu_id', $hijoId)
+            ->where('estado', '1')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$matricula) {
+            return response()->json(['horario' => [], 'seccion_id' => null, 'anio' => (int) date('Y')]);
+        }
+
+        $anio = $request->query('anio', date('Y'));
+
+        $clases = \App\Models\HorarioClase::with(['curso', 'docente.perfil', 'aulaObj'])
+            ->where('seccion_id', $matricula->seccion_id)
+            ->where('anio_escolar', $anio)
+            ->where('activo', true)
+            ->orderBy('dia_semana')
+            ->orderBy('hora_inicio')
+            ->get();
+
+        $horario = [];
+        foreach ($clases as $clase) {
+            $dia = $clase->dia_semana;
+            if (!isset($horario[$dia])) {
+                $horario[$dia] = ['dia' => $clase->nombre_dia, 'clases' => []];
+            }
+            $horario[$dia]['clases'][] = [
+                'id'          => $clase->horario_clase_id,
+                'curso'       => $clase->curso->nombre,
+                'curso_id'    => $clase->curso_id,
+                'docente'     => trim(($clase->docente->perfil->primer_nombre ?? '') . ' ' . ($clase->docente->perfil->apellido_paterno ?? '')),
+                'docente_id'  => $clase->docente_id,
+                'hora_inicio' => $clase->hora_inicio_formateada,
+                'hora_fin'    => $clase->hora_fin_formateada,
+                'aula'        => $clase->aulaObj?->nombre ?? $clase->aula,
+                'duracion'    => $clase->duracion_minutos,
+            ];
+        }
+
+        return response()->json([
+            'seccion_id' => $matricula->seccion_id,
+            'anio'       => (int) $anio,
+            'horario'    => $horario,
+        ]);
+    }
+
+    /**
      * List children associated with the parent.
      */
     public function hijos(Request $request)

@@ -134,6 +134,7 @@ Route::middleware(['auth.token'])->group(function () {
         Route::get('/asistencia', fn () => Inertia::render('Matricula/Padre/AsistenciaHijos'))->name('asistencia');
         Route::get('/cursos', fn () => Inertia::render('Matricula/Padre/MisCursos'))->name('cursos');
         Route::get('/profesores', fn () => Inertia::render('Matricula/Padre/Profesores'))->name('profesores');
+        Route::get('/horario',    fn () => Inertia::render('Matricula/Padre/HorarioHijos'))->name('horario');
         Route::get('/matricula', fn () => inertia('Matricula/Padre/MatriculaWizard'))->name('matricula.wizard');
         Route::get('/hijo/{id}', fn (int $id) => Inertia::render('Matricula/Padre/HijoDetalle', ['hijoId' => $id]))->name('hijo.detalle');
     });
