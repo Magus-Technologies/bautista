@@ -1,5 +1,5 @@
 <?php
-$BASE = 'http://localhost:8000/api';
+$BASE = 'http://173.249.36.119:8080/api';
 $USER = 'admin';
 $PASS = 'bautista$2050$';
 
