@@ -1,7 +1,7 @@
 <?php
 $BASE = 'http://localhost:8000/api';
 $USER = 'admin';
-$PASS = 'admin123';
+$PASS = 'bautista$2050$';
 
 function req($url, $method = 'GET', $data = null, $token = '') {
     $ch = curl_init($url);
