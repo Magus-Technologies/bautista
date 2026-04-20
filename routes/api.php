@@ -173,6 +173,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/',              [ConceptoPagoApiController::class, 'store']);
         Route::put('/{id}',           [ConceptoPagoApiController::class, 'update']);
         Route::patch('/{id}/estado',  [ConceptoPagoApiController::class, 'toggleEstado']);
+        Route::delete('/{id}',        [ConceptoPagoApiController::class, 'destroy']);
     });
 
     // Tarifas por concepto + grado + año

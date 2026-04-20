@@ -65,4 +65,28 @@ class ConceptoPagoApiController extends Controller
 
         return response()->json($concepto);
     }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $concepto = ConceptoPago::where('concepto_id', $id)
+            ->where('insti_id', $request->user()->insti_id)
+            ->firstOrFail();
+
+        // Verificar si está en uso en tarifas o descuentos
+        $enTarifas    = \App\Models\TarifaPago::where('concepto_id', $id)->exists();
+        $enDescuentos = \App\Models\DescuentoAlumno::where('concepto_id', $id)->exists();
+
+        if ($enTarifas || $enDescuentos) {
+            return response()->json([
+                'message' => 'No se puede eliminar: este concepto está siendo usado en ' .
+                    ($enTarifas ? 'tarifas' : '') .
+                    ($enTarifas && $enDescuentos ? ' y ' : '') .
+                    ($enDescuentos ? 'descuentos' : '') . '.',
+            ], 422);
+        }
+
+        $concepto->delete();
+
+        return response()->json(null, 204);
+    }
 }

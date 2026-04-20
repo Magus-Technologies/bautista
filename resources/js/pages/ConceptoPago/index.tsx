@@ -68,6 +68,15 @@ export default function ConceptoPagoPage() {
         cargar();
     };
 
+    const eliminar = async (c: ConceptoPago) => {
+        try {
+            await api.delete(`/conceptos-pago/${c.concepto_id}`);
+            cargar();
+        } catch (e: any) {
+            alert(e?.response?.data?.message ?? 'Error al eliminar el concepto.');
+        }
+    };
+
     const columns: Column<ConceptoPago>[] = [
         { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Nombre',       render: c => <span className="font-semibold">{c.nombre}</span> },
@@ -121,6 +130,7 @@ export default function ConceptoPagoPage() {
                         getKey={c => c.concepto_id}
                         loading={loading}
                         onEdit={openEdit}
+                        onDelete={eliminar}
                         extraActions={c => (
                             <Button
                                 size="icon"
