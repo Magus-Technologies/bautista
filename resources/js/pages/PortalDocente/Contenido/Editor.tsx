@@ -123,7 +123,7 @@ export default function ContenidoEditor({ docenteCursoId }: { docenteCursoId: nu
 
                 <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm mt-4">
                     <div className="max-w-7xl mx-auto px-2 sm:px-6 overflow-x-auto no-scrollbar">
-                        <div className="flex items-center gap-1 py-2">
+                        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl my-2 w-fit">
                             {TABS.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -131,10 +131,10 @@ export default function ContenidoEditor({ docenteCursoId }: { docenteCursoId: nu
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center gap-1.5 px-3 sm:px-5 py-2.5 rounded-xl transition-all duration-200 font-bold text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap
-                                            ${isActive 
-                                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' 
-                                                : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50'}`}
+                                        className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg transition-all font-bold text-xs whitespace-nowrap
+                                            ${isActive
+                                                ? 'bg-white shadow text-gray-900'
+                                                : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         <Icon size={14} />
                                         <span className="hidden sm:inline">{tab.label}</span>
