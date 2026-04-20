@@ -14,7 +14,13 @@ class DescuentoAlumnoApiController extends Controller
     {
         $descuentos = DescuentoAlumno::with(['estudiante.perfil', 'concepto'])
             ->where('insti_id', $request->user()->insti_id)
-            ->when($request->get('estu_id'), fn ($q) => $q->where('estu_id', $request->get('estu_id')))
+            ->when($request->get('estu_id'), function ($q) use ($request) {
+                $today = now()->toDateString();
+                $q->where('estu_id', $request->get('estu_id'))
+                  ->where('activo', true)
+                  ->where('fecha_inicio', '<=', $today)
+                  ->where(fn ($sq) => $sq->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', $today));
+            })
             ->orderByDesc('created_at')
             ->get();
 

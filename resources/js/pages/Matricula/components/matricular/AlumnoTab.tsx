@@ -1,11 +1,25 @@
-import { Search } from 'lucide-react';
+import { Search, Tag, TrendingDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ReqLabel, OptLabel, SELECT_CLS } from '@/components/shared/FormLabels';
 import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import api from '@/lib/api';
 import type { GradoOption, SeccionOption, MatriculaFormData } from '../../hooks/useMatricula';
 import type { AlumnoForm } from './types';
+
+type Descuento = {
+    descuento_id: number;
+    motivo: string;
+    tipo: 'porcentaje' | 'monto_fijo';
+    valor: number;
+    fecha_fin: string | null;
+};
+
+const MOTIVO_LABEL: Record<string, string> = {
+    hermanos: 'Hermanos', merito: 'Mérito', beca: 'Beca', otro: 'Otro',
+};
 
 type Props = {
     alumno:         AlumnoForm;
@@ -37,6 +51,66 @@ export default function AlumnoTab({
     const err = (k: string) => errors[k]
         ? <p className="text-xs text-red-500 mt-0.5">{errors[k]}</p>
         : null;
+
+    const [tarifaBase, setTarifaBase]     = useState<number | null>(null);
+    const [descuentos, setDescuentos]     = useState<Descuento[]>([]);
+    const [loadingTarifa, setLoadingTarifa] = useState(false);
+
+    // Al cambiar grado → buscar tarifa mensual vigente
+    useEffect(() => {
+        if (!selectedGrado) { setTarifaBase(null); return; }
+        setLoadingTarifa(true);
+        const anio = new Date().getFullYear();
+        api.get('/tarifas-pago')
+            .then(res => {
+                const tarifas: any[] = res.data;
+                // Buscar tarifa mensual para este grado y año (o tarifa general sin grado)
+                const match =
+                    tarifas.find(t =>
+                        t.activo &&
+                        Number(t.anio_escolar) === anio &&
+                        String(t.grado_id) === String(selectedGrado) &&
+                        t.concepto?.periodicidad === 'mensual',
+                    ) ??
+                    tarifas.find(t =>
+                        t.activo &&
+                        Number(t.anio_escolar) === anio &&
+                        t.grado_id === null &&
+                        t.concepto?.periodicidad === 'mensual',
+                    );
+                if (match) {
+                    const monto = Number(match.monto).toFixed(2);
+                    setTarifaBase(Number(match.monto));
+                    setAlumno(prev => ({ ...prev, mensualidad: monto }));
+                } else {
+                    setTarifaBase(null);
+                }
+            })
+            .catch(() => setTarifaBase(null))
+            .finally(() => setLoadingTarifa(false));
+    }, [selectedGrado]);
+
+    // Al encontrar alumno existente → buscar descuentos activos
+    useEffect(() => {
+        if (!alumno.estu_id) { setDescuentos([]); return; }
+        api.get('/descuentos', { params: { estu_id: alumno.estu_id } })
+            .then(res => {
+                const activos = (res.data as Descuento[]).filter((d: any) => d.activo);
+                setDescuentos(activos);
+            })
+            .catch(() => setDescuentos([]));
+    }, [alumno.estu_id]);
+
+    // Calcular monto final con descuentos
+    const montoFinal = (() => {
+        if (!tarifaBase) return null;
+        let monto = tarifaBase;
+        for (const d of descuentos) {
+            if (d.tipo === 'porcentaje') monto -= monto * (d.valor / 100);
+            else monto -= d.valor;
+        }
+        return Math.max(0, monto);
+    })();
 
     return (
         <div className="space-y-5">
@@ -84,9 +158,7 @@ export default function AlumnoTab({
                     <ReqLabel>Grupo Académico</ReqLabel>
                     <select
                         value={selectedGrado}
-                        onChange={e => {
- setSelectedGrado(e.target.value); setM('seccion_id', ''); 
-}}
+                        onChange={e => { setSelectedGrado(e.target.value); setM('seccion_id', ''); }}
                         className={SELECT_CLS}
                     >
                         <option value="">Seleccionar…</option>
@@ -229,11 +301,52 @@ export default function AlumnoTab({
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_ingreso} onChange={e => setA('fecha_ingreso', e.target.value)} />
                     {err('fecha_ingreso')}
                 </div>
+
+                {/* ── Mensualidad con tarifa automática ─────────────── */}
                 <div className="space-y-1.5">
                     <ReqLabel>Mensualidad (S/)</ReqLabel>
-                    <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="number" step="0.01" value={alumno.mensualidad} onChange={e => setA('mensualidad', e.target.value)} placeholder="0.00" />
+                    <div className="relative">
+                        <Input
+                            className="h-10 text-sm rounded-xl bg-neutral-50/50 pr-8"
+                            type="number" step="0.01"
+                            value={alumno.mensualidad}
+                            onChange={e => setA('mensualidad', e.target.value)}
+                            placeholder="0.00"
+                        />
+                        {loadingTarifa && (
+                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-400 animate-pulse">cargando…</span>
+                        )}
+                    </div>
+                    {/* Info de tarifa y descuentos */}
+                    {tarifaBase !== null && (
+                        <div className="mt-1.5 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 space-y-1">
+                            <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold">
+                                <Tag className="size-3" />
+                                Tarifa base: S/ {tarifaBase.toFixed(2)}
+                            </div>
+                            {descuentos.map(d => (
+                                <div key={d.descuento_id} className="flex items-center gap-1.5 text-[11px] text-indigo-700 font-semibold">
+                                    <TrendingDown className="size-3" />
+                                    {MOTIVO_LABEL[d.motivo] ?? d.motivo}:{' '}
+                                    {d.tipo === 'porcentaje' ? `-${d.valor}%` : `-S/ ${d.valor.toFixed(2)}`}
+                                    {d.fecha_fin && <span className="text-gray-400 font-normal">hasta {d.fecha_fin}</span>}
+                                </div>
+                            ))}
+                            {montoFinal !== null && descuentos.length > 0 && (
+                                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-black border-t border-blue-100 pt-1 mt-1">
+                                    Monto final: S/ {montoFinal.toFixed(2)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {!tarifaBase && selectedGrado && !loadingTarifa && (
+                        <p className="text-[11px] text-amber-600 mt-1">
+                            Sin tarifa configurada para este grado — ingrese el monto manualmente.
+                        </p>
+                    )}
                     {err('mensualidad')}
                 </div>
+
                 <div className="space-y-1.5">
                     <ReqLabel>Fecha de Pago</ReqLabel>
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_pago} onChange={e => setA('fecha_pago', e.target.value)} />
