@@ -1,4 +1,4 @@
-import { Copy, Loader2, Plus } from 'lucide-react';
+import { Copy, Download, Loader2, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
@@ -22,6 +22,28 @@ export default function AdminHorarioView() {
     // Modales
     const [claseModal, setClaseModal] = useState<{ open: boolean; clase?: any }>({ open: false });
     const [clonarModal, setClonarModal] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+
+    const descargarPdf = async () => {
+        if (!seccionSeleccionada) return;
+        setDownloading(true);
+        try {
+            const res = await api.get(`/secciones/${seccionSeleccionada}/horario-pdf`, {
+                params: { anio },
+                responseType: 'blob',
+            });
+            const url  = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href     = url;
+            link.download = `Horario_${seccionActual?.nombre ?? 'Seccion'}_${anio}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     useEffect(() => {
         cargarSecciones();
@@ -129,6 +151,16 @@ export default function AdminHorarioView() {
                 </div>
 
                 <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                        title="Descargar PDF"
+                        onClick={descargarPdf}
+                        disabled={!seccionSeleccionada || downloading}
+                    >
+                        <Download className={`h-4 w-4 ${downloading ? 'animate-pulse' : ''}`} />
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"

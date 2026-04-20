@@ -44,6 +44,91 @@ class HorarioClaseApiController extends Controller
     }
 
     /**
+     * GET /api/secciones/{seccionId}/horario-pdf
+     * Descargar horario de sección en PDF
+     */
+    public function pdfSeccion(Request $request, int $seccionId): \Symfony\Component\HttpFoundation\Response
+    {
+        $anio    = $request->input('anio', date('Y'));
+        $horario = $this->horarioService->obtenerHorarioSeccion($seccionId, $anio);
+
+        $seccion = \App\Models\Seccion::with('grado')->findOrFail($seccionId);
+        $titulo  = $seccion->nombre . ($seccion->grado ? ' — ' . $seccion->grado->nombre_grado : '');
+
+        $html = view('pdf.horario-clases', [
+            'horario'        => $horario,
+            'titulo'         => $titulo,
+            'anio'           => $anio,
+            'fecha'          => now()->format('d/m/Y H:i'),
+            'mostrarDocente' => true,
+            'mostrarSeccion' => false,
+        ])->render();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+
+        return $pdf->download("Horario_{$seccion->nombre}_{$anio}.pdf");
+    }
+
+    /**
+     * GET /api/docentes/{docenteId}/horario-pdf
+     * Descargar horario de docente en PDF
+     */
+    public function pdfDocente(Request $request, int $docenteId): \Symfony\Component\HttpFoundation\Response
+    {
+        $anio    = $request->input('anio', date('Y'));
+        $horario = $this->horarioService->obtenerHorarioDocente($docenteId, $anio);
+
+        $docente = \App\Models\Docente::with('perfil')->findOrFail($docenteId);
+        $nombre  = $docente->perfil
+            ? trim($docente->perfil->primer_nombre . ' ' . $docente->perfil->apellido_paterno)
+            : "Docente #{$docenteId}";
+
+        $html = view('pdf.horario-clases', [
+            'horario'        => $horario,
+            'titulo'         => $nombre,
+            'anio'           => $anio,
+            'fecha'          => now()->format('d/m/Y H:i'),
+            'mostrarDocente' => false,
+            'mostrarSeccion' => true,
+        ])->render();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+
+        return $pdf->download("Horario_Docente_{$anio}.pdf");
+    }
+
+    /**
+     * GET /api/alumno/horario-pdf
+     * Descargar horario del alumno autenticado en PDF
+     */
+    public function pdfAlumno(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $anio = $request->input('anio', date('Y'));
+
+        // Reutilizar el endpoint del alumno para obtener el horario
+        $alumnoController = app(\App\Http\Controllers\Api\AlumnoApiController::class);
+        $response = $alumnoController->horario($request);
+        $data = $response->getData(true);
+        $horario = $data['horario'] ?? [];
+
+        $user   = $request->user();
+        $nombre = $user->nombre_completo ?? $user->name ?? 'Alumno';
+
+        $html = view('pdf.horario-clases', [
+            'horario'        => $horario,
+            'titulo'         => $nombre,
+            'anio'           => $anio,
+            'fecha'          => now()->format('d/m/Y H:i'),
+            'mostrarDocente' => true,
+            'mostrarSeccion' => false,
+        ])->render();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+
+        return $pdf->download("Mi_Horario_{$anio}.pdf");
+    }
+
+    /**
      * POST /api/horario-clases
      * Crear nueva clase en el horario
      */

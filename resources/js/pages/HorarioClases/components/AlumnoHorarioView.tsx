@@ -7,6 +7,7 @@ import HorarioSemanal from './HorarioSemanal';
 export default function AlumnoHorarioView() {
     const [horario, setHorario] = useState<any>({});
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
     const [anio, setAnio] = useState(new Date().getFullYear());
 
     useEffect(() => {
@@ -22,6 +23,26 @@ export default function AlumnoHorarioView() {
             console.error('Error al cargar horario:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const descargarPdf = async () => {
+        setDownloading(true);
+        try {
+            const res = await api.get('/alumno/horario-pdf', {
+                params: { anio },
+                responseType: 'blob',
+            });
+            const url  = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href     = url;
+            link.download = `Mi_Horario_${anio}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -56,11 +77,12 @@ export default function AlumnoHorarioView() {
                 <Button
                     variant="outline"
                     size="sm"
-                    className="gap-2"
-                    onClick={() => window.print()}
+                    className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                    title="Descargar PDF"
+                    disabled={downloading}
+                    onClick={descargarPdf}
                 >
-                    <Download className="h-4 w-4" />
-                    Descargar PDF
+                    <Download className={`h-4 w-4 ${downloading ? 'animate-pulse' : ''}`} />
                 </Button>
             </div>
 

@@ -380,9 +380,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     Route::get('secciones/{seccionId}/horario',             [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'porSeccion']);
+    Route::get('secciones/{seccionId}/horario-pdf',         [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'pdfSeccion']);
     Route::post('secciones/{seccionId}/clonar-horario',     [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'clonarHorario']);
     Route::get('docentes/{docenteId}/horario-clases',       [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'porDocente']);
+    Route::get('docentes/{docenteId}/horario-pdf',          [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'pdfDocente']);
     Route::get('docentes/{docenteId}/carga-horaria',        [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'cargaHoraria']);
+    Route::get('alumno/horario-pdf',                        [\App\Http\Controllers\Api\HorarioClaseApiController::class, 'pdfAlumno']);
 
     // Bloques Horarios (Configuración)
     Route::apiResource('horario-bloques', \App\Http\Controllers\Api\HorarioBloqueApiController::class)->except(['show'])->names('api.horario-bloques');
