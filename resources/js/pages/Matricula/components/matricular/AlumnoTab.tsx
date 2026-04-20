@@ -1,4 +1,4 @@
-import { Search, Tag, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
+import { Search, Tag, TrendingDown, DollarSign, RefreshCw, ImageIcon, X as XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ReqLabel, OptLabel, SELECT_CLS } from '@/components/shared/FormLabels';
 import TitleForm from '@/components/TitleForm';
@@ -521,8 +521,22 @@ export default function AlumnoTab({
                     className="h-12 w-full text-sm rounded-xl bg-neutral-50/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
                     type="file"
                     accept="image/png, image/jpeg, image/gif"
-                    onChange={e => setAlumno(prev => ({ ...prev, foto: e.target.files ? e.target.files[0] : null }))}
+                    onChange={e => setAlumno(prev => ({ ...prev, foto: e.target.files?.[0] ?? null }))}
                 />
+                {alumno.foto && (
+                    <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
+                        <ImageIcon className="size-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs text-emerald-700 font-medium truncate flex-1">{alumno.foto.name}</span>
+                        <button
+                            type="button"
+                            onClick={() => setAlumno(prev => ({ ...prev, foto: null }))}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            title="Quitar foto"
+                        >
+                            <XIcon className="size-3.5" />
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

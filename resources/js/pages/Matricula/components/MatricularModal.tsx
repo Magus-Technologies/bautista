@@ -235,20 +235,26 @@ return;
         fn(prev => ({ ...prev, [k]: v }));
     };
 
-    const buildAlumnoPayload = () => ({
-        username: alumno.username, email: alumno.email,
-        primer_nombre: alumno.primer_nombre, segundo_nombre: alumno.segundo_nombre,
-        apellido_paterno: alumno.apellido_paterno, apellido_materno: alumno.apellido_materno,
-        genero: alumno.genero, fecha_nacimiento: alumno.fecha_nacimiento,
-        edad: alumno.edad, talla: alumno.talla, peso: alumno.peso,
-        telefono: alumno.telefono, direccion: alumno.direccion,
-        colegio: alumno.colegio, neurodivergencia: alumno.neurodivergencia,
-        terapia_ocupacional: alumno.terapia_ocupacional, seguro: alumno.seguro,
-        seguro_privado: alumno.seguro_privado, mensualidad: alumno.mensualidad,
-        fecha_ingreso: alumno.fecha_ingreso,
-        fecha_promovido: alumno.fecha_pago,  // fecha_pago en UI → fecha_promovido en BD
-        foto: alumno.foto,
-    });
+    const buildAlumnoPayload = () => {
+        // Si alumno.mensualidad fue reseteado (ej: búsqueda DNI), recuperar desde conceptos cargados
+        const mensualConcepto = conceptosCobro.find(c => c.periodicidad === 'mensual' && c.incluido);
+        const mensualidad = alumno.mensualidad || mensualConcepto?.monto_final.toFixed(2) || '';
+
+        return {
+            username: alumno.username, email: alumno.email,
+            primer_nombre: alumno.primer_nombre, segundo_nombre: alumno.segundo_nombre,
+            apellido_paterno: alumno.apellido_paterno, apellido_materno: alumno.apellido_materno,
+            genero: alumno.genero, fecha_nacimiento: alumno.fecha_nacimiento,
+            edad: alumno.edad, talla: alumno.talla, peso: alumno.peso,
+            telefono: alumno.telefono, direccion: alumno.direccion,
+            colegio: alumno.colegio, neurodivergencia: alumno.neurodivergencia,
+            terapia_ocupacional: alumno.terapia_ocupacional, seguro: alumno.seguro,
+            seguro_privado: alumno.seguro_privado, mensualidad,
+            fecha_ingreso: alumno.fecha_ingreso,
+            fecha_promovido: alumno.fecha_pago,
+            foto: alumno.foto,
+        };
+    };
 
     // ── Submit ─────────────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
