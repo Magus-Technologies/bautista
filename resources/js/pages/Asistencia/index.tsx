@@ -118,26 +118,26 @@ export default function AsistenciaIndex() {
             >
                 {/* Filtro de tipo y botón scanner */}
                 <div className="mb-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-                    <div className="flex bg-neutral-100 p-1 rounded-2xl border border-neutral-200 w-full sm:w-auto">
+                    <div className="flex bg-gray-100 p-1 rounded-xl gap-1 w-full sm:w-auto">
                         <button 
                             onClick={() => changeTipo('E')}
-                            className={`flex-1 sm:flex-none sm:px-6 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                 tipo === 'E' 
-                                    ? 'bg-indigo-600 text-white' 
-                                    : 'text-neutral-500 hover:bg-neutral-200'
+                                    ? 'bg-white shadow text-gray-900' 
+                                    : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            <GraduationCap className="h-4 w-4" /> Estudiantes
+                            <GraduationCap className="size-3.5" /> Estudiantes
                         </button>
                         <button 
                             onClick={() => changeTipo('D')}
-                            className={`flex-1 sm:flex-none sm:px-6 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                 tipo === 'D' 
-                                    ? 'bg-amber-600 text-white' 
-                                    : 'text-neutral-500 hover:bg-neutral-200'
+                                    ? 'bg-white shadow text-gray-900' 
+                                    : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            <UserCheck className="h-4 w-4" /> Docentes
+                            <UserCheck className="size-3.5" /> Docentes
                         </button>
                     </div>
 
@@ -145,11 +145,10 @@ export default function AsistenciaIndex() {
                         {can('asistencia.reportes.exportar') && (
                             <Button 
                                 onClick={() => setShowExportModal(true)}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-all gap-2"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-all"
+                                title="Exportar Excel"
                             >
                                 <FileSpreadsheet className="h-5 w-5" />
-                                <span className="hidden sm:inline">Exportar Excel</span>
-                                <span className="sm:hidden">Excel</span>
                             </Button>
                         )}
                         

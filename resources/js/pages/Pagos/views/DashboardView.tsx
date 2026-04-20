@@ -4,6 +4,7 @@ import {
     CheckCircle, Zap, RefreshCw, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import StatCard from '@/components/shared/StatCard';
 import api from '@/lib/api';
 
 const MESES = [
@@ -97,55 +98,34 @@ export default function DashboardView() {
 
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="bg-white/20 rounded-xl p-2.5"><TrendingUp className="size-5 sm:size-6" /></div>
-                        <BarChart2 className="size-4 opacity-50" />
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black">
-                        {loading ? '—' : `S/ ${stats?.total_recaudado.toFixed(2) ?? '0.00'}`}
-                    </div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Recaudado</div>
-                    <div className="text-xs opacity-60">{mes} {anio}</div>
-                </div>
-
-                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="bg-white/20 rounded-xl p-2.5"><Clock className="size-5 sm:size-6" /></div>
-                        {!loading && vencidos.length > 0 && (
-                            <span className="text-xs bg-white/20 rounded-full px-2 py-0.5 font-bold">{vencidos.length} venc.</span>
-                        )}
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black">
-                        {loading ? '—' : stats?.total_pendientes ?? 0}
-                    </div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
-                    <div className="text-xs opacity-60">{mes} {anio}</div>
-                </div>
-
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="bg-white/20 rounded-xl p-2.5"><CheckCircle className="size-5 sm:size-6" /></div>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black">
-                        {loading ? '—' : stats?.vouchers_pendientes ?? 0}
-                    </div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Vouchers en revisión</div>
-                    <div className="text-xs opacity-60">Pendientes de validar</div>
-                </div>
-
-                <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="bg-white/20 rounded-xl p-2.5"><TrendingUp className="size-5 sm:size-6" /></div>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black">
-                        {loading ? '—' : `${stats?.porcentaje_cobranza ?? 0}%`}
-                    </div>
-                    <div className="text-xs font-bold uppercase tracking-wider opacity-80 mt-1">Cobranza</div>
-                    <div className="text-xs opacity-60">
-                        {!loading && stats && `${stats.total_registros} registros`}
-                    </div>
-                </div>
+                <StatCard
+                    title={`Recaudado · ${mes} ${anio}`}
+                    value={loading ? '—' : `S/ ${stats?.total_recaudado.toFixed(2) ?? '0.00'}`}
+                    icon={TrendingUp}
+                    color="text-emerald-600"
+                    iconBg="bg-emerald-500"
+                />
+                <StatCard
+                    title={`Pendientes · ${mes} ${anio}`}
+                    value={loading ? '—' : stats?.total_pendientes ?? 0}
+                    icon={Clock}
+                    color="text-amber-600"
+                    iconBg="bg-amber-500"
+                />
+                <StatCard
+                    title="Vouchers en revisión"
+                    value={loading ? '—' : stats?.vouchers_pendientes ?? 0}
+                    icon={CheckCircle}
+                    color="text-indigo-600"
+                    iconBg="bg-indigo-500"
+                />
+                <StatCard
+                    title={`Cobranza${!loading && stats ? ` · ${stats.total_registros} registros` : ''}`}
+                    value={loading ? '—' : `${stats?.porcentaje_cobranza ?? 0}%`}
+                    icon={BarChart2}
+                    color="text-sky-600"
+                    iconBg="bg-sky-500"
+                />
             </div>
 
             {/* Acciones */}

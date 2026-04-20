@@ -1,9 +1,11 @@
 import { Head } from '@inertiajs/react';
-import { Tag, PlusCircle, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Tag, PlusCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/shared/PageHeader';
 import SectionCard from '@/components/shared/SectionCard';
+import ResourceTable from '@/components/shared/ResourceTable';
+import type { Column } from '@/components/shared/ResourceTable';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
@@ -35,13 +37,17 @@ const PERIODICIDAD_COLOR: Record<string, string> = {
     unico:   'bg-gray-100 text-gray-700',
 };
 
+function toPaginated<T>(data: T[]) {
+    return { data, current_page: 1, last_page: 1, per_page: data.length, total: data.length, from: 1, to: data.length };
+}
+
 export default function ConceptoPagoPage() {
     const [conceptos, setConceptos]   = useState<ConceptoPago[]>([]);
     const [loading, setLoading]       = useState(true);
     const [modalOpen, setModalOpen]   = useState(false);
     const [editing, setEditing]       = useState<ConceptoPago | null>(null);
 
-    const fetch = async () => {
+    const cargar = async () => {
         setLoading(true);
         try {
             const res = await api.get('/conceptos-pago');
@@ -51,15 +57,36 @@ export default function ConceptoPagoPage() {
         }
     };
 
-    useEffect(() => { fetch(); }, []);
+    useEffect(() => { cargar(); }, []);
 
     const openNew  = () => { setEditing(null); setModalOpen(true); };
     const openEdit = (c: ConceptoPago) => { setEditing(c); setModalOpen(true); };
 
     const toggleEstado = async (c: ConceptoPago) => {
         await api.patch(`/conceptos-pago/${c.concepto_id}/estado`);
-        fetch();
+        cargar();
     };
+
+    const columns: Column<ConceptoPago>[] = [
+        { label: 'Nombre',       render: c => <span className="font-semibold">{c.nombre}</span> },
+        { label: 'Descripción',  render: c => <span className="text-gray-500 text-xs">{c.descripcion ?? '—'}</span> },
+        {
+            label: 'Periodicidad',
+            render: c => (
+                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${PERIODICIDAD_COLOR[c.periodicidad]}`}>
+                    {PERIODICIDAD_LABEL[c.periodicidad]}
+                </span>
+            ),
+        },
+        {
+            label: 'Estado',
+            render: c => (
+                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${c.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                    {c.activo ? 'Activo' : 'Inactivo'}
+                </span>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -80,58 +107,27 @@ export default function ConceptoPagoPage() {
                 </div>
 
                 <SectionCard title={`${conceptos.length} conceptos registrados`}>
-                    {loading ? (
-                        <p className="py-8 text-center text-sm text-gray-400">Cargando...</p>
-                    ) : conceptos.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-gray-400">Sin conceptos registrados. Crea el primero.</p>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                        <th className="pb-3 pr-4">Nombre</th>
-                                        <th className="pb-3 pr-4">Descripción</th>
-                                        <th className="pb-3 pr-4 text-center">Periodicidad</th>
-                                        <th className="pb-3 pr-4 text-center">Estado</th>
-                                        <th className="pb-3 text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {conceptos.map(c => (
-                                        <tr key={c.concepto_id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="py-3 pr-4 font-semibold text-gray-800">{c.nombre}</td>
-                                            <td className="py-3 pr-4 text-gray-500 text-xs max-w-xs truncate">
-                                                {c.descripcion ?? '—'}
-                                            </td>
-                                            <td className="py-3 pr-4 text-center">
-                                                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${PERIODICIDAD_COLOR[c.periodicidad]}`}>
-                                                    {PERIODICIDAD_LABEL[c.periodicidad]}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 pr-4 text-center">
-                                                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${c.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-                                                    {c.activo ? 'Activo' : 'Inactivo'}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(c)}>
-                                                        <Pencil className="size-3.5 text-gray-500" />
-                                                    </Button>
-                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => toggleEstado(c)}>
-                                                        {c.activo
-                                                            ? <ToggleRight className="size-4 text-emerald-500" />
-                                                            : <ToggleLeft className="size-4 text-gray-400" />
-                                                        }
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    <ResourceTable
+                        rows={toPaginated(conceptos)}
+                        columns={columns}
+                        getKey={c => c.concepto_id}
+                        loading={loading}
+                        onEdit={openEdit}
+                        extraActions={c => (
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-7"
+                                onClick={() => toggleEstado(c)}
+                                title={c.activo ? 'Desactivar' : 'Activar'}
+                            >
+                                {c.activo
+                                    ? <ToggleRight className="size-4 text-emerald-500" />
+                                    : <ToggleLeft className="size-4 text-gray-400" />
+                                }
+                            </Button>
+                        )}
+                    />
                 </SectionCard>
             </div>
 
@@ -139,7 +135,7 @@ export default function ConceptoPagoPage() {
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
                 editing={editing}
-                onSaved={fetch}
+                onSaved={cargar}
             />
         </AppLayout>
     );

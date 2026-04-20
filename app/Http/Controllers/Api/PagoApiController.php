@@ -194,7 +194,7 @@ class PagoApiController extends Controller
         $byNivel  = collect($filas)->groupBy('nombre_nivel');
 
         $institucion = \App\Models\InstitucionEducativa::where('insti_id', $request->user()->insti_id)
-            ->value('nombre') ?? 'Institución';
+            ->value('insti_razon_social') ?? 'Institución';
 
         $html = view('pdf.reporte-consolidado', [
             'filas'       => $filas,
@@ -208,6 +208,130 @@ class PagoApiController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
 
         return $pdf->download("Reporte_Consolidado_{$mes}_{$anio}.pdf");
+    }
+
+    // ── Reporte consolidado Excel ─────────────────────────────────────────
+
+    public function reporteConsolidadoExcel(Request $request)
+    {
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $mes  = strtoupper($request->get('mes', $meses[Carbon::now()->month - 1]));
+        $anio = (int) $request->get('anio', Carbon::now()->year);
+
+        $filas = $this->service->reporteConsolidado($request->user()->insti_id, $mes, $anio);
+
+        $institucion = \App\Models\InstitucionEducativa::where('insti_id', $request->user()->insti_id)
+            ->value('insti_razon_social') ?? 'Institución';
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Reporte Consolidado');
+
+        // ── Encabezado ──────────────────────────────────────────────────
+        $sheet->mergeCells('A1:I1');
+        $sheet->setCellValue('A1', strtoupper($institucion));
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        $sheet->mergeCells('A2:I2');
+        $sheet->setCellValue('A2', "REPORTE CONSOLIDADO DE PAGOS — {$mes} {$anio}");
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        $sheet->mergeCells('A3:I3');
+        $sheet->setCellValue('A3', 'Generado: ' . Carbon::now()->format('d/m/Y H:i'));
+        $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(9);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // ── Cabecera de tabla ────────────────────────────────────────────
+        $headers = ['Nivel', 'Grado', 'Total Pagos', 'Pagados', 'Pendientes', 'Recaudado (S/)', 'Pendiente (S/)', '% Cobranza'];
+        $cols    = ['A','B','C','D','E','F','G','H'];
+
+        foreach ($headers as $i => $h) {
+            $cell = $cols[$i] . '5';
+            $sheet->setCellValue($cell, $h);
+        }
+
+        $headerRange = 'A5:H5';
+        $sheet->getStyle($headerRange)->getFont()->setBold(true)->setColor(
+            (new \PhpOffice\PhpSpreadsheet\Style\Color())->setARGB('FFFFFFFF')
+        );
+        $sheet->getStyle($headerRange)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF166534');
+        $sheet->getStyle($headerRange)->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // ── Datos ────────────────────────────────────────────────────────
+        $row = 6;
+        foreach ($filas as $f) {
+            $f = (array) $f;
+            $sheet->setCellValue("A{$row}", $f['nombre_nivel']);
+            $sheet->setCellValue("B{$row}", $f['nombre_grado']);
+            $sheet->setCellValue("C{$row}", $f['total_pagos']);
+            $sheet->setCellValue("D{$row}", $f['pagos_realizados']);
+            $sheet->setCellValue("E{$row}", $f['pagos_pendientes']);
+            $sheet->setCellValue("F{$row}", number_format((float)$f['monto_recaudado'], 2, '.', ''));
+            $sheet->setCellValue("G{$row}", number_format((float)$f['monto_pendiente'], 2, '.', ''));
+            $sheet->setCellValue("H{$row}", $f['porcentaje_cobranza']);
+
+            // Color de fila alternada
+            if ($row % 2 === 0) {
+                $sheet->getStyle("A{$row}:H{$row}")->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('FFF0FDF4');
+            }
+
+            // Color % cobranza
+            $pct = (float) $f['porcentaje_cobranza'];
+            $pctColor = $pct >= 80 ? 'FF059669' : ($pct >= 50 ? 'FFD97706' : 'FFDC2626');
+            $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB($pctColor);
+            $sheet->getStyle("H{$row}")->getFont()->setBold(true);
+
+            $row++;
+        }
+
+        // ── Fila de totales ──────────────────────────────────────────────
+        $totalRec  = collect($filas)->sum(fn($f) => (float)((array)$f)['monto_recaudado']);
+        $totalPend = collect($filas)->sum(fn($f) => (float)((array)$f)['monto_pendiente']);
+        $totalPagos = collect($filas)->sum(fn($f) => (int)((array)$f)['total_pagos']);
+        $totalPagados = collect($filas)->sum(fn($f) => (int)((array)$f)['pagos_realizados']);
+        $totalPendientes = collect($filas)->sum(fn($f) => (int)((array)$f)['pagos_pendientes']);
+
+        $sheet->setCellValue("A{$row}", 'TOTAL');
+        $sheet->setCellValue("C{$row}", $totalPagos);
+        $sheet->setCellValue("D{$row}", $totalPagados);
+        $sheet->setCellValue("E{$row}", $totalPendientes);
+        $sheet->setCellValue("F{$row}", number_format($totalRec, 2, '.', ''));
+        $sheet->setCellValue("G{$row}", number_format($totalPend, 2, '.', ''));
+
+        $sheet->getStyle("A{$row}:H{$row}")->getFont()->setBold(true);
+        $sheet->getStyle("A{$row}:H{$row}")->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFD1FAE5');
+
+        // ── Bordes y auto-size ───────────────────────────────────────────
+        $dataRange = "A5:H{$row}";
+        $sheet->getStyle($dataRange)->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)
+            ->getColor()->setARGB('FFE5E7EB');
+
+        foreach ($cols as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $sheet->getStyle('C5:H' . $row)->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // ── Generar archivo ──────────────────────────────────────────────
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'reporte_pagos');
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, "Reporte_Consolidado_{$mes}_{$anio}.xlsx")
+            ->deleteFileAfterSend(true);
     }
 
     // ── Reporte PDF (pagos por contacto) ──────────────────────────────────

@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Settings2, Save, RotateCcw, Image as ImageIcon, Palette, Type, CreditCard, RefreshCw } from 'lucide-react';
+import { Settings2, Save, RotateCcw, Image as ImageIcon, Palette, CreditCard, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import AppLayout from '@/layouts/app-layout';
@@ -25,7 +25,7 @@ export default function ConfiguracionFotocheck() {
         primary_color: '#2c63f2',
         secondary_color: '#7b8780',
         text_color: '#ffffff',
-        footer_text: 'Periodo Académico 2026',
+        footer_text: `Periodo Académico ${new Date().getFullYear()}`,
         logo_path: ''
     });
     const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -65,7 +65,14 @@ export default function ConfiguracionFotocheck() {
     useEffect(() => {
         api.get('/configuracion-fotocheck')
             .then(res => {
-                if (res.data) setConfig(res.data);
+                if (res.data) {
+                    const data = { ...res.data };
+                    // Si el footer sigue el patrón "Periodo Académico XXXX", actualizar al año actual
+                    if (/^Periodo Académico \d{4}$/.test(data.footer_text ?? '')) {
+                        data.footer_text = `Periodo Académico ${new Date().getFullYear()}`;
+                    }
+                    setConfig(data);
+                }
             })
             .catch(err => console.error("Error fetching config:", err))
             .finally(() => setLoading(false));
@@ -89,7 +96,8 @@ export default function ConfiguracionFotocheck() {
         formData.append('primary_color', config.primary_color);
         formData.append('secondary_color', config.secondary_color);
         formData.append('text_color', config.text_color);
-        formData.append('footer_text', config.footer_text);
+        // El año del periodo siempre se genera automáticamente
+        formData.append('footer_text', `Periodo Académico ${new Date().getFullYear()}`);
         if (logoFile) {
             formData.append('logo', logoFile);
         }
@@ -215,25 +223,6 @@ export default function ConfiguracionFotocheck() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
-                            <CardHeader className="bg-white border-b border-gray-100">
-                                <CardTitle className="text-sm font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                                    <Type className="size-4 text-orange-600" /> Textos Informativos
-                                </CardTitle>
-                                <CardDescription>Edita el texto que aparece en la parte inferior.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Pie de Página (Periodo)</Label>
-                                    <Input 
-                                        value={config.footer_text}
-                                        onChange={(e) => setConfig(prev => ({ ...prev, footer_text: e.target.value }))}
-                                        placeholder="Ej: Periodo Académico 2026"
-                                        className="rounded-xl h-12"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
 
                         <div className="flex gap-4">
                             <Button 

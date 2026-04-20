@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Clock, FileText, AlertCircle, Tag } from 'lucide-react';
+import { CheckCircle, Clock, FileText, AlertCircle, Tag, TrendingUp, Calendar } from 'lucide-react';
+import StatCard from '@/components/shared/StatCard';
 import api from '@/lib/api';
 
 interface Voucher {
@@ -97,17 +98,28 @@ export default function HistorialAlumnoModal({ open, onClose, estuId }: Props) {
                     {!loading && data && (
                         <>
                             {/* Resumen */}
-                            <div className="grid grid-cols-3 gap-px bg-gray-100 border-b border-gray-100">
-                                {[
-                                    { label: 'Total Pagado',      value: `S/ ${data.resumen.total_pagado.toFixed(2)}`,   color: 'text-emerald-600' },
-                                    { label: 'Pendiente',         value: `S/ ${data.resumen.total_pendiente.toFixed(2)}`, color: 'text-amber-600' },
-                                    { label: 'Meses registrados', value: data.resumen.meses_registrados,                  color: 'text-gray-800' },
-                                ].map(s => (
-                                    <div key={s.label} className="bg-white px-4 py-3 text-center">
-                                        <div className={`text-lg font-black ${s.color}`}>{s.value}</div>
-                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{s.label}</div>
-                                    </div>
-                                ))}
+                            <div className="grid grid-cols-3 gap-3 p-4 border-b border-gray-100">
+                                <StatCard
+                                    title="Total Pagado"
+                                    value={`S/ ${data.resumen.total_pagado.toFixed(2)}`}
+                                    icon={TrendingUp}
+                                    color="text-emerald-600"
+                                    iconBg="bg-emerald-500"
+                                />
+                                <StatCard
+                                    title="Pendiente"
+                                    value={`S/ ${data.resumen.total_pendiente.toFixed(2)}`}
+                                    icon={Clock}
+                                    color="text-amber-600"
+                                    iconBg="bg-amber-500"
+                                />
+                                <StatCard
+                                    title="Meses registrados"
+                                    value={data.resumen.meses_registrados}
+                                    icon={Calendar}
+                                    color="text-gray-800"
+                                    iconBg="bg-gray-500"
+                                />
                             </div>
 
                             {/* Descuentos activos (Req 12.8) */}

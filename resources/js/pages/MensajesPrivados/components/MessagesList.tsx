@@ -18,22 +18,20 @@ export default function MessagesList({
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             <Tabs defaultValue="recibidos" className="w-full">
                 <div className="px-4 sm:px-6 py-4 border-b border-neutral-100 bg-neutral-50">
-                    <TabsList className="bg-white p-1 rounded-xl h-11 border border-neutral-200 w-full sm:w-auto">
+                    <TabsList className="bg-gray-100 p-1 rounded-xl h-auto gap-1 w-full sm:w-auto">
                         <TabsTrigger
                             value="recibidos"
-                            className="rounded-lg px-4 sm:px-6 h-full data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-widest transition-all flex-1 sm:flex-none"
+                            className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow flex-1 sm:flex-none"
                         >
-                            <Inbox className="w-4 h-4 mr-2" /> 
-                            <span className="hidden sm:inline">Recibidos</span>
-                            <span className="sm:hidden">Inbox</span>
+                            <Inbox className="size-3.5" />
+                            Recibidos
                         </TabsTrigger>
                         <TabsTrigger
                             value="enviados"
-                            className="rounded-lg px-4 sm:px-6 h-full data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-widest transition-all flex-1 sm:flex-none"
+                            className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow flex-1 sm:flex-none"
                         >
-                            <Send className="w-4 h-4 mr-2" /> 
-                            <span className="hidden sm:inline">Enviados</span>
-                            <span className="sm:hidden">Sent</span>
+                            <Send className="size-3.5" />
+                            Enviados
                         </TabsTrigger>
                     </TabsList>
                 </div>

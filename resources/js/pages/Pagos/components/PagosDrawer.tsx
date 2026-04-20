@@ -1,10 +1,12 @@
-import { PlusCircle, Pencil, Trash2, Calendar, FileText, X, AlertCircle, Receipt } from 'lucide-react';
+import { PlusCircle, Calendar, FileText, X, Receipt } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ResourceTable from '@/components/shared/ResourceTable';
+import type { Column } from '@/components/shared/ResourceTable';
+import ConfirmModal from '@/components/shared/ConfirmModal';
 import api from '@/lib/api';
 import type { Pagador, Pago, PagoFormData, PagoUpdateData } from '../hooks/usePago';
 import PagoFormModal from './PagoFormModal';
@@ -163,16 +165,38 @@ return;
         await cargar();
     };
 
-    const openCreate = () => {
- setEditPago(null); setModalOpen(true); 
-};
-    const openEdit   = (p: Pago) => {
- setEditPago(p); setModalOpen(true); 
-};
+    const openCreate = () => { setEditPago(null); setModalOpen(true); };
+    const openEdit   = (p: Pago) => { setEditPago(p); setModalOpen(true); };
 
-    if (!pagador) {
-return null;
-}
+    if (!pagador) { return null; }
+
+    const pagoColumns: Column<Pago>[] = [
+        { label: '#',           render: (_, i) => i + 1 },
+        { label: 'Año',         render: p => p.pag_anual },
+        { label: 'Mes',         render: p => p.pag_mes },
+        { label: 'Mensualidad', render: p => `S/ ${Number(p.pag_monto).toFixed(2)}` },
+        {
+            label: 'Uniforme',
+            render: p => Number(p.pag_otro1) > 0 ? `S/ ${Number(p.pag_otro1).toFixed(2)}` : '—',
+        },
+        {
+            label: 'Otros',
+            render: p => Number(p.pag_otro2) > 0 ? `S/ ${Number(p.pag_otro2).toFixed(2)}` : '—',
+        },
+        {
+            label: 'Total',
+            render: p => <span className="font-semibold text-green-700">S/ {Number(p.total).toFixed(2)}</span>,
+        },
+        { label: 'Fecha Reg.', render: p => p.pag_fecha ?? '—' },
+        {
+            label: 'Estatus',
+            render: p => (
+                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${p.estatus === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                    {p.estatus === 1 ? 'Pagado' : 'Pendiente'}
+                </span>
+            ),
+        },
+    ];
 
     return (
         <>
@@ -285,169 +309,25 @@ return null;
                         )}
 
                         {!loading && filteredPagos.length > 0 && (
-                            <>
-                                {/* Vista móvil: Cards */}
-                                <div className="block sm:hidden space-y-3 px-4">
-                                    {filteredPagos.map((p, idx) => (
-                                        <div key={p.pag_id} className="border rounded-lg p-3 space-y-2 bg-white shadow-sm">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-xs font-medium text-gray-500">#{idx + 1}</span>
-                                                        <Badge 
-                                                            variant={p.estatus === 1 ? 'default' : 'secondary'}
-                                                            className={`text-xs ${p.estatus === 1 ? 'bg-green-600' : 'bg-red-500'}`}
-                                                        >
-                                                            {p.estatus === 1 ? 'Pagado' : 'Pendiente'}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-sm font-semibold">{p.pag_mes} {p.pag_anual}</p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                        Fecha: {p.pag_fecha ?? '—'}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-lg font-bold text-green-700">
-                                                        S/ {Number(p.total).toFixed(2)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
-                                                <div>
-                                                    <span className="text-gray-500">Mensualidad:</span>
-                                                    <p className="font-medium">S/ {Number(p.pag_monto).toFixed(2)}</p>
-                                                </div>
-                                                {Number(p.pag_otro1) > 0 && (
-                                                    <div>
-                                                        <span className="text-gray-500">Uniforme:</span>
-                                                        <p className="font-medium">S/ {Number(p.pag_otro1).toFixed(2)}</p>
-                                                    </div>
-                                                )}
-                                                {Number(p.pag_otro2) > 0 && (
-                                                    <div>
-                                                        <span className="text-gray-500">Otros:</span>
-                                                        <p className="font-medium">S/ {Number(p.pag_otro2).toFixed(2)}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex gap-1.5 pt-2 border-t">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="flex-1 h-8 text-xs"
-                                                    onClick={() => setVoucherPagId(p.pag_id)}
-                                                >
-                                                    <Receipt className="h-3.5 w-3.5 mr-1" />
-                                                    Voucher
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-8 w-8 p-0 text-blue-500"
-                                                    onClick={() => openEdit(p)}
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-8 w-8 p-0 text-red-500"
-                                                    onClick={() => handleDelete(p.pag_id)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Vista desktop: Tabla */}
-                                <div className="hidden sm:block overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b text-left text-xs text-gray-500 uppercase bg-gray-50">
-                                                <th className="py-2 px-3">#</th>
-                                                <th className="py-2 px-3">Año</th>
-                                                <th className="py-2 px-3">Mes</th>
-                                                <th className="py-2 px-3 text-right">Mensualidad</th>
-                                                <th className="py-2 px-3 text-right">Uniforme</th>
-                                                <th className="py-2 px-3 text-right">Otros</th>
-                                                <th className="py-2 px-3 text-right font-semibold">Total</th>
-                                                <th className="py-2 px-3">Fecha Reg.</th>
-                                                <th className="py-2 px-3">Estatus</th>
-                                                <th className="py-2 px-3 text-center">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredPagos.map((p, idx) => (
-                                                <tr key={p.pag_id} className="border-b hover:bg-gray-50">
-                                                    <td className="py-2 px-3 text-gray-500">{idx + 1}</td>
-                                                    <td className="py-2 px-3">{p.pag_anual}</td>
-                                                    <td className="py-2 px-3">{p.pag_mes}</td>
-                                                    <td className="py-2 px-3 text-right">
-                                                        S/ {Number(p.pag_monto).toFixed(2)}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-right text-gray-500">
-                                                        {Number(p.pag_otro1) > 0
-                                                            ? `S/ ${Number(p.pag_otro1).toFixed(2)}`
-                                                            : '—'}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-right text-gray-500">
-                                                        {Number(p.pag_otro2) > 0
-                                                            ? `S/ ${Number(p.pag_otro2).toFixed(2)}`
-                                                            : '—'}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-right font-semibold text-green-700">
-                                                        S/ {Number(p.total).toFixed(2)}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-gray-500">
-                                                        {p.pag_fecha ?? '—'}
-                                                    </td>
-                                                    <td className="py-2 px-3">
-                                                        <Badge 
-                                                            variant={p.estatus === 1 ? 'default' : 'secondary'}
-                                                            className={p.estatus === 1 ? 'bg-green-600' : 'bg-red-500'}
-                                                        >
-                                                            {p.estatus === 1 ? 'Pagado' : 'Pendiente'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="py-2 px-3 text-center">
-                                                        <div className="flex justify-center gap-1">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                title="Ver comprobantes"
-                                                                className="text-amber-500 hover:text-amber-700 hover:bg-amber-50 h-7 w-7 p-0"
-                                                                onClick={() => setVoucherPagId(p.pag_id)}
-                                                            >
-                                                                <Receipt className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 h-7 w-7 p-0"
-                                                                onClick={() => openEdit(p)}
-                                                            >
-                                                                <Pencil className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
-                                                                onClick={() => handleDelete(p.pag_id)}
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </>
+                            <ResourceTable
+                                rows={{ data: filteredPagos, current_page: 1, last_page: 1, per_page: filteredPagos.length, total: filteredPagos.length, from: 1, to: filteredPagos.length }}
+                                columns={pagoColumns}
+                                getKey={p => p.pag_id}
+                                loading={loading}
+                                onEdit={openEdit}
+                                onDelete={p => handleDelete(p.pag_id)}
+                                extraActions={p => (
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        title="Ver comprobantes"
+                                        className="size-7 text-amber-500 hover:bg-amber-50"
+                                        onClick={() => setVoucherPagId(p.pag_id)}
+                                    >
+                                        <Receipt className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                            />
                         )}
                     </div>
                 </DialogContent>
@@ -493,39 +373,16 @@ return null;
             />
 
             {/* Modal de confirmación para generar mensualidad */}
-            <Dialog open={confirmGenerar} onOpenChange={setConfirmGenerar}>
-                <DialogContent className="max-w-md w-[90vw] sm:w-full">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 flex-shrink-0" />
-                            <span>Generar Mensualidad</span>
-                        </DialogTitle>
-                        <DialogDescription className="pt-2 text-xs sm:text-sm">
-                            ¿Está seguro que desea generar una mensualidad automática para el mes actual?
-                            <br />
-                            <br />
-                            Se creará un registro de pago con monto en S/ 0.00 que podrá editar posteriormente.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 flex-col sm:flex-row">
-                        <Button
-                            variant="outline"
-                            onClick={() => setConfirmGenerar(false)}
-                            disabled={generando}
-                            className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
-                            onClick={handleGenerarMensualidad}
-                            disabled={generando}
-                        >
-                            {generando ? 'Generando...' : 'Sí, Generar'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmModal
+                open={confirmGenerar}
+                onClose={() => setConfirmGenerar(false)}
+                onConfirm={handleGenerarMensualidad}
+                title="Generar Mensualidad"
+                message={`¿Está seguro que desea generar una mensualidad automática para el mes actual? Se creará un registro de pago con monto en S/ 0.00 que podrá editar posteriormente.`}
+                processing={generando}
+                confirmText="Sí, Generar"
+                variant="default"
+            />
         </>
     );
 }

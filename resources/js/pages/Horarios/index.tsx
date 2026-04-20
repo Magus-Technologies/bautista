@@ -150,21 +150,47 @@ export default function HorariosPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 border-b border-gray-200">
-                    <TabButton
-                        active={activeTab === 'E'}
+                <div className="flex bg-gray-100 p-1 rounded-xl gap-1 w-full sm:w-auto self-start">
+                    <button
                         onClick={() => setActiveTab('E')}
-                        icon={GraduationCap}
-                        label="Estudiantes"
-                        count={resEstudiante.rows?.total}
-                    />
-                    <TabButton
-                        active={activeTab === 'D'}
+                        className={cn(
+                            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
+                            activeTab === 'E'
+                                ? 'bg-white shadow text-gray-900'
+                                : 'text-gray-500 hover:text-gray-700',
+                        )}
+                    >
+                        <GraduationCap className="size-3.5" />
+                        Estudiantes
+                        {resEstudiante.rows?.total !== undefined && (
+                            <span className={cn(
+                                'rounded-full px-1.5 py-px text-[10px] font-black',
+                                activeTab === 'E' ? 'bg-gray-100 text-gray-600' : 'bg-gray-200 text-gray-500',
+                            )}>
+                                {resEstudiante.rows.total}
+                            </span>
+                        )}
+                    </button>
+                    <button
                         onClick={() => setActiveTab('D')}
-                        icon={UserCheck}
-                        label="Docentes"
-                        count={resDocente.rows?.total}
-                    />
+                        className={cn(
+                            'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
+                            activeTab === 'D'
+                                ? 'bg-white shadow text-gray-900'
+                                : 'text-gray-500 hover:text-gray-700',
+                        )}
+                    >
+                        <UserCheck className="size-3.5" />
+                        Docentes
+                        {resDocente.rows?.total !== undefined && (
+                            <span className={cn(
+                                'rounded-full px-1.5 py-px text-[10px] font-black',
+                                activeTab === 'D' ? 'bg-gray-100 text-gray-600' : 'bg-gray-200 text-gray-500',
+                            )}>
+                                {resDocente.rows.total}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Tabla */}
@@ -277,38 +303,6 @@ export default function HorariosPage() {
         </AppLayout>
     );
 }
-
-function TabButton({ active, onClick, icon: Icon, label, count }: {
-    active: boolean;
-    onClick: () => void;
-    icon: React.ElementType;
-    label: string;
-    count?: number;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={cn(
-                'flex items-center gap-2 px-5 py-2.5 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors',
-                active
-                    ? 'border-[#00a65a] text-[#00a65a]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            )}
-        >
-            <Icon className="size-4" />
-            {label}
-            {count !== undefined && (
-                <span className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-black',
-                    active ? 'bg-[#00a65a] text-white' : 'bg-gray-100 text-gray-500',
-                )}>
-                    {count}
-                </span>
-            )}
-        </button>
-    );
-}
-
 function Actions({ h, onEdit, onDelete }: {
     h: Horario;
     onEdit: (h: Horario) => void;

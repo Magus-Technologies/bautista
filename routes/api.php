@@ -156,6 +156,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('historial/{estuId}',                   [PagoApiController::class, 'historialAlumno']);
         Route::get('reporte-consolidado',                  [PagoApiController::class, 'reporteConsolidado']);
         Route::get('reporte-consolidado/pdf',              [PagoApiController::class, 'reporteConsolidadoPdf']);
+        Route::get('reporte-consolidado/excel',            [PagoApiController::class, 'reporteConsolidadoExcel']);
         Route::post('/',                                   [PagoApiController::class, 'store']);
         Route::put('/{id}',                                [PagoApiController::class, 'update']);
         Route::delete('/{id}',                             [PagoApiController::class, 'destroy']);
