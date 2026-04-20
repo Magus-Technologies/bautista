@@ -314,7 +314,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('asistencia/export-all', [AsistenciaGeneralApiController::class, 'exportAll']);
         Route::get('asistencia/historial', [AsistenciaGeneralApiController::class, 'historial']);
     });
-    Route::post('asistencia/marcar-qr', [AsistenciaGeneralApiController::class, 'marcarQR'])->middleware('permission:asistencia.scanner.ver');
+    Route::post('asistencia/marcar-qr',  [AsistenciaGeneralApiController::class, 'marcarQR'])->middleware('permission:asistencia.scanner.ver');
+    Route::post('asistencia/marcar-dni', [AsistenciaGeneralApiController::class, 'marcarDni'])->middleware('permission:asistencia.scanner.ver');
 
     // Reniec
     Route::get('reniec/dni/{dni}', [ReniecApiController::class, 'searchDni']);

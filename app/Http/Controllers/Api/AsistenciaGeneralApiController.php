@@ -80,6 +80,24 @@ class AsistenciaGeneralApiController extends Controller
     }
 
     /**
+     * Mark attendance via DNI number.
+     */
+    public function marcarDni(Request $request)
+    {
+        $validated = $request->validate([
+            'dni'          => 'required|string|min:6|max:15',
+            'tipo_marcado' => 'required|in:entrada,salida',
+        ]);
+
+        try {
+            $result = $this->service->marcarPorDni($validated['dni'], $validated['tipo_marcado']);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
      * Get recent logs for general display.
      */
     public function historial(Request $request)

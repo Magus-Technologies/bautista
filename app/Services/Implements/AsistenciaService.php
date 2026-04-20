@@ -188,6 +188,88 @@ class AsistenciaService implements AsistenciaServiceInterface
     /**
      * @inheritDoc
      */
+    public function marcarPorDni(string $dni, string $tipoMarcado): array
+    {
+        // Buscar usuario por número de documento en perfiles
+        $perfil = \App\Models\Perfil::where('doc_numero', $dni)->first();
+
+        if (!$perfil) {
+            throw new \Exception("No se encontró ninguna persona con DNI: {$dni}");
+        }
+
+        $user = User::with(['perfil'])->find($perfil->user_id);
+
+        if (!$user) {
+            throw new \Exception("Usuario no encontrado para DNI: {$dni}");
+        }
+
+        // Determinar tipo (E = Estudiante, D = Docente, P = Personal)
+        $personaEstu = Estudiante::where('user_id', $user->id)->first();
+        if ($personaEstu) {
+            $tipo      = 'E';
+            $idPersona = $personaEstu->estu_id;
+        } else {
+            $personaDoc = Docente::where('id_usuario', $user->id)->first();
+            if ($personaDoc) {
+                $tipo      = 'D';
+                $idPersona = $personaDoc->docente_id;
+            } else {
+                $tipo      = 'P';
+                $idPersona = $user->id;
+            }
+        }
+
+        $fecha   = now()->toDateString();
+        $hora    = now()->toTimeString();
+        $instiId = $user->insti_id ?? 1;
+
+        $turno = ($tipo === 'D')
+            ? (Docente::find($idPersona)?->turno ?? (now()->hour < 13 ? 'M' : 'T'))
+            : (now()->hour < 13 ? 'M' : 'T');
+
+        $payload = [
+            'insti_id'   => $instiId,
+            'id_persona' => $idPersona,
+            'tipo'       => $tipo,
+            'fecha'      => $fecha,
+            'turno'      => $turno,
+        ];
+
+        if ($tipoMarcado === 'entrada') {
+            $horario = HorarioAsistencia::where('insti_id', $instiId)
+                ->where('tipo_usuario', $tipo === 'D' ? 'D' : 'E')
+                ->where('turno', $turno)
+                ->first();
+
+            $estado = '1';
+            if ($horario) {
+                $horaLimite = Carbon::parse($horario->hora_ingreso);
+                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
+            }
+
+            $payload['hora_entrada'] = $hora;
+            $payload['estado']       = $estado;
+        } else {
+            $payload['hora_salida'] = $hora;
+        }
+
+        $asistencia = $this->repository->marcar($payload);
+
+        return [
+            'message' => ($tipoMarcado === 'entrada' ? 'Entrada' : 'Salida') . ' registrada correctamente',
+            'user'    => $user->perfil,
+            'hora'    => $hora,
+            'turno'   => $asistencia->turno_label,
+            'tipo'    => $tipo,
+            'nombre'  => trim("{$user->perfil?->primer_nombre} {$user->perfil?->apellido_paterno}"),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getHistorialConNombres(int $limit = 20): array
     {
         $logs = $this->repository->getHistorialGlobal($limit);

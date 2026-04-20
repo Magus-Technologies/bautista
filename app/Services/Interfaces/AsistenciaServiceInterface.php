@@ -15,6 +15,9 @@ interface AsistenciaServiceInterface
     /** Marcar asistencia vía QR (Soporta formato nuevo y antiguo). */
     public function marcarPorQR(string $qrData, string $tipoMarcado): array;
 
+    /** Marcar asistencia vía número de documento (DNI). */
+    public function marcarPorDni(string $dni, string $tipoMarcado): array;
+
     /** Obtener historial reciente con nombres de usuarios ya resueltos. */
     public function getHistorialConNombres(int $limit = 20): array;
 
