@@ -76,6 +76,11 @@ const navigation: NavItem[] = [
     ]},
     { type: 'link', title: 'Comunicados',     icon: Newspaper,       href: '/mensajes', permission: 'admin.comunicados.ver' },
     { type: 'link', title: 'Pagos',           icon: CreditCard,      href: '/pagos', permission: 'admin.pagos.ver' },
+    { type: 'group', title: 'Config. Cobros', icon: Settings, children: [
+        { title: 'Conceptos de Pago', href: '/conceptos-pago', permission: 'admin.pagos.ver' },
+        { title: 'Tarifas por Grado', href: '/tarifas-pago',   permission: 'admin.pagos.ver' },
+        { title: 'Descuentos / Becas', href: '/descuentos',    permission: 'admin.pagos.ver' },
+    ]},
 
     // ── Información Académica ────────────────────────────────────────
     { type: 'section', label: 'GESTIÓN ACADÉMICA' },

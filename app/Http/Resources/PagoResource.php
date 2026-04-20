@@ -12,7 +12,7 @@ class PagoResource extends JsonResource
         return [
             'pag_id'       => $this->pag_id,
             'contacto_id'  => $this->contacto_id,
-            'estudiante_id'=> $this->estudiante_id,
+            'estu_id'      => $this->estu_id,
             'pag_anual'    => $this->pag_anual,
             'pag_mes'      => $this->pag_mes,
             'pag_monto'    => $this->pag_monto,
@@ -24,6 +24,7 @@ class PagoResource extends JsonResource
             'pag_notifica' => $this->pag_notifica,
             'pag_fecha'    => $this->pag_fecha?->toDateString(),
             'estatus'      => $this->estatus,
+            'observacion'  => $this->observacion,
         ];
     }
 }

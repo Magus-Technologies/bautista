@@ -19,9 +19,12 @@ export default function MisPagosPage() {
     const [hijos, setHijos] = useState<any[]>([]);
     const [pagos, setPagos] = useState<any[]>([]);
     const [hijoSel, setHijoSel] = useState<number | 'todos'>('todos');
+    const [anioFiltro, setAnioFiltro] = useState(new Date().getFullYear());
     const [loading, setLoading] = useState(true);
     const [voucherPagId, setVoucherPagId] = useState<number | null>(null);
     const [voucherMes, setVoucherMes] = useState('');
+
+    const aniosDisponibles = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
     useEffect(() => {
         const load = async () => {
@@ -47,11 +50,13 @@ export default function MisPagosPage() {
         load();
     }, []);
 
-    const pagosFiltrados = hijoSel === 'todos'
-        ? pagos
-        : pagos.filter(p => p.estu_id === hijoSel);
+    const pagosFiltrados = pagos.filter(p =>
+        (hijoSel === 'todos' || p.estu_id === hijoSel) &&
+        p.pag_anual === anioFiltro
+    );
 
-    const totalPagado = pagosFiltrados.reduce((sum, p) => sum + parseFloat(p.total ?? p.pag_monto ?? 0), 0);
+    const totalPagado  = pagosFiltrados.filter(p => p.estatus == 1).reduce((sum, p) => sum + parseFloat(p.total ?? p.pag_monto ?? 0), 0);
+    const totalPendientes = pagosFiltrados.filter(p => p.estatus != 1).length;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -66,21 +71,32 @@ export default function MisPagosPage() {
                         iconColor="bg-indigo-600"
                     />
 
-                    {/* Filtro por hijo */}
-                    {hijos.length > 1 && (
-                        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
-                            <button onClick={() => setHijoSel('todos')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${hijoSel === 'todos' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                                Todos
-                            </button>
-                            {hijos.map(h => (
-                                <button key={h.estu_id} onClick={() => setHijoSel(h.estu_id)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${hijoSel === h.estu_id ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                                    {h.perfil?.primer_nombre}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Filtro año */}
+                        <select
+                            value={anioFiltro}
+                            onChange={e => setAnioFiltro(Number(e.target.value))}
+                            className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-semibold text-gray-700"
+                        >
+                            {aniosDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+
+                        {/* Filtro por hijo */}
+                        {hijos.length > 1 && (
+                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                                <button onClick={() => setHijoSel('todos')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${hijoSel === 'todos' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                                    Todos
                                 </button>
-                            ))}
-                        </div>
-                    )}
+                                {hijos.map(h => (
+                                    <button key={h.estu_id} onClick={() => setHijoSel(h.estu_id)}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${hijoSel === h.estu_id ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                                        {h.perfil?.primer_nombre}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Stats */}
@@ -100,11 +116,11 @@ export default function MisPagosPage() {
                         iconBg="bg-gray-500"
                     />
                     <StatCard
-                        title="Estado"
-                        value="Al día"
+                        title="Pendientes"
+                        value={totalPendientes}
                         icon={AlertCircle}
-                        color="text-emerald-600"
-                        iconBg="bg-emerald-500"
+                        color={totalPendientes > 0 ? 'text-amber-600' : 'text-emerald-600'}
+                        iconBg={totalPendientes > 0 ? 'bg-amber-500' : 'bg-emerald-500'}
                     />
                 </div>
 
@@ -128,7 +144,7 @@ export default function MisPagosPage() {
                                         <th className="pb-3 pr-4 text-right">Monto</th>
                                         <th className="pb-3 pr-4 text-center hidden sm:table-cell">Estado</th>
                                         <th className="pb-3 pr-4 text-right hidden sm:table-cell">Fecha</th>
-                                        <th className="pb-3 text-center">Voucher</th>
+                                        <th className="pb-3 text-center">Comprobante</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -140,25 +156,59 @@ export default function MisPagosPage() {
                                             <td className="py-3 pr-4">
                                                 <p className="font-medium text-gray-800">{p.pag_nombre1 || 'Mensualidad'}</p>
                                                 {p.pag_mes && <p className="text-xs text-gray-400">{p.pag_mes}</p>}
+                                                {p.observacion && (
+                                                    <p className="text-[10px] text-indigo-600 mt-0.5 max-w-[200px] truncate" title={p.observacion}>
+                                                        🏷 {p.observacion}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className="py-3 pr-4 text-right font-semibold text-gray-900">
                                                 S/ {parseFloat(p.total ?? p.pag_monto ?? 0).toFixed(2)}
                                             </td>
                                             <td className="py-3 pr-4 text-center hidden sm:table-cell">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                                    Pagado
-                                                </span>
+                                                {p.estatus == 1 ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                        Pagado
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                                        Pendiente
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="py-3 pr-4 text-right text-xs text-gray-400 hidden sm:table-cell">
                                                 {p.pag_fecha}
                                             </td>
                                             <td className="py-3 text-center">
-                                                <Button size="sm" variant="ghost"
-                                                    className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                                    onClick={() => { setVoucherPagId(p.pag_id); setVoucherMes(p.pag_mes ?? ''); }}
-                                                >
-                                                    <Upload className="h-3.5 w-3.5" />
-                                                </Button>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {p.ultimo_voucher && (() => {
+                                                        const v = p.ultimo_voucher;
+                                                        const cfg: Record<string, { label: string; cls: string }> = {
+                                                            pendiente: { label: 'En revisión', cls: 'bg-amber-100 text-amber-700' },
+                                                            validado:  { label: 'Validado',    cls: 'bg-emerald-100 text-emerald-700' },
+                                                            rechazado: { label: 'Rechazado',   cls: 'bg-red-100 text-red-700' },
+                                                        };
+                                                        const c = cfg[v.estado] ?? { label: v.estado, cls: 'bg-gray-100 text-gray-600' };
+                                                        return (
+                                                            <div className="flex flex-col items-center gap-0.5">
+                                                                <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap ${c.cls}`}>
+                                                                    {c.label}
+                                                                </span>
+                                                                {v.estado === 'rechazado' && v.comentario && (
+                                                                    <span className="text-[10px] text-red-500 italic max-w-[110px] truncate" title={v.comentario}>
+                                                                        {v.comentario}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                    <Button size="sm" variant="ghost"
+                                                        className="h-7 w-7 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                                        onClick={() => { setVoucherPagId(p.pag_id); setVoucherMes(p.pag_mes ?? ''); }}
+                                                    >
+                                                        <Upload className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

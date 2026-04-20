@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pago extends Model
 {
@@ -24,6 +25,7 @@ class Pago extends Model
         'pag_notifica',
         'pag_fecha',
         'estatus',
+        'observacion',
     ];
 
     protected $casts = [
@@ -48,5 +50,10 @@ class Pago extends Model
     public function institucion(): BelongsTo
     {
         return $this->belongsTo(InstitucionEducativa::class, 'insti_id', 'insti_id');
+    }
+
+    public function notificas(): HasMany
+    {
+        return $this->hasMany(PagoNotifica::class, 'pag_id', 'pag_id');
     }
 }

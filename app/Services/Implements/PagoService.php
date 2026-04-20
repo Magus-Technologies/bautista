@@ -108,7 +108,7 @@ class PagoService implements PagoServiceInterface
         $updated  = $this->notificaRepo->actualizarEstado($notifica, $estado, $comentario);
 
         // Si se aprueba el voucher, marcamos el pago como pagado si aún no lo está
-        if ($estado === 'Aprobado') {
+        if ($estado === 'validado') {
             $pago = $this->repo->findById($notifica->pag_id);
             if ($pago->estatus !== 1) {
                 $this->repo->update($pago, ['estatus' => 1]);
@@ -119,5 +119,35 @@ class PagoService implements PagoServiceInterface
             "Voucher procesado: {$estado}. Comentario: " . ($comentario ?? 'Ninguno'));
 
         return $updated;
+    }
+
+    public function dashboard(int $instiId, string $mes, int $anio): array
+    {
+        return $this->repo->dashboard($instiId, $mes, $anio);
+    }
+
+    public function vencidos(int $instiId): Collection
+    {
+        return $this->repo->vencidos($instiId);
+    }
+
+    public function generarMensualidades(int $instiId, string $mes, int $anio): array
+    {
+        $resultado = $this->repo->crearMensualidades($instiId, $mes, $anio);
+
+        $this->auditoria->registrar('generar_mensualidades', 'Pago', 0,
+            "Mensualidades {$mes} {$anio}: {$resultado['creados']} creadas, {$resultado['omitidos']} omitidas.");
+
+        return $resultado;
+    }
+
+    public function historialAlumno(int $instiId, int $estuId): array
+    {
+        return $this->repo->historialAlumno($instiId, $estuId);
+    }
+
+    public function reporteConsolidado(int $instiId, string $mes, int $anio): array
+    {
+        return $this->repo->reporteConsolidado($instiId, $mes, $anio);
     }
 }

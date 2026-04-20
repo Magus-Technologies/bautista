@@ -190,10 +190,22 @@ class PadreApiController extends Controller
                 ];
             })->values();
 
-        // Payments
+        // Payments — include last voucher status for each pago
         $pagos = Pago::where('estu_id', $hijoId)
+            ->with(['notificas' => fn ($q) => $q->orderBy('created_at', 'desc')])
             ->orderBy('pag_fecha', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($p) {
+                $ultimo = $p->notificas->first();
+                $arr = $p->toArray();
+                unset($arr['notificas']);
+                $arr['ultimo_voucher'] = $ultimo ? [
+                    'estado'     => $ultimo->estado,
+                    'comentario' => $ultimo->comentario,
+                ] : null;
+
+                return $arr;
+            });
 
         // Attendance by course — from asistencia_alumnos/asistencia_clases
         $registros = \App\Models\AsistenciaAlumno::where('id_estudiante', $hijoId)

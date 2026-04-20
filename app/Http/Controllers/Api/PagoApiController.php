@@ -14,6 +14,7 @@ use App\Services\Interfaces\PagoServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class PagoApiController extends Controller
@@ -103,7 +104,113 @@ class PagoApiController extends Controller
         return (new PagoNotificaResource($notifica))->response();
     }
 
-    // ── Reporte PDF ────────────────────────────────────────────────────────
+    // ── Dashboard de cobros ───────────────────────────────────────────────
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $mes  = strtoupper($request->get('mes', $meses[Carbon::now()->month - 1]));
+        $anio = (int) $request->get('anio', Carbon::now()->year);
+
+        $data = $this->service->dashboard($request->user()->insti_id, $mes, $anio);
+
+        return response()->json($data);
+    }
+
+    public function vencidos(Request $request): JsonResponse
+    {
+        $vencidos = $this->service->vencidos($request->user()->insti_id);
+
+        $items = $vencidos->map(fn ($p) => [
+            'pag_id'           => $p->pag_id,
+            'estu_id'          => $p->estu_id,
+            'alumno'           => optional($p->estudiante?->perfil)->primer_nombre . ' ' .
+                                  optional($p->estudiante?->perfil)->apellido_paterno,
+            'pag_mes'          => $p->pag_mes,
+            'pag_anual'        => $p->pag_anual,
+            'pag_monto'        => $p->pag_monto,
+            'total'            => $p->total,
+            'dias_vencimiento' => $p->dias_vencimiento,
+        ]);
+
+        return response()->json($items);
+    }
+
+    public function generarMensualidades(Request $request): JsonResponse
+    {
+        $mesesValidos = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                         'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $request->validate([
+            'mes'  => ['required', Rule::in($mesesValidos)],
+            'anio' => ['required', 'integer', 'min:2020', 'max:2099'],
+        ]);
+
+        $resultado = $this->service->generarMensualidades(
+            instiId: $request->user()->insti_id,
+            mes:     strtoupper($request->input('mes')),
+            anio:    (int) $request->input('anio'),
+        );
+
+        return response()->json($resultado, 201);
+    }
+
+    // ── Historial por alumno ───────────────────────────────────────────────
+
+    public function historialAlumno(Request $request, int $estuId): JsonResponse
+    {
+        $data = $this->service->historialAlumno($request->user()->insti_id, $estuId);
+        return response()->json($data);
+    }
+
+    // ── Reporte consolidado por nivel/grado ───────────────────────────────
+
+    public function reporteConsolidado(Request $request): JsonResponse
+    {
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $mes  = strtoupper($request->get('mes', $meses[Carbon::now()->month - 1]));
+        $anio = (int) $request->get('anio', Carbon::now()->year);
+
+        $data = $this->service->reporteConsolidado($request->user()->insti_id, $mes, $anio);
+
+        return response()->json($data);
+    }
+
+    // ── Reporte consolidado PDF ───────────────────────────────────────────
+
+    public function reporteConsolidadoPdf(Request $request)
+    {
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $mes  = strtoupper($request->get('mes', $meses[Carbon::now()->month - 1]));
+        $anio = (int) $request->get('anio', Carbon::now()->year);
+
+        $filas    = $this->service->reporteConsolidado($request->user()->insti_id, $mes, $anio);
+        $byNivel  = collect($filas)->groupBy('nombre_nivel');
+
+        $institucion = \App\Models\InstitucionEducativa::where('insti_id', $request->user()->insti_id)
+            ->value('nombre') ?? 'Institución';
+
+        $html = view('pdf.reporte-consolidado', [
+            'filas'       => $filas,
+            'byNivel'     => $byNivel,
+            'mes'         => $mes,
+            'anio'        => $anio,
+            'fecha'       => Carbon::now()->format('d/m/Y H:i'),
+            'institucion' => $institucion,
+        ])->render();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+
+        return $pdf->download("Reporte_Consolidado_{$mes}_{$anio}.pdf");
+    }
+
+    // ── Reporte PDF (pagos por contacto) ──────────────────────────────────
 
     public function reportePdf(Request $request)
     {

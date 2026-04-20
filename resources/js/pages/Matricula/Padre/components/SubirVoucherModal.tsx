@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { Upload, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -108,6 +107,14 @@ inputRef.current.value = '';
                 <DialogHeader>
                     <DialogTitle>Comprobante de pago — {mes}</DialogTitle>
                 </DialogHeader>
+
+                {/* Warning: pending voucher already exists */}
+                {vouchers.some(v => v.estado === 'pendiente') && (
+                    <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm text-amber-800">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                        <span>Ya existe un comprobante <strong>en revisión</strong> para este pago. Puedes enviar otro si es necesario.</span>
+                    </div>
+                )}
 
                 {/* Historial de vouchers */}
                 {vouchers.length > 0 && (

@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\PagoApiController;
+use App\Http\Controllers\Api\ConceptoPagoApiController;
+use App\Http\Controllers\Api\TarifaPagoApiController;
+use App\Http\Controllers\Api\DescuentoAlumnoApiController;
 use App\Http\Controllers\Api\GaleriaApiController;
 use App\Http\Controllers\Api\MensajeApiController;
 use App\Http\Controllers\Api\MensajeriaGrupoApiController;
@@ -146,13 +149,43 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('pagadores',                            [PagoApiController::class, 'indexPagadores']);
         Route::get('contactos/{contactoId}',               [PagoApiController::class, 'porContacto']);
         Route::get('reporte-pdf',                          [PagoApiController::class, 'reportePdf']);
+        // Dashboard y generación
+        Route::get('dashboard',                            [PagoApiController::class, 'dashboard']);
+        Route::get('vencidos',                             [PagoApiController::class, 'vencidos']);
+        Route::post('generar-mensualidades',               [PagoApiController::class, 'generarMensualidades']);
+        Route::get('historial/{estuId}',                   [PagoApiController::class, 'historialAlumno']);
+        Route::get('reporte-consolidado',                  [PagoApiController::class, 'reporteConsolidado']);
+        Route::get('reporte-consolidado/pdf',              [PagoApiController::class, 'reporteConsolidadoPdf']);
         Route::post('/',                                   [PagoApiController::class, 'store']);
         Route::put('/{id}',                                [PagoApiController::class, 'update']);
         Route::delete('/{id}',                             [PagoApiController::class, 'destroy']);
-        // Vouchers / comprobantes
-        Route::get('/{pagId}/vouchers',                    [PagoApiController::class, 'vouchers']);
-        Route::post('/{pagId}/vouchers',                   [PagoApiController::class, 'subirVoucher']);
+        // Vouchers / comprobantes — DEBEN ir después de las rutas específicas
+        Route::get('/{pagId}/vouchers',                    [PagoApiController::class, 'vouchers'])->where('pagId', '[0-9]+');
+        Route::post('/{pagId}/vouchers',                   [PagoApiController::class, 'subirVoucher'])->where('pagId', '[0-9]+');
         Route::patch('/vouchers/{notificaId}/estado',      [PagoApiController::class, 'validarVoucher']);
+    });
+
+    // Conceptos de pago configurables
+    Route::prefix('conceptos-pago')->group(function () {
+        Route::get('/',               [ConceptoPagoApiController::class, 'index']);
+        Route::post('/',              [ConceptoPagoApiController::class, 'store']);
+        Route::put('/{id}',           [ConceptoPagoApiController::class, 'update']);
+        Route::patch('/{id}/estado',  [ConceptoPagoApiController::class, 'toggleEstado']);
+    });
+
+    // Tarifas por concepto + grado + año
+    Route::prefix('tarifas-pago')->group(function () {
+        Route::get('/',      [TarifaPagoApiController::class, 'index']);
+        Route::post('/',     [TarifaPagoApiController::class, 'store']);
+        Route::put('/{id}',  [TarifaPagoApiController::class, 'update']);
+    });
+
+    // Descuentos y becas por alumno
+    Route::prefix('descuentos')->group(function () {
+        Route::get('/',       [DescuentoAlumnoApiController::class, 'index']);
+        Route::post('/',      [DescuentoAlumnoApiController::class, 'store']);
+        Route::put('/{id}',   [DescuentoAlumnoApiController::class, 'update']);
+        Route::delete('/{id}',[DescuentoAlumnoApiController::class, 'destroy']);
     });
 
     // Actividades (Exámenes Virtuales)

@@ -47,7 +47,10 @@ Route::middleware(['auth.token'])->group(function () {
     })->middleware('permission:academico.horarios.ver')->name('secciones.horarios');
     Route::get('/cursos',       fn () => Inertia::render('Cursos/index'))->middleware('permission:academico.cursos.ver|portal.estudiante.cursos|portal.docente.cursos')->name('cursos.index');
     
-    Route::get('/pagos',      fn () => Inertia::render('Pagos/index'))->middleware('permission:admin.pagos.ver')->name('pagos.index');
+    Route::get('/pagos',            fn () => Inertia::render('Pagos/index'))->middleware('permission:admin.pagos.ver')->name('pagos.index');
+    Route::get('/conceptos-pago',   fn () => Inertia::render('ConceptoPago/index'))->middleware('permission:admin.pagos.ver')->name('conceptos-pago.index');
+    Route::get('/tarifas-pago',     fn () => Inertia::render('TarifaPago/index'))->middleware('permission:admin.pagos.ver')->name('tarifas-pago.index');
+    Route::get('/descuentos',       fn () => Inertia::render('DescuentoAlumno/index'))->middleware('permission:admin.pagos.ver')->name('descuentos.index');
     
     Route::get('/matriculas',                                        fn () => Inertia::render('Matricula/index'))->middleware('permission:matriculas.aperturas.ver')->name('matriculas.index');
     Route::get('/matriculas/gestion',                               fn () => Inertia::render('Matricula/Gestion'))->middleware('permission:matriculas.gestion.ver')->name('matriculas.gestion');

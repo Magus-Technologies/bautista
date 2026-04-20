@@ -22,4 +22,14 @@ interface PagoRepositoryInterface
     public function update(Pago $pago, array $data): Pago;
 
     public function delete(Pago $pago): void;
+
+    public function dashboard(int $instiId, string $mes, int $anio): array;
+
+    public function vencidos(int $instiId): Collection;
+
+    public function crearMensualidades(int $instiId, string $mes, int $anio): array;
+
+    public function historialAlumno(int $instiId, int $estuId): array;
+
+    public function reporteConsolidado(int $instiId, string $mes, int $anio): array;
 }

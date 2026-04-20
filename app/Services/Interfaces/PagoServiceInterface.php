@@ -30,4 +30,14 @@ interface PagoServiceInterface
     public function listarVouchers(int $pagoId): Collection;
 
     public function validarVoucher(int $notificaId, string $estado, ?string $comentario): PagoNotifica;
+
+    public function dashboard(int $instiId, string $mes, int $anio): array;
+
+    public function vencidos(int $instiId): Collection;
+
+    public function generarMensualidades(int $instiId, string $mes, int $anio): array;
+
+    public function historialAlumno(int $instiId, int $estuId): array;
+
+    public function reporteConsolidado(int $instiId, string $mes, int $anio): array;
 }

@@ -1,106 +1,40 @@
 import { Head } from '@inertiajs/react';
-import { Wallet, PlusCircle } from 'lucide-react';
-import { useState } from 'react';
-import ResourcePage from '@/components/shared/ResourcePage';
-import ResourceTable from '@/components/shared/ResourceTable';
-import type { Column } from '@/components/shared/ResourceTable';
-import { Button } from '@/components/ui/button';
-import { useResource } from '@/hooks/useResource';
+import { Wallet, BarChart2, Users, FileBarChart2 } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
+import PageHeader from '@/components/shared/PageHeader';
+import PageTabs from '@/components/shared/PageTabs';
 import type { BreadcrumbItem } from '@/types';
-import PagosDrawer from './components/PagosDrawer';
-import type { Pagador } from './hooks/usePago';
+import DashboardView from './views/DashboardView';
+import PagadoresView from './views/PagadoresView';
+import ReporteView from './views/ReporteView';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Pagos',     href: '/pagos' },
+    { title: 'Pagos', href: '/pagos' },
 ];
 
 export default function PagosPage() {
-    const res = useResource<Pagador>('/pagos/pagadores');
-
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [selected, setSelected]     = useState<Pagador | null>(null);
-
-    const openDrawer = (p: Pagador) => {
- setSelected(p); setDrawerOpen(true); 
-};
-
-    const columns: Column<Pagador>[] = [
-        {
-            label:  '#',
-            render: (p) => p.id_usuario,
-        },
-        {
-            label:  'DNI',
-            render: (p) => p.numero_doc ?? '—',
-        },
-        {
-            label:  'Nombres',
-            render: (p) => p.nombres,
-        },
-        {
-            label:  'Apellidos',
-            render: (p) => p.apellidos,
-        },
-        {
-            label:  'Teléfono',
-            render: (p) => p.telefono_1 ?? '—',
-        },
-        {
-            label:  'Mensualidad',
-            render: (p) => p.mensualidad
-                ? <span className="font-semibold text-green-700">
-                    S/ {Number(p.mensualidad).toFixed(2)}
-                  </span>
-                : '—',
-        },
-        {
-            label:  'Agregar',
-            render: (p) => (
-                <Button
-                    size="sm"
-                    className="bg-[#00a65a] hover:bg-[#008d4c] text-white h-7 px-3"
-                    onClick={(e) => {
- e.stopPropagation(); openDrawer(p); 
-}}
-                >
-                    <PlusCircle className="h-3.5 w-3.5" />
-                </Button>
-            ),
-        },
-    ];
-
     return (
-        <>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Pagos" />
-            <ResourcePage
-                breadcrumbs={breadcrumbs}
-                pageTitle="Pagos"
-                subtitle={res.rows ? `${res.rows.total} registros` : '…'}
-                icon={Wallet}
-                iconColor="bg-green-600"
-                search={res.search}
-                onSearch={res.setSearch}
-                flashSuccess={res.success}
-            >
-                {res.rows && (
-                    <ResourceTable
-                        rows={res.rows}
-                        columns={columns}
-                        getKey={(p) => p.estu_id}
-                        onPageChange={res.setPage}
-                    />
-                )}
-                {res.loading && (
-                    <p className="py-6 text-center text-sm text-gray-400">Cargando...</p>
-                )}
-            </ResourcePage>
 
-            <PagosDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                pagador={selected}
-            />
-        </>
+            <div className="flex flex-col gap-4 p-4 sm:p-6">
+                <PageHeader
+                    icon={Wallet}
+                    title="Gestión de Pagos"
+                    subtitle="Dashboard de cobros y mensualidades"
+                    iconColor="bg-green-600"
+                />
+
+                <PageTabs
+                    defaultValue="dashboard"
+                    tabs={[
+                        { value: 'dashboard', label: 'Dashboard', icon: BarChart2,    content: <DashboardView /> },
+                        { value: 'pagadores', label: 'Pagadores', icon: Users,        content: <PagadoresView /> },
+                        { value: 'reporte',   label: 'Reporte',   icon: FileBarChart2, content: <ReporteView /> },
+                    ]}
+                />
+            </div>
+        </AppLayout>
     );
 }
