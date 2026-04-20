@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import {
     FileText, Upload, CheckCircle2, Clock,
     Loader2, AlertCircle, ChevronDown, ChevronUp,
+    BarChart2, BookOpen, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import StatCard from '@/components/shared/StatCard';
 import api from '@/lib/api';
 
 interface NotasTabProps {
@@ -151,24 +153,34 @@ export default function NotasTab({ cursoId }: NotasTabProps) {
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="rounded-[2rem] p-5 border-none bg-blue-600 text-white shadow-xl shadow-blue-100 flex flex-col items-center justify-center gap-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Promedio</span>
-                    <span className={`text-3xl font-black ${promedio ? 'text-white' : 'opacity-30'}`}>
-                        {promedio ?? '--'}
-                    </span>
-                </Card>
-                <Card className="rounded-[2rem] p-5 border-none bg-white shadow-sm flex flex-col items-center justify-center gap-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Total</span>
-                    <span className="text-3xl font-black text-gray-800">{total}</span>
-                </Card>
-                <Card className="rounded-[2rem] p-5 border-none bg-white shadow-sm flex flex-col items-center justify-center gap-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Entregadas</span>
-                    <span className="text-3xl font-black text-emerald-500">{entregadas}</span>
-                </Card>
-                <Card className="rounded-[2rem] p-5 border-none bg-white shadow-sm flex flex-col items-center justify-center gap-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Pendientes</span>
-                    <span className="text-3xl font-black text-rose-500">{pendientes}</span>
-                </Card>
+                <StatCard
+                    title="Promedio"
+                    value={promedio ?? '--'}
+                    icon={TrendingUp}
+                    color="text-blue-600"
+                    iconBg="bg-blue-500"
+                />
+                <StatCard
+                    title="Total"
+                    value={total}
+                    icon={BookOpen}
+                    color="text-gray-800"
+                    iconBg="bg-gray-500"
+                />
+                <StatCard
+                    title="Entregadas"
+                    value={entregadas}
+                    icon={CheckCircle2}
+                    color="text-emerald-600"
+                    iconBg="bg-emerald-500"
+                />
+                <StatCard
+                    title="Pendientes"
+                    value={pendientes}
+                    icon={Clock}
+                    color="text-rose-600"
+                    iconBg="bg-rose-500"
+                />
             </div>
 
             {/* Units */}

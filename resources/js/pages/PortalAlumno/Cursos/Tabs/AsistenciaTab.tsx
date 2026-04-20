@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { CheckCircle2, TrendingUp, XCircle } from 'lucide-react';
+import StatCard from '@/components/shared/StatCard';
 import api from '@/lib/api';
 
 interface AsistenciaTabProps {
@@ -31,19 +32,28 @@ export default function AsistenciaTab({ cursoId }: AsistenciaTabProps) {
 
     return (
         <div className="max-w-4xl mx-auto space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="rounded-[2.5rem] p-8 border-none bg-indigo-600 text-white shadow-xl shadow-indigo-100 flex flex-col items-center justify-center space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Porcentaje</span>
-                    <span className="text-4xl font-black">{percent}%</span>
-                </Card>
-                <Card className="rounded-[2.5rem] p-8 border-none bg-white shadow-sm flex flex-col items-center justify-center space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Asistencias</span>
-                    <span className="text-4xl font-black text-emerald-500">{stats.P}</span>
-                </Card>
-                <Card className="rounded-[2.5rem] p-8 border-none bg-white shadow-sm flex flex-col items-center justify-center space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Inasistencias</span>
-                    <span className="text-4xl font-black text-rose-500">{stats.F}</span>
-                </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard
+                    title="Porcentaje"
+                    value={`${percent}%`}
+                    icon={TrendingUp}
+                    color="text-indigo-600"
+                    iconBg="bg-indigo-500"
+                />
+                <StatCard
+                    title="Asistencias"
+                    value={stats.P}
+                    icon={CheckCircle2}
+                    color="text-emerald-600"
+                    iconBg="bg-emerald-500"
+                />
+                <StatCard
+                    title="Inasistencias"
+                    value={stats.F}
+                    icon={XCircle}
+                    color="text-rose-600"
+                    iconBg="bg-rose-500"
+                />
             </div>
 
             <div className="space-y-4">
