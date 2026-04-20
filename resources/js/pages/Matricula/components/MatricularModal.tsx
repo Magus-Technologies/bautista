@@ -269,7 +269,6 @@ errs.apellido_paterno = 'Requerido';
 }
 
         if (!alumno.fecha_ingreso.trim())    errs.fecha_ingreso    = 'Requerido';
-        if (!alumno.mensualidad.trim())      errs.mensualidad      = 'Requerido';
         if (!matricula.seccion_id)           errs.seccion_id       = 'Requerido';
 
         if (Object.keys(errs).length) {

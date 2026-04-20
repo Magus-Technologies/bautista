@@ -89,7 +89,7 @@ class EstudianteRepository implements EstudianteRepositoryInterface
             'privado'            => $data['seguro_privado']      ?? null,
             'mensualidad'        => $data['mensualidad'],
             'fecha_ingreso'      => $data['fecha_ingreso'],
-            'fecha_promovido'    => $data['fecha_pago'],
+            'fecha_promovido'    => $data['fecha_promovido'] ?? null,
         ]);
     }
 
@@ -143,7 +143,7 @@ class EstudianteRepository implements EstudianteRepositoryInterface
             'privado'             => $data['seguro_privado']      ?? null,
             'mensualidad'         => $data['mensualidad']         ?? null,
             'fecha_ingreso'       => $data['fecha_ingreso']       ?? null,
-            'fecha_promovido'     => $data['fecha_pago']          ?? null,
+            'fecha_promovido'     => $data['fecha_promovido']     ?? null,
         ]);
 
         return $estudiante->load(['perfil', 'user']);
