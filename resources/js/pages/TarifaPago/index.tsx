@@ -64,11 +64,23 @@ export default function TarifaPagoPage() {
     const anios = [...new Set(tarifas.map(t => Number(t.anio_escolar)))].sort((a, b) => b - a);
     if (!anios.includes(filtroAnio)) anios.unshift(filtroAnio);
 
+    const eliminar = async (t: TarifaPago) => {
+        await api.delete(`/tarifas-pago/${t.tarifa_id}`);
+        cargar();
+    };
+
     const columns: Column<TarifaPago>[] = [
+        { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Concepto', render: t => <span className="font-semibold">{t.concepto?.nombre ?? `Concepto #${t.concepto_id}`}</span> },
         { label: 'Grado',    render: t => t.grado?.nombre_grado ?? <span className="italic text-gray-400">General</span> },
         { label: 'Año',      render: t => t.anio_escolar },
         { label: 'Monto',    render: t => <span className="font-bold">S/ {Number(t.monto).toFixed(2)}</span> },
+        {
+            label: 'Vence',
+            render: t => (t as any).dia_vencimiento
+                ? <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Día {(t as any).dia_vencimiento}</span>
+                : <span className="text-xs text-gray-400">—</span>,
+        },
         {
             label: 'Estado',
             render: t => (
@@ -117,6 +129,7 @@ export default function TarifaPagoPage() {
                             columns={columns}
                             getKey={t => t.tarifa_id}
                             onEdit={openEdit}
+                            onDelete={eliminar}
                         />
                     )}
                 </SectionCard>

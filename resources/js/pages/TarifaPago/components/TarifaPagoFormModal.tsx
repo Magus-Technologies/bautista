@@ -15,7 +15,7 @@ interface Props {
     onSaved: () => void;
 }
 
-const BLANK = { concepto_id: '', grado_id: '', anio_escolar: new Date().getFullYear(), monto: '', activo: true };
+const BLANK = { concepto_id: '', grado_id: '', anio_escolar: new Date().getFullYear(), monto: '', dia_vencimiento: '', activo: true };
 
 export default function TarifaPagoFormModal({ open, onClose, editing, conceptos, onSaved }: Props) {
     const [form, setForm]     = useState<any>(BLANK);
@@ -30,11 +30,12 @@ export default function TarifaPagoFormModal({ open, onClose, editing, conceptos,
     useEffect(() => {
         if (editing) {
             setForm({
-                concepto_id:  String(editing.concepto_id),
-                grado_id:     editing.grado_id ? String(editing.grado_id) : '',
-                anio_escolar: editing.anio_escolar,
-                monto:        String(editing.monto),
-                activo:       editing.activo,
+                concepto_id:     String(editing.concepto_id),
+                grado_id:        editing.grado_id ? String(editing.grado_id) : '',
+                anio_escolar:    editing.anio_escolar,
+                monto:           String(editing.monto),
+                dia_vencimiento: (editing as any).dia_vencimiento ? String((editing as any).dia_vencimiento) : '',
+                activo:          editing.activo,
             });
         } else {
             setForm(BLANK);
@@ -48,11 +49,12 @@ export default function TarifaPagoFormModal({ open, onClose, editing, conceptos,
         setSaving(true);
         try {
             const payload = {
-                concepto_id:  Number(form.concepto_id),
-                grado_id:     form.grado_id ? Number(form.grado_id) : null,
-                anio_escolar: Number(form.anio_escolar),
-                monto:        Number(form.monto),
-                activo:       form.activo,
+                concepto_id:     Number(form.concepto_id),
+                grado_id:        form.grado_id ? Number(form.grado_id) : null,
+                anio_escolar:    Number(form.anio_escolar),
+                monto:           Number(form.monto),
+                dia_vencimiento: form.dia_vencimiento ? Number(form.dia_vencimiento) : null,
+                activo:          form.activo,
             };
             if (editing) {
                 await api.put(`/tarifas-pago/${editing.tarifa_id}`, payload);
@@ -132,6 +134,25 @@ export default function TarifaPagoFormModal({ open, onClose, editing, conceptos,
                             />
                         </div>
                     </div>
+
+                    {/* Día de vencimiento — solo para conceptos mensuales */}
+                    {conceptos.find(c => String(c.concepto_id) === form.concepto_id)?.periodicidad === 'mensual' && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                Día de vencimiento <span className="text-gray-400 font-normal">(día del mes en que vence el pago)</span>
+                            </label>
+                            <select
+                                value={form.dia_vencimiento}
+                                onChange={e => setForm((f: any) => ({ ...f, dia_vencimiento: e.target.value }))}
+                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">Sin día definido</option>
+                                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                                    <option key={d} value={d}>Día {d}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {editing && (
                         <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

@@ -23,6 +23,7 @@ export type AlumnoForm = {
     mensualidad:         string;
     fecha_ingreso:       string;
     fecha_pago:          string;
+    dia_pago:            number | null;
     foto:                File | null;
 };
 
@@ -47,7 +48,7 @@ export const defaultAlumno = (): AlumnoForm => ({
     apellido_paterno: '', apellido_materno: '', genero: '', fecha_nacimiento: '',
     edad: '', talla: '', peso: '', telefono: '', direccion: '', colegio: '',
     neurodivergencia: '', terapia_ocupacional: '', seguro: '', seguro_privado: '',
-    mensualidad: '', fecha_ingreso: '', fecha_pago: '', foto: null,
+    mensualidad: '', fecha_ingreso: '', fecha_pago: '', dia_pago: null, foto: null,
 });
 
 export const defaultContacto = (): ContactoForm => ({

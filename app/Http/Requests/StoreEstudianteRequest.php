@@ -41,7 +41,7 @@ class StoreEstudianteRequest extends FormRequest
             'seguro'              => ['nullable', 'string', 'max:255'],
             'mensualidad'         => ['required', 'numeric', 'min:0'],
             'fecha_ingreso'       => ['required', 'date'],
-            'fecha_pago'          => ['required', 'date'],
+            'fecha_promovido'     => ['nullable', 'date'],
             'foto'                => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ];
     }

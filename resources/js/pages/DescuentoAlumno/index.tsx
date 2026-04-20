@@ -88,6 +88,7 @@ export default function DescuentoAlumnoPage() {
             : `Est. #${d.estu_id}`;
 
     const columns: Column<DescuentoAlumno>[] = [
+        { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Alumno',    render: d => <span className="font-semibold">{nombreAlumno(d)}</span> },
         { label: 'Concepto',  render: d => <span className="text-xs">{d.concepto?.nombre ?? <span className="italic text-gray-400">General</span>}</span> },
         {

@@ -16,11 +16,13 @@ class ConceptoPago extends Model
         'nombre',
         'descripcion',
         'periodicidad',
+        'opcional',
         'activo',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
+        'activo'   => 'boolean',
+        'opcional' => 'boolean',
     ];
 
     public function institucion(): BelongsTo

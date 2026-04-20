@@ -109,12 +109,19 @@ class EstudianteApiController extends Controller
             'distrito'       => ['nullable', 'string', 'max:3'],
             'estado_civil'   => ['nullable', 'string', 'max:50'],
             'es_pagador'     => ['nullable', 'string'],
+            'mensualidad'    => ['nullable', 'numeric', 'min:0'],
+            'dia_pago'       => ['nullable', 'integer', 'min:1', 'max:31'],
         ]);
 
         // Mapear nombres de campos del frontend a los del modelo
         if (isset($data['departamento'])) { $data['departamento_id'] = $data['departamento']; unset($data['departamento']); }
         if (isset($data['provincia']))    { $data['provincia_id']    = $data['provincia'];    unset($data['provincia']); }
         if (isset($data['distrito']))     { $data['distrito_id']     = $data['distrito'];     unset($data['distrito']); }
+
+        // Extraer mensualidad y dia_pago antes de guardar en padre_apoderado (van en la tabla pivote)
+        $mensualidad = $data['mensualidad'] ?? null;
+        $diaPago     = $data['dia_pago'] ?? null;
+        unset($data['mensualidad'], $data['dia_pago']);
 
         $estudiante = Estudiante::findOrFail($id);
 
@@ -124,6 +131,16 @@ class EstudianteApiController extends Controller
 
         if ($contacto) {
             $contacto->update($data);
+            // Actualizar mensualidad y dia_pago en la tabla pivote si el contacto es pagador
+            if ($mensualidad !== null || $diaPago !== null) {
+                $pivotData = [];
+                if ($mensualidad !== null) $pivotData['mensualidad'] = $mensualidad;
+                if ($diaPago !== null)     $pivotData['dia_pago']    = $diaPago;
+                DB::table('estudiante_contacto')
+                    ->where('estu_id', $estudiante->estu_id)
+                    ->where('contacto_id', $contacto->id_contacto)
+                    ->update($pivotData);
+            }
         } else {
             $data['insti_id'] = $request->user()->insti_id;
 
@@ -152,8 +169,10 @@ class EstudianteApiController extends Controller
 
             $contacto = PadreApoderado::create($data);
             DB::table('estudiante_contacto')->insertOrIgnore([
-                'estu_id'     => $estudiante->estu_id,
-                'contacto_id' => $contacto->id_contacto,
+                'estu_id'      => $estudiante->estu_id,
+                'contacto_id'  => $contacto->id_contacto,
+                'mensualidad'  => $mensualidad ?? 0,
+                'dia_pago'     => $diaPago,
             ]);
         }
 

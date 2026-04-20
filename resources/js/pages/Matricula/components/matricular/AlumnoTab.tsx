@@ -1,4 +1,4 @@
-import { Search, Tag, TrendingDown } from 'lucide-react';
+import { Search, Tag, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ReqLabel, OptLabel, SELECT_CLS } from '@/components/shared/FormLabels';
 import TitleForm from '@/components/TitleForm';
@@ -9,41 +9,73 @@ import api from '@/lib/api';
 import type { GradoOption, SeccionOption, MatriculaFormData } from '../../hooks/useMatricula';
 import type { AlumnoForm } from './types';
 
+// ── Tipos ──────────────────────────────────────────────────────────────────────
+
 type Descuento = {
     descuento_id: number;
     motivo: string;
     tipo: 'porcentaje' | 'monto_fijo';
     valor: number;
     fecha_fin: string | null;
+    concepto_id: number | null;
+};
+
+export type ConceptoCobro = {
+    concepto_id:     number;
+    nombre:          string;
+    periodicidad:    'mensual' | 'anual' | 'unico';
+    opcional:        boolean;
+    incluido:        boolean;
+    monto_base:      number;
+    monto_final:     number;
+    dia_vencimiento: number | null;
+    editable:        boolean;
 };
 
 const MOTIVO_LABEL: Record<string, string> = {
     hermanos: 'Hermanos', merito: 'Mérito', beca: 'Beca', otro: 'Otro',
 };
 
-type Props = {
-    alumno:         AlumnoForm;
-    setAlumno:      React.Dispatch<React.SetStateAction<AlumnoForm>>;
-    matricula:      MatriculaFormData;
-    setM:           (k: keyof MatriculaFormData, v: string) => void;
-    grados:         GradoOption[];
-    secciones:      SeccionOption[];
-    nivelId?:       number | null;
-    selectedGrado:  string;
-    setSelectedGrado: React.Dispatch<React.SetStateAction<string>>;
-    dniSearch:      string;
-    setDniSearch:   React.Dispatch<React.SetStateAction<string>>;
-    onDniSearch:    () => void;
-    searching:      boolean;
-    errors:         Record<string, string>;
+const PERIOD_BADGE: Record<string, string> = {
+    mensual: 'bg-blue-100 text-blue-700',
+    anual:   'bg-purple-100 text-purple-700',
+    unico:   'bg-gray-100 text-gray-700',
 };
+const PERIOD_LABEL: Record<string, string> = {
+    mensual: 'Mensual',
+    anual:   'Anual',
+    unico:   'Único',
+};
+
+// ── Props ──────────────────────────────────────────────────────────────────────
+
+type Props = {
+    alumno:           AlumnoForm;
+    setAlumno:        React.Dispatch<React.SetStateAction<AlumnoForm>>;
+    matricula:        MatriculaFormData;
+    setM:             (k: keyof MatriculaFormData, v: string) => void;
+    grados:           GradoOption[];
+    secciones:        SeccionOption[];
+    nivelId?:         number | null;
+    selectedGrado:    string;
+    setSelectedGrado: React.Dispatch<React.SetStateAction<string>>;
+    dniSearch:        string;
+    setDniSearch:     React.Dispatch<React.SetStateAction<string>>;
+    onDniSearch:      () => void;
+    searching:        boolean;
+    errors:           Record<string, string>;
+    // Exponer conceptos al modal padre para crear pagos al guardar
+    onConceptosChange?: (conceptos: ConceptoCobro[]) => void;
+};
+
+// ── Componente ─────────────────────────────────────────────────────────────────
 
 export default function AlumnoTab({
     alumno, setAlumno, matricula, setM,
     grados, secciones, nivelId,
     selectedGrado, setSelectedGrado,
     dniSearch, setDniSearch, onDniSearch, searching,
-    errors,
+    errors, onConceptosChange,
 }: Props) {
     const setA = (k: keyof AlumnoForm, v: string) =>
         setAlumno(prev => ({ ...prev, [k]: v }));
@@ -52,45 +84,66 @@ export default function AlumnoTab({
         ? <p className="text-xs text-red-500 mt-0.5">{errors[k]}</p>
         : null;
 
-    const [tarifaBase, setTarifaBase]     = useState<number | null>(null);
+    const [conceptos, setConceptos]       = useState<ConceptoCobro[]>([]);
     const [descuentos, setDescuentos]     = useState<Descuento[]>([]);
-    const [loadingTarifa, setLoadingTarifa] = useState(false);
+    const [loadingTarifas, setLoadingTarifas] = useState(false);
 
-    // Al cambiar grado → buscar tarifa mensual vigente
+    // ── Al cambiar grado → cargar TODOS los conceptos con tarifa ──────────
     useEffect(() => {
-        if (!selectedGrado) { setTarifaBase(null); return; }
-        setLoadingTarifa(true);
+        if (!selectedGrado) { setConceptos([]); onConceptosChange?.([]); return; }
+        setLoadingTarifas(true);
         const anio = new Date().getFullYear();
+
         api.get('/tarifas-pago')
             .then(res => {
                 const tarifas: any[] = res.data;
-                // Buscar tarifa mensual para este grado y año (o tarifa general sin grado)
-                const match =
-                    tarifas.find(t =>
-                        t.activo &&
-                        Number(t.anio_escolar) === anio &&
-                        String(t.grado_id) === String(selectedGrado) &&
-                        t.concepto?.periodicidad === 'mensual',
-                    ) ??
-                    tarifas.find(t =>
-                        t.activo &&
-                        Number(t.anio_escolar) === anio &&
-                        t.grado_id === null &&
-                        t.concepto?.periodicidad === 'mensual',
-                    );
-                if (match) {
-                    const monto = Number(match.monto).toFixed(2);
-                    setTarifaBase(Number(match.monto));
-                    setAlumno(prev => ({ ...prev, mensualidad: monto }));
-                } else {
-                    setTarifaBase(null);
+                const activas = tarifas.filter(t =>
+                    t.activo && Number(t.anio_escolar) === anio,
+                );
+
+                // Para cada tarifa activa, tomar la más específica (grado > general)
+                const porConcepto = new Map<number, any>();
+                for (const t of activas) {
+                    const cid = t.concepto_id;
+                    const prev = porConcepto.get(cid);
+                    // Prioridad: grado específico > general (grado_id null)
+                    if (!prev) {
+                        porConcepto.set(cid, t);
+                    } else if (String(t.grado_id) === String(selectedGrado)) {
+                        porConcepto.set(cid, t); // reemplazar con la específica del grado
+                    }
+                }
+
+                const lista: ConceptoCobro[] = Array.from(porConcepto.values()).map(t => ({
+                    concepto_id:     t.concepto_id,
+                    nombre:          t.concepto?.nombre ?? `Concepto #${t.concepto_id}`,
+                    periodicidad:    t.concepto?.periodicidad ?? 'unico',
+                    opcional:        t.concepto?.opcional ?? false,
+                    incluido:        true,
+                    monto_base:      Number(t.monto),
+                    monto_final:     Number(t.monto),
+                    dia_vencimiento: t.dia_vencimiento ?? null,
+                    editable:        true,
+                }));
+
+                setConceptos(lista);
+                onConceptosChange?.(lista);
+
+                // Sincronizar mensualidad y dia_pago del alumno desde la tarifa mensual
+                const mensual = lista.find(c => c.periodicidad === 'mensual');
+                if (mensual) {
+                    setAlumno(prev => ({
+                        ...prev,
+                        mensualidad: mensual.monto_final.toFixed(2),
+                        dia_pago:    mensual.dia_vencimiento ?? prev.dia_pago,
+                    }));
                 }
             })
-            .catch(() => setTarifaBase(null))
-            .finally(() => setLoadingTarifa(false));
+            .catch(() => { setConceptos([]); onConceptosChange?.([]); })
+            .finally(() => setLoadingTarifas(false));
     }, [selectedGrado]);
 
-    // Al encontrar alumno existente → buscar descuentos activos
+    // ── Al encontrar alumno existente → cargar descuentos activos ─────────
     useEffect(() => {
         if (!alumno.estu_id) { setDescuentos([]); return; }
         api.get('/descuentos', { params: { estu_id: alumno.estu_id } })
@@ -101,16 +154,58 @@ export default function AlumnoTab({
             .catch(() => setDescuentos([]));
     }, [alumno.estu_id]);
 
-    // Calcular monto final con descuentos
-    const montoFinal = (() => {
-        if (!tarifaBase) return null;
-        let monto = tarifaBase;
-        for (const d of descuentos) {
-            if (d.tipo === 'porcentaje') monto -= monto * (d.valor / 100);
-            else monto -= d.valor;
+    // ── Aplicar descuentos a los conceptos cuando cambian ─────────────────
+    useEffect(() => {
+        if (conceptos.length === 0) return;
+
+        const actualizados = conceptos.map(c => {
+            // Descuentos que aplican a este concepto (general o específico)
+            const desc = descuentos.filter(d =>
+                d.concepto_id === null || d.concepto_id === c.concepto_id,
+            );
+            let monto = c.monto_base;
+            for (const d of desc) {
+                if (d.tipo === 'porcentaje') monto -= monto * (d.valor / 100);
+                else monto -= d.valor;
+            }
+            return { ...c, monto_final: Math.max(0, monto) };
+        });
+        setConceptos(actualizados);
+        onConceptosChange?.(actualizados);
+
+        // Sincronizar mensualidad del alumno
+        const mensual = actualizados.find(c => c.periodicidad === 'mensual');
+        if (mensual) {
+            setAlumno(prev => ({ ...prev, mensualidad: mensual.monto_final.toFixed(2) }));
         }
-        return Math.max(0, monto);
-    })();
+    }, [descuentos]);
+
+    // ── Editar monto de un concepto manualmente ───────────────────────────
+    const updateMonto = (concepto_id: number, valor: string) => {
+        const actualizados = conceptos.map(c =>
+            c.concepto_id === concepto_id
+                ? { ...c, monto_final: Number(valor) || 0 }
+                : c,
+        );
+        setConceptos(actualizados);
+        onConceptosChange?.(actualizados);
+
+        const mensual = actualizados.find(c => c.periodicidad === 'mensual');
+        if (mensual) {
+            setAlumno(prev => ({ ...prev, mensualidad: mensual.monto_final.toFixed(2) }));
+        }
+    };
+
+    // ── Toggle incluir/excluir concepto opcional ──────────────────────────
+    const toggleIncluido = (concepto_id: number) => {
+        const actualizados = conceptos.map(c =>
+            c.concepto_id === concepto_id && c.opcional
+                ? { ...c, incluido: !c.incluido }
+                : c,
+        );
+        setConceptos(actualizados);
+        onConceptosChange?.(actualizados);
+    };
 
     return (
         <div className="space-y-5">
@@ -301,73 +396,156 @@ export default function AlumnoTab({
                     <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_ingreso} onChange={e => setA('fecha_ingreso', e.target.value)} />
                     {err('fecha_ingreso')}
                 </div>
+                <div className="col-span-2" />
+            </div>
 
-                {/* ── Mensualidad con tarifa automática ─────────────── */}
-                <div className="space-y-1.5">
-                    <ReqLabel>Mensualidad (S/)</ReqLabel>
-                    <div className="relative">
-                        <Input
-                            className="h-10 text-sm rounded-xl bg-neutral-50/50 pr-8"
-                            type="number" step="0.01"
-                            value={alumno.mensualidad}
-                            onChange={e => setA('mensualidad', e.target.value)}
-                            placeholder="0.00"
-                        />
-                        {loadingTarifa && (
-                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-400 animate-pulse">cargando…</span>
-                        )}
-                    </div>
-                    {/* Info de tarifa y descuentos */}
-                    {tarifaBase !== null && (
-                        <div className="mt-1.5 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 space-y-1">
-                            <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold">
-                                <Tag className="size-3" />
-                                Tarifa base: S/ {tarifaBase.toFixed(2)}
-                            </div>
-                            {descuentos.map(d => (
-                                <div key={d.descuento_id} className="flex items-center gap-1.5 text-[11px] text-indigo-700 font-semibold">
-                                    <TrendingDown className="size-3" />
-                                    {MOTIVO_LABEL[d.motivo] ?? d.motivo}:{' '}
-                                    {d.tipo === 'porcentaje' ? `-${d.valor}%` : `-S/ ${d.valor.toFixed(2)}`}
-                                    {d.fecha_fin && <span className="text-gray-400 font-normal">hasta {d.fecha_fin}</span>}
-                                </div>
-                            ))}
-                            {montoFinal !== null && descuentos.length > 0 && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-black border-t border-blue-100 pt-1 mt-1">
-                                    Monto final: S/ {montoFinal.toFixed(2)}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {!tarifaBase && selectedGrado && !loadingTarifa && (
-                        <p className="text-[11px] text-amber-600 mt-1">
-                            Sin tarifa configurada para este grado — ingrese el monto manualmente.
-                        </p>
-                    )}
-                    {err('mensualidad')}
-                </div>
-
-                <div className="space-y-1.5">
-                    <ReqLabel>Fecha de Pago</ReqLabel>
-                    <Input className="h-10 text-sm rounded-xl bg-neutral-50/50" type="date" value={alumno.fecha_pago} onChange={e => setA('fecha_pago', e.target.value)} />
-                    {err('fecha_pago')}
-                </div>
-
-                {/* Foto */}
-                <div className="col-span-3 space-y-1.5 pb-4">
-                    <TitleForm className="border-b border-neutral-100 mb-4 mt-2">
-                        Foto del Alumno
+            {/* ── Conceptos de Cobro ────────────────────────────────── */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+                    <TitleForm className="mb-0">
+                        Conceptos de Cobro
                     </TitleForm>
-                    <Label className="text-xs font-semibold text-neutral-700">
-                        Formatos permitidos: JPG, PNG, GIF (max. 2MB)
-                    </Label>
-                    <Input
-                        className="h-12 w-full text-sm rounded-xl bg-neutral-50/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                        type="file"
-                        accept="image/png, image/jpeg, image/gif"
-                        onChange={e => setAlumno(prev => ({ ...prev, foto: e.target.files ? e.target.files[0] : null }))}
-                    />
+                    {loadingTarifas && (
+                        <span className="flex items-center gap-1 text-[11px] text-gray-400 animate-pulse">
+                            <RefreshCw className="size-3 animate-spin" /> Cargando tarifas…
+                        </span>
+                    )}
                 </div>
+
+                {!selectedGrado && (
+                    <p className="text-xs text-gray-400 italic py-2">
+                        Selecciona un grado para ver los conceptos de cobro configurados.
+                    </p>
+                )}
+
+                {selectedGrado && !loadingTarifas && conceptos.length === 0 && (
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
+                        Sin tarifas configuradas para este grado. Ve a <strong>Config. Cobros → Tarifas por Grado</strong> para configurarlas.
+                    </div>
+                )}
+
+                {conceptos.length > 0 && (
+                    <>
+                        {/* Descuentos activos del alumno */}
+                        {descuentos.length > 0 && (
+                            <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-4 py-3 space-y-1.5">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1">
+                                    <Tag className="size-3" /> Descuentos activos del alumno
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {descuentos.map(d => (
+                                        <div key={d.descuento_id} className="flex items-center gap-1.5 rounded-lg bg-white border border-indigo-100 px-2.5 py-1.5 text-xs">
+                                            <TrendingDown className="size-3 text-indigo-500" />
+                                            <span className="font-bold text-indigo-700">{MOTIVO_LABEL[d.motivo] ?? d.motivo}</span>
+                                            <span className="text-gray-500">
+                                                {d.tipo === 'porcentaje' ? `-${d.valor}%` : `-S/ ${Number(d.valor).toFixed(2)}`}
+                                            </span>
+                                            {d.concepto_id && <span className="text-gray-400 text-[10px]">(concepto específico)</span>}
+                                            {d.fecha_fin && <span className="text-gray-400 text-[10px]">hasta {d.fecha_fin}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lista de conceptos */}
+                        <div className="rounded-xl border border-gray-100 overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                                        <th className="py-2 pl-4 text-left w-8"></th>
+                                        <th className="py-2 text-left">Concepto</th>
+                                        <th className="py-2 text-center">Tipo</th>
+                                        <th className="py-2 text-right">Tarifa base</th>
+                                        <th className="py-2 pr-4 text-right">Monto a cobrar</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {conceptos.map(c => (
+                                        <tr key={c.concepto_id} className={`hover:bg-gray-50/50 ${!c.incluido ? 'opacity-40' : ''}`}>
+                                            <td className="py-2.5 pl-4">
+                                                {c.opcional ? (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={c.incluido}
+                                                        onChange={() => toggleIncluido(c.concepto_id)}
+                                                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                        title="Desmarcar para excluir este cobro"
+                                                    />
+                                                ) : (
+                                                    <span className="text-gray-300 text-xs" title="Obligatorio">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2.5">
+                                                <div className="flex items-center gap-2">
+                                                    <DollarSign className="size-3.5 text-gray-400 shrink-0" />
+                                                    <span className="font-semibold text-gray-800 text-xs">{c.nombre}</span>
+                                                    {c.opcional && (
+                                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-px rounded font-semibold">opcional</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="py-2.5 text-center">
+                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${PERIOD_BADGE[c.periodicidad]}`}>
+                                                    {PERIOD_LABEL[c.periodicidad]}
+                                                </span>
+                                            </td>
+                                            <td className="py-2.5 text-right text-xs text-gray-500">
+                                                S/ {c.monto_base.toFixed(2)}
+                                            </td>
+                                            <td className="py-2.5 pr-4 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <span className="text-[10px] text-gray-400">S/</span>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={c.monto_final}
+                                                        onChange={e => updateMonto(c.concepto_id, e.target.value)}
+                                                        disabled={!c.incluido}
+                                                        className="h-7 w-24 text-xs text-right rounded-lg bg-white border-gray-200 font-bold disabled:opacity-40"
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-gray-50 border-t border-gray-100">
+                                        <td colSpan={4} className="py-2 pl-4 text-xs font-black text-gray-700 uppercase tracking-wide">
+                                            Total a cobrar al matricular
+                                        </td>
+                                        <td className="py-2 pr-4 text-right font-black text-emerald-700 text-sm">
+                                            S/ {conceptos.filter(c => c.incluido).reduce((s, c) => s + c.monto_final, 0).toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <p className="text-[10px] text-gray-400">
+                            Los conceptos <strong>Mensual</strong> se generan automáticamente cada mes. Los conceptos <strong>Único</strong> y <strong>Anual</strong> se registran como pago pendiente al guardar la matrícula.
+                        </p>
+                    </>
+                )}
+
+                {err('mensualidad')}
+            </div>
+
+            {/* Foto */}
+            <div className="space-y-1.5 pb-4">
+                <TitleForm className="border-b border-neutral-100 mb-4 mt-2">
+                    Foto del Alumno
+                </TitleForm>
+                <Label className="text-xs font-semibold text-neutral-700">
+                    Formatos permitidos: JPG, PNG, GIF (max. 2MB)
+                </Label>
+                <Input
+                    className="h-12 w-full text-sm rounded-xl bg-neutral-50/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                    type="file"
+                    accept="image/png, image/jpeg, image/gif"
+                    onChange={e => setAlumno(prev => ({ ...prev, foto: e.target.files ? e.target.files[0] : null }))}
+                />
             </div>
         </div>
     );

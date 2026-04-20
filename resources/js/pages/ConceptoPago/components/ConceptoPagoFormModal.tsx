@@ -11,9 +11,9 @@ interface Props {
     onSaved: () => void;
 }
 
-type FormState = { nombre: string; descripcion: string; periodicidad: 'mensual' | 'anual' | 'unico' };
+type FormState = { nombre: string; descripcion: string; periodicidad: 'mensual' | 'anual' | 'unico'; opcional: boolean };
 
-const BLANK: FormState = { nombre: '', descripcion: '', periodicidad: 'mensual' };
+const BLANK: FormState = { nombre: '', descripcion: '', periodicidad: 'mensual', opcional: false };
 
 export default function ConceptoPagoFormModal({ open, onClose, editing, onSaved }: Props) {
     const [form, setForm]     = useState<FormState>(BLANK);
@@ -26,6 +26,7 @@ export default function ConceptoPagoFormModal({ open, onClose, editing, onSaved 
                 nombre:       editing.nombre,
                 descripcion:  editing.descripcion ?? '',
                 periodicidad: editing.periodicidad,
+                opcional:     (editing as any).opcional ?? false,
             });
         } else {
             setForm(BLANK);
@@ -72,17 +73,6 @@ export default function ConceptoPagoFormModal({ open, onClose, editing, onSaved 
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Descripción</label>
-                        <textarea
-                            value={form.descripcion}
-                            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-                            rows={2}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                            placeholder="Descripción opcional..."
-                        />
-                    </div>
-
-                    <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Periodicidad *</label>
                         <select
                             value={form.periodicidad}
@@ -93,6 +83,30 @@ export default function ConceptoPagoFormModal({ open, onClose, editing, onSaved 
                             <option value="anual">Anual</option>
                             <option value="unico">Único</option>
                         </select>
+                    </div>
+
+                    <label className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${form.opcional ? 'border-amber-300 bg-amber-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                        <input
+                            type="checkbox"
+                            checked={form.opcional}
+                            onChange={e => setForm(f => ({ ...f, opcional: e.target.checked }))}
+                            className="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                        />
+                        <div>
+                            <p className="text-sm font-semibold text-gray-800">Concepto opcional</p>
+                            <p className="text-xs text-gray-500">El admin puede desmarcar este cobro al matricular un alumno</p>
+                        </div>
+                    </label>
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Descripción</label>
+                        <textarea
+                            value={form.descripcion}
+                            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+                            rows={2}
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Descripción opcional..."
+                        />
                     </div>
 
                     <div className="flex gap-2 pt-2">

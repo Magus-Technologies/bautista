@@ -167,8 +167,16 @@ class PagoRepository implements PagoRepositoryInterface
             ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
             ->where('pa.insti_id', $instiId)
             ->where('pa.es_pagador', '1')
-            ->select('es.estu_id', 'ec.contacto_id', 'ec.mensualidad', 's.id_grado as grado_id')
+            ->select('es.estu_id', 'ec.contacto_id', 'ec.mensualidad', 'ec.dia_pago', 's.id_grado as grado_id')
             ->get();
+
+        // Mapa de número de mes para calcular la fecha de vencimiento
+        $mesesNum = [
+            'ENERO' => 1, 'FEBRERO' => 2, 'MARZO' => 3, 'ABRIL' => 4,
+            'MAYO' => 5, 'JUNIO' => 6, 'JULIO' => 7, 'AGOSTO' => 8,
+            'SEPTIEMBRE' => 9, 'OCTUBRE' => 10, 'NOVIEMBRE' => 11, 'DICIEMBRE' => 12,
+        ];
+        $numMes = $mesesNum[$mes] ?? now()->month;
 
         $creados  = 0;
         $omitidos = 0;
@@ -190,6 +198,13 @@ class PagoRepository implements PagoRepositoryInterface
             // Req 12.4: apply active discounts
             [$montoFinal, $observacion] = $this->aplicarDescuentos($est->estu_id, $monto, $today);
 
+            // Calcular fecha de vencimiento usando dia_pago del contacto o día 1 por defecto
+            $diaPago = $est->dia_pago ?? 1;
+            // Asegurar que el día no exceda el último día del mes
+            $ultimoDia = cal_days_in_month(CAL_GREGORIAN, $numMes, $anio);
+            $diaPago   = min($diaPago, $ultimoDia);
+            $fechaPago = sprintf('%04d-%02d-%02d', $anio, $numMes, $diaPago);
+
             Pago::create([
                 'insti_id'    => $instiId,
                 'estu_id'     => $est->estu_id,
@@ -201,7 +216,7 @@ class PagoRepository implements PagoRepositoryInterface
                 'pag_otro2'   => 0,
                 'total'       => $montoFinal,
                 'estatus'     => 0,
-                'pag_fecha'   => $today,
+                'pag_fecha'   => $fechaPago,
                 'observacion' => $observacion,
             ]);
             $creados++;

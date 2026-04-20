@@ -25,11 +25,13 @@ class ConceptoPagoApiController extends Controller
             'nombre'       => ['required', 'string', 'max:100'],
             'descripcion'  => ['nullable', 'string'],
             'periodicidad' => ['required', Rule::in(['mensual', 'anual', 'unico'])],
+            'opcional'     => ['boolean'],
         ]);
 
         $concepto = ConceptoPago::create(array_merge($data, [
             'insti_id' => $request->user()->insti_id,
             'activo'   => true,
+            'opcional' => $data['opcional'] ?? false,
         ]));
 
         return response()->json($concepto, 201);
@@ -45,6 +47,7 @@ class ConceptoPagoApiController extends Controller
             'nombre'       => ['required', 'string', 'max:100'],
             'descripcion'  => ['nullable', 'string'],
             'periodicidad' => ['required', Rule::in(['mensual', 'anual', 'unico'])],
+            'opcional'     => ['boolean'],
         ]);
 
         $concepto->update($data);

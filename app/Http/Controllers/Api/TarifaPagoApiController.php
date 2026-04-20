@@ -25,10 +25,11 @@ class TarifaPagoApiController extends Controller
         $instiId = $request->user()->insti_id;
 
         $data = $request->validate([
-            'concepto_id'  => ['required', 'integer'],
-            'grado_id'     => ['nullable', 'integer'],
-            'anio_escolar' => ['required', 'integer', 'min:2020', 'max:2099'],
-            'monto'        => ['required', 'numeric', 'min:0'],
+            'concepto_id'      => ['required', 'integer'],
+            'grado_id'         => ['nullable', 'integer'],
+            'anio_escolar'     => ['required', 'integer', 'min:2020', 'max:2099'],
+            'monto'            => ['required', 'numeric', 'min:0'],
+            'dia_vencimiento'  => ['nullable', 'integer', 'min:1', 'max:28'],
         ]);
 
         // Impedir duplicado activo para misma combinación
@@ -60,15 +61,27 @@ class TarifaPagoApiController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'concepto_id'  => ['required', 'integer'],
-            'grado_id'     => ['nullable', 'integer'],
-            'anio_escolar' => ['required', 'integer', 'min:2020', 'max:2099'],
-            'monto'        => ['required', 'numeric', 'min:0'],
-            'activo'       => ['boolean'],
+            'concepto_id'      => ['required', 'integer'],
+            'grado_id'         => ['nullable', 'integer'],
+            'anio_escolar'     => ['required', 'integer', 'min:2020', 'max:2099'],
+            'monto'            => ['required', 'numeric', 'min:0'],
+            'dia_vencimiento'  => ['nullable', 'integer', 'min:1', 'max:28'],
+            'activo'           => ['boolean'],
         ]);
 
         $tarifa->update($data);
 
         return response()->json($tarifa->load(['concepto', 'grado']));
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $tarifa = TarifaPago::where('tarifa_id', $id)
+            ->where('insti_id', $request->user()->insti_id)
+            ->firstOrFail();
+
+        $tarifa->delete();
+
+        return response()->json(null, 204);
     }
 }

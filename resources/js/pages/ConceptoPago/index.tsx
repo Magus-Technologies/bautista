@@ -22,6 +22,7 @@ export interface ConceptoPago {
     nombre: string;
     descripcion: string | null;
     periodicidad: 'mensual' | 'anual' | 'unico';
+    opcional: boolean;
     activo: boolean;
 }
 
@@ -68,6 +69,7 @@ export default function ConceptoPagoPage() {
     };
 
     const columns: Column<ConceptoPago>[] = [
+        { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Nombre',       render: c => <span className="font-semibold">{c.nombre}</span> },
         { label: 'Descripción',  render: c => <span className="text-gray-500 text-xs">{c.descripcion ?? '—'}</span> },
         {
@@ -77,6 +79,12 @@ export default function ConceptoPagoPage() {
                     {PERIODICIDAD_LABEL[c.periodicidad]}
                 </span>
             ),
+        },
+        {
+            label: 'Opcional',
+            render: c => c.opcional
+                ? <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Opcional</span>
+                : <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Obligatorio</span>,
         },
         {
             label: 'Estado',

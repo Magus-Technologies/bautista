@@ -16,6 +16,7 @@ class TarifaPago extends Model
         'grado_id',
         'anio_escolar',
         'monto',
+        'dia_vencimiento',
         'activo',
     ];
 

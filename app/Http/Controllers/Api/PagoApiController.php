@@ -180,6 +180,58 @@ class PagoApiController extends Controller
         return response()->json($data);
     }
 
+    // ── Generar pagos de matrícula (conceptos únicos al inscribir) ───────────
+
+    public function generarPagosMatricula(Request $request): JsonResponse
+    {
+        $request->validate([
+            'estu_id'    => ['required', 'integer'],
+            'contacto_id'=> ['required', 'integer'],
+            'grado_id'   => ['required', 'integer'],
+            'anio'       => ['required', 'integer'],
+            'conceptos'  => ['required', 'array'],
+            'conceptos.*.concepto_id' => ['required', 'integer'],
+            'conceptos.*.monto'       => ['required', 'numeric', 'min:0'],
+            'conceptos.*.nombre'      => ['required', 'string'],
+        ]);
+
+        $instiId   = $request->user()->insti_id;
+        $estuId    = $request->input('estu_id');
+        $contactoId= $request->input('contacto_id');
+        $anio      = $request->input('anio');
+        $conceptos = $request->input('conceptos');
+        $today     = now()->toDateString();
+        $mes       = strtoupper(now()->locale('es')->isoFormat('MMMM'));
+
+        $creados = 0;
+        foreach ($conceptos as $c) {
+            // Evitar duplicados: mismo alumno + concepto + año
+            $existe = \App\Models\Pago::where('estu_id', $estuId)
+                ->where('pag_anual', $anio)
+                ->where('pag_nombre1', $c['nombre'])
+                ->exists();
+            if ($existe) continue;
+
+            \App\Models\Pago::create([
+                'insti_id'    => $instiId,
+                'estu_id'     => $estuId,
+                'contacto_id' => $contactoId,
+                'pag_anual'   => $anio,
+                'pag_mes'     => $mes,
+                'pag_monto'   => 0,
+                'pag_nombre1' => $c['nombre'],
+                'pag_otro1'   => $c['monto'],
+                'pag_otro2'   => 0,
+                'total'       => $c['monto'],
+                'estatus'     => 0,
+                'pag_fecha'   => $today,
+            ]);
+            $creados++;
+        }
+
+        return response()->json(['creados' => $creados]);
+    }
+
     // ── Reporte consolidado PDF ───────────────────────────────────────────
 
     public function reporteConsolidadoPdf(Request $request)

@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import type { MatriculaFormData, SeccionOption, GradoOption } from '../hooks/useMatricula';
 import { defaultMatriculaForm } from '../hooks/useMatricula';
 import AlumnoTab from './matricular/AlumnoTab';
+import type { ConceptoCobro } from './matricular/AlumnoTab';
 import ContactoTab from './matricular/ContactoTab';
 import { defaultAlumno, defaultContacto, mapContacto } from './matricular/types';
 import type { AlumnoForm, ContactoForm } from './matricular/types';
@@ -46,6 +47,7 @@ export default function MatricularModal({
     const [errors, setErrors]         = useState<Record<string, string>>({});
     const [dniSearch, setDniSearch]   = useState('');
     const [selectedGrado, setSelectedGrado] = useState('');
+    const [conceptosCobro, setConceptosCobro] = useState<ConceptoCobro[]>([]);
     // track which estu_id we already loaded contacts for — avoids re-loading
     // when the user edits other fields and alumno.estu_id stays the same
     const loadedContactsFor = useRef<number | null>(null);
@@ -56,6 +58,7 @@ export default function MatricularModal({
         setErrors({});
         setDniSearch('');
         setSelectedGrado('');
+        setConceptosCobro([]);
         loadedContactsFor.current = null;
 
         if (open && editingMatricula) {
@@ -83,6 +86,7 @@ export default function MatricularModal({
                 mensualidad:         s?.mensualidad?.toString() ?? '',
                 fecha_ingreso:       s?.fecha_ingreso ?? '',
                 fecha_pago:          s?.fecha_promovido ?? s?.fecha_pago ?? '',
+                dia_pago:            s?.dia_pago ?? null,
                 foto:                null,
             });
             setMatricula({
@@ -163,6 +167,7 @@ return;
                     mensualidad:         found.mensualidad ?? '',
                     fecha_ingreso:       found.fecha_ingreso ?? '',
                     fecha_pago:          found.fecha_pago ?? '',
+                    dia_pago:            found.dia_pago ?? null,
                     foto:                null,
                 });
                 setMatricula(prev => ({ ...prev, estu_id: found.estu_id.toString() }));
@@ -240,7 +245,8 @@ return;
         colegio: alumno.colegio, neurodivergencia: alumno.neurodivergencia,
         terapia_ocupacional: alumno.terapia_ocupacional, seguro: alumno.seguro,
         seguro_privado: alumno.seguro_privado, mensualidad: alumno.mensualidad,
-        fecha_ingreso: alumno.fecha_ingreso, fecha_pago: alumno.fecha_pago,
+        fecha_ingreso: alumno.fecha_ingreso,
+        fecha_promovido: alumno.fecha_pago,  // fecha_pago en UI → fecha_promovido en BD
         foto: alumno.foto,
     });
 
@@ -263,7 +269,6 @@ errs.apellido_paterno = 'Requerido';
 }
 
         if (!alumno.fecha_ingreso.trim())    errs.fecha_ingreso    = 'Requerido';
-        if (!alumno.fecha_pago.trim())       errs.fecha_pago       = 'Requerido';
         if (!alumno.mensualidad.trim())      errs.mensualidad      = 'Requerido';
         if (!matricula.seccion_id)           errs.seccion_id       = 'Requerido';
 
@@ -333,8 +338,55 @@ errs.apellido_paterno = 'Requerido';
                     provincia:      c.data.provincia,
                     distrito:       c.data.distrito,
                     es_pagador:     c.data.es_pagador ? 'si' : 'no',
+                    // Si es pagador, enviar la mensualidad para guardarla en estudiante_contacto
+                    mensualidad:    c.data.es_pagador ? alumno.mensualidad : undefined,
+                    dia_pago:       c.data.es_pagador ? alumno.dia_pago : undefined,
                 }))
             );
+
+            // ── Crear pagos inmediatos para conceptos únicos/anuales ──────────
+            if (!editingMatricula && conceptosCobro.length > 0) {
+                // Buscar el contacto pagador
+                const pagador = [padre, madre, apoderado].find(c => c.es_pagador && (c.nombres.trim() || c.apellidos.trim()));
+                if (pagador) {
+                    // Obtener el id_contacto del pagador recién guardado
+                    try {
+                        const contactosRes = await api.get(`/estudiantes/${estudianteId}/contactos`);
+                        const tiposPagador = ['padre', 'madre', 'apoderado'] as const;
+                        let contactoId: number | null = null;
+                        for (const tipo of tiposPagador) {
+                            const c = tipo === 'padre' ? padre : tipo === 'madre' ? madre : apoderado;
+                            if (c.es_pagador && (c.nombres.trim() || c.apellidos.trim())) {
+                                contactoId = contactosRes.data[tipo]?.id_contacto ?? null;
+                                break;
+                            }
+                        }
+
+                        if (contactoId) {
+                            // Solo conceptos únicos y anuales generan pago inmediato, y que estén incluidos
+                            const conceptosInmediatos = conceptosCobro.filter(
+                                c => (c.periodicidad === 'unico' || c.periodicidad === 'anual') && c.incluido,
+                            );
+                            if (conceptosInmediatos.length > 0) {
+                                await api.post('/pagos/generar-pagos-matricula', {
+                                    estu_id:     estudianteId,
+                                    contacto_id: contactoId,
+                                    grado_id:    selectedGrado,
+                                    anio:        anio,
+                                    conceptos:   conceptosInmediatos.map(c => ({
+                                        concepto_id: c.concepto_id,
+                                        nombre:      c.nombre,
+                                        monto:       c.monto_final,
+                                    })),
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error al crear pagos de matrícula:', e);
+                        // No bloquear el flujo si falla la creación de pagos
+                    }
+                }
+            }
 
             onClose();
         } catch (e: any) {
@@ -378,6 +430,7 @@ errs.apellido_paterno = 'Requerido';
                                 dniSearch={dniSearch} setDniSearch={setDniSearch}
                                 onDniSearch={handleDniSearch} searching={searching}
                                 errors={errors}
+                                onConceptosChange={setConceptosCobro}
                             />
                         </TabsContent>
 

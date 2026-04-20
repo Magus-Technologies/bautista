@@ -153,6 +153,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('dashboard',                            [PagoApiController::class, 'dashboard']);
         Route::get('vencidos',                             [PagoApiController::class, 'vencidos']);
         Route::post('generar-mensualidades',               [PagoApiController::class, 'generarMensualidades']);
+        Route::post('generar-pagos-matricula',             [PagoApiController::class, 'generarPagosMatricula']);
         Route::get('historial/{estuId}',                   [PagoApiController::class, 'historialAlumno']);
         Route::get('reporte-consolidado',                  [PagoApiController::class, 'reporteConsolidado']);
         Route::get('reporte-consolidado/pdf',              [PagoApiController::class, 'reporteConsolidadoPdf']);
@@ -179,6 +180,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/',      [TarifaPagoApiController::class, 'index']);
         Route::post('/',     [TarifaPagoApiController::class, 'store']);
         Route::put('/{id}',  [TarifaPagoApiController::class, 'update']);
+        Route::delete('/{id}', [TarifaPagoApiController::class, 'destroy']);
     });
 
     // Descuentos y becas por alumno
