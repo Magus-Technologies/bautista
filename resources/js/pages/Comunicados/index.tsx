@@ -100,7 +100,7 @@ export default function MensajesPage() {
                             )}
                         </div>
                     </div>
-                    {can('comunicados.crear') && (
+                    {can('admin.comunicados.crear') && (
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 onClick={() => setModalGrupo(true)}
