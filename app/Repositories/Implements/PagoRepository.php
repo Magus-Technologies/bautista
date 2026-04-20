@@ -379,7 +379,7 @@ class PagoRepository implements PagoRepositoryInterface
             INNER JOIN grados g      ON s.id_grado   = g.grado_id
             INNER JOIN niveles_educativos ne ON g.nivel_id = ne.nivel_id
             WHERE p.insti_id = ? AND p.pag_mes = ? AND p.pag_anual = ?
-            GROUP BY ne.nivel_id, g.grado_id
+            GROUP BY ne.nivel_id, ne.nombre_nivel, g.grado_id, g.nombre_grado
             HAVING COUNT(*) > 0
             ORDER BY ne.nombre_nivel, g.nombre_grado
         ", [$instiId, $mes, $anio]);
