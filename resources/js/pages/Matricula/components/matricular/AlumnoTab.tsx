@@ -5,6 +5,8 @@ import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ResourceTable from '@/components/shared/ResourceTable';
+import type { Column } from '@/components/shared/ResourceTable';
 import api from '@/lib/api';
 import type { GradoOption, SeccionOption, MatriculaFormData } from '../../hooks/useMatricula';
 import type { AlumnoForm } from './types';
@@ -179,22 +181,6 @@ export default function AlumnoTab({
             setAlumno(prev => ({ ...prev, mensualidad: mensual.monto_final.toFixed(2) }));
         }
     }, [descuentos]);
-
-    // ── Editar monto de un concepto manualmente ───────────────────────────
-    const updateMonto = (concepto_id: number, valor: string) => {
-        const actualizados = conceptos.map(c =>
-            c.concepto_id === concepto_id
-                ? { ...c, monto_final: Number(valor) || 0 }
-                : c,
-        );
-        setConceptos(actualizados);
-        onConceptosChange?.(actualizados);
-
-        const mensual = actualizados.find(c => c.periodicidad === 'mensual');
-        if (mensual) {
-            setAlumno(prev => ({ ...prev, mensualidad: mensual.monto_final.toFixed(2) }));
-        }
-    };
 
     // ── Toggle incluir/excluir concepto opcional ──────────────────────────
     const toggleIncluido = (concepto_id: number) => {
@@ -449,78 +435,69 @@ export default function AlumnoTab({
                         )}
 
                         {/* Lista de conceptos */}
-                        <div className="rounded-xl border border-gray-100 overflow-hidden">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase tracking-wider">
-                                        <th className="py-2 pl-4 text-left w-8"></th>
-                                        <th className="py-2 text-left">Concepto</th>
-                                        <th className="py-2 text-center">Tipo</th>
-                                        <th className="py-2 text-right">Tarifa base</th>
-                                        <th className="py-2 pr-4 text-right">Monto a cobrar</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {conceptos.map(c => (
-                                        <tr key={c.concepto_id} className={`hover:bg-gray-50/50 ${!c.incluido ? 'opacity-40' : ''}`}>
-                                            <td className="py-2.5 pl-4">
-                                                {c.opcional ? (
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={c.incluido}
-                                                        onChange={() => toggleIncluido(c.concepto_id)}
-                                                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                                        title="Desmarcar para excluir este cobro"
-                                                    />
-                                                ) : (
-                                                    <span className="text-gray-300 text-xs" title="Obligatorio">—</span>
-                                                )}
-                                            </td>
-                                            <td className="py-2.5">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarSign className="size-3.5 text-gray-400 shrink-0" />
-                                                    <span className="font-semibold text-gray-800 text-xs">{c.nombre}</span>
-                                                    {c.opcional && (
-                                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-px rounded font-semibold">opcional</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="py-2.5 text-center">
-                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${PERIOD_BADGE[c.periodicidad]}`}>
-                                                    {PERIOD_LABEL[c.periodicidad]}
-                                                </span>
-                                            </td>
-                                            <td className="py-2.5 text-right text-xs text-gray-500">
-                                                S/ {c.monto_base.toFixed(2)}
-                                            </td>
-                                            <td className="py-2.5 pr-4 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <span className="text-[10px] text-gray-400">S/</span>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={c.monto_final}
-                                                        onChange={e => updateMonto(c.concepto_id, e.target.value)}
-                                                        disabled={!c.incluido}
-                                                        className="h-7 w-24 text-xs text-right rounded-lg bg-white border-gray-200 font-bold disabled:opacity-40"
-                                                    />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-gray-50 border-t border-gray-100">
-                                        <td colSpan={4} className="py-2 pl-4 text-xs font-black text-gray-700 uppercase tracking-wide">
-                                            Total a cobrar al matricular
-                                        </td>
-                                        <td className="py-2 pr-4 text-right font-black text-emerald-700 text-sm">
-                                            S/ {conceptos.filter(c => c.incluido).reduce((s, c) => s + c.monto_final, 0).toFixed(2)}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                        <ResourceTable
+                            rows={{ data: conceptos, current_page: 1, last_page: 1, per_page: conceptos.length, total: conceptos.length, from: 1, to: conceptos.length }}
+                            columns={[
+                                {
+                                    label: '',
+                                    render: c => c.opcional ? (
+                                        <input
+                                            type="checkbox"
+                                            checked={c.incluido}
+                                            onChange={() => toggleIncluido(c.concepto_id)}
+                                            className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                            title="Desmarcar para excluir este cobro"
+                                        />
+                                    ) : (
+                                        <span className="text-gray-300 text-xs" title="Obligatorio">—</span>
+                                    ),
+                                },
+                                {
+                                    label: 'Concepto',
+                                    render: c => (
+                                        <div className="flex items-center gap-2">
+                                            <DollarSign className="size-3.5 text-gray-400 shrink-0" />
+                                            <span className={`font-semibold text-xs ${!c.incluido ? 'opacity-40' : ''}`}>{c.nombre}</span>
+                                            {c.opcional && (
+                                                <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-px rounded font-semibold">opcional</span>
+                                            )}
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Tipo',
+                                    render: c => (
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${PERIOD_BADGE[c.periodicidad]} ${!c.incluido ? 'opacity-40' : ''}`}>
+                                            {PERIOD_LABEL[c.periodicidad]}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    label: 'Tarifa base',
+                                    render: c => (
+                                        <span className={`text-xs text-gray-500 ${!c.incluido ? 'opacity-40' : ''}`}>
+                                            S/ {c.monto_base.toFixed(2)}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    label: 'Monto a cobrar',
+                                    render: c => (
+                                        <span className={`text-xs font-bold text-gray-800 ${!c.incluido ? 'opacity-40' : ''}`}>
+                                            S/ {c.monto_final.toFixed(2)}
+                                        </span>
+                                    ),
+                                },
+                            ] as Column<ConceptoCobro>[]}
+                            getKey={c => c.concepto_id}
+                        />
+
+                        {/* Total */}
+                        <div className="flex items-center justify-between rounded-lg bg-gray-50 border border-gray-100 px-4 py-2.5">
+                            <span className="text-xs font-black text-gray-700 uppercase tracking-wide">Total a cobrar al matricular</span>
+                            <span className="font-black text-emerald-700 text-sm">
+                                S/ {conceptos.filter(c => c.incluido).reduce((s, c) => s + c.monto_final, 0).toFixed(2)}
+                            </span>
                         </div>
 
                         <p className="text-[10px] text-gray-400">

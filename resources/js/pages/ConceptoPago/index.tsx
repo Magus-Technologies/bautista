@@ -6,6 +6,8 @@ import PageHeader from '@/components/shared/PageHeader';
 import SectionCard from '@/components/shared/SectionCard';
 import ResourceTable from '@/components/shared/ResourceTable';
 import type { Column } from '@/components/shared/ResourceTable';
+import ConfirmModal from '@/components/shared/ConfirmModal';
+import AlertModal from '@/components/shared/AlertModal';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
@@ -47,6 +49,9 @@ export default function ConceptoPagoPage() {
     const [loading, setLoading]       = useState(true);
     const [modalOpen, setModalOpen]   = useState(false);
     const [editing, setEditing]       = useState<ConceptoPago | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<ConceptoPago | null>(null);
+    const [deleting, setDeleting]     = useState(false);
+    const [errorAlert, setErrorAlert] = useState('');
 
     const cargar = async () => {
         setLoading(true);
@@ -69,14 +74,23 @@ export default function ConceptoPagoPage() {
     };
 
     const eliminar = async (c: ConceptoPago) => {
-        try {
-            await api.delete(`/conceptos-pago/${c.concepto_id}`);
-            cargar();
-        } catch (e: any) {
-            alert(e?.response?.data?.message ?? 'Error al eliminar el concepto.');
-        }
+        setConfirmDelete(c);
     };
 
+    const confirmarEliminar = async () => {
+        if (!confirmDelete) return;
+        setDeleting(true);
+        try {
+            await api.delete(`/conceptos-pago/${confirmDelete.concepto_id}`);
+            setConfirmDelete(null);
+            cargar();
+        } catch (e: any) {
+            setConfirmDelete(null);
+            setErrorAlert(e?.response?.data?.message ?? 'Error al eliminar el concepto.');
+        } finally {
+            setDeleting(false);
+        }
+    };
     const columns: Column<ConceptoPago>[] = [
         { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Nombre',       render: c => <span className="font-semibold">{c.nombre}</span> },
@@ -154,6 +168,25 @@ export default function ConceptoPagoPage() {
                 onClose={() => setModalOpen(false)}
                 editing={editing}
                 onSaved={cargar}
+            />
+
+            <ConfirmModal
+                open={!!confirmDelete}
+                onClose={() => setConfirmDelete(null)}
+                onConfirm={confirmarEliminar}
+                title="Eliminar concepto"
+                message={`¿Eliminar el concepto "${confirmDelete?.nombre}"? Esta acción no se puede deshacer.`}
+                confirmText="Eliminar"
+                variant="danger"
+                processing={deleting}
+            />
+
+            <AlertModal
+                open={!!errorAlert}
+                onClose={() => setErrorAlert('')}
+                variant="error"
+                title="No se puede eliminar"
+                message={errorAlert}
             />
         </AppLayout>
     );
