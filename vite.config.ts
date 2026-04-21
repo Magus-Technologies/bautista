@@ -26,34 +26,45 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks(id) {
-                    // React core — cargado siempre, pequeño chunk separado
+                    // React core
                     if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
                         return 'react-core';
                     }
-                    // Scanner QR — solo se carga en la página de asistencia
+                    // Scanner QR — lazy, solo se descarga en /asistencia/scanner
                     if (id.includes('html5-qrcode')) {
                         return 'scanner';
                     }
-                    // Editor de texto rico — solo en páginas que lo usan
-                    if (id.includes('tiptap') || id.includes('@tiptap') || id.includes('prosemirror')) {
+                    // Quill editor — lazy, solo en modales de mensajería/anuncios
+                    if (id.includes('node_modules/quill') || id.includes('node_modules/parchment') || id.includes('node_modules/quill-delta')) {
                         return 'rich-editor';
                     }
-                    // Inertia + router
-                    if (id.includes('@inertiajs')) {
+                    // Inertia
+                    if (id.includes('node_modules/@inertiajs')) {
                         return 'inertia';
+                    }
+                    // Radix UI — se usa en toda la app pero es tree-shakeable, chunk propio para cache
+                    if (id.includes('node_modules/@radix-ui')) {
+                        return 'radix';
+                    }
+                    // Lucide icons — tree-shaken por Vite, chunk propio para cache
+                    if (id.includes('node_modules/lucide-react')) {
+                        return 'icons';
+                    }
+                    // date-fns — solo en páginas que muestran fechas
+                    if (id.includes('node_modules/date-fns')) {
+                        return 'date-fns';
                     }
                     // Axios
                     if (id.includes('node_modules/axios')) {
                         return 'axios';
                     }
-                    // Resto de node_modules → vendor genérico
+                    // Resto de node_modules
                     if (id.includes('node_modules/')) {
                         return 'vendor';
                     }
                 },
             },
         },
-        // Aumentar el límite de warning de chunk (default 500kB)
-        chunkSizeWarningLimit: 1000,
+        chunkSizeWarningLimit: 600,
     },
 });
