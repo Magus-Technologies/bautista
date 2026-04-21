@@ -152,7 +152,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Dashboard y generación
         Route::get('dashboard',                            [PagoApiController::class, 'dashboard']);
         Route::get('vencidos',                             [PagoApiController::class, 'vencidos']);
+        Route::get('sugerido/{estuId}',                    [PagoApiController::class, 'sugerido']);
         Route::post('generar-mensualidades',               [PagoApiController::class, 'generarMensualidades']);
+        Route::post('generar-individual/{estuId}',         [PagoApiController::class, 'generarIndividual']);
         Route::post('generar-pagos-matricula',             [PagoApiController::class, 'generarPagosMatricula']);
         Route::get('historial/{estuId}',                   [PagoApiController::class, 'historialAlumno']);
         Route::get('reporte-consolidado',                  [PagoApiController::class, 'reporteConsolidado']);
@@ -169,8 +171,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Conceptos de pago configurables
     Route::prefix('conceptos-pago')->group(function () {
-        Route::get('/',               [ConceptoPagoApiController::class, 'index']);
-        Route::post('/',              [ConceptoPagoApiController::class, 'store']);
+        Route::get('/',                       [ConceptoPagoApiController::class, 'index']);
+        Route::get('/estudiante/{estuId}',    [ConceptoPagoApiController::class, 'porEstudiante']);
+        Route::post('/',                      [ConceptoPagoApiController::class, 'store']);
         Route::put('/{id}',           [ConceptoPagoApiController::class, 'update']);
         Route::patch('/{id}/estado',  [ConceptoPagoApiController::class, 'toggleEstado']);
         Route::delete('/{id}',        [ConceptoPagoApiController::class, 'destroy']);

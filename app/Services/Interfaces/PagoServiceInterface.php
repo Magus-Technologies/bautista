@@ -40,4 +40,10 @@ interface PagoServiceInterface
     public function historialAlumno(int $instiId, int $estuId): array;
 
     public function reporteConsolidado(int $instiId, string $mes, int $anio): array;
+
+    public function generarMensualidadAlumno(int $instiId, int $estuId, string $mes, int $anio): array;
+
+    public function obtenerMontoSugerido(int $instiId, int $estuId, int $anio): array;
+
+    public function generarPagosMatricula(int $instiId, int $estuId, int $contactoId, int $anio, array $conceptos): array;
 }

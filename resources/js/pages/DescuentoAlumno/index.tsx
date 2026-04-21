@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Gift, PlusCircle } from 'lucide-react';
+import { Gift, PlusCircle, Ban, CheckCircle, User, Layers, GraduationCap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/shared/PageHeader';
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
 import DescuentoFormModal from './components/DescuentoFormModal';
+import ConfirmModal from '@/components/shared/ConfirmModal';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal';
 import type { ConceptoPago } from '../ConceptoPago/index';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -20,7 +22,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export interface DescuentoAlumno {
     descuento_id: number;
-    estu_id: number;
+    estu_id: number | null;
+    nivel_id: number | null;
+    grado_id: number | null;
+    seccion_id: number | null;
     concepto_id: number | null;
     motivo: 'hermanos' | 'merito' | 'beca' | 'otro';
     tipo: 'porcentaje' | 'monto_fijo';
@@ -29,7 +34,10 @@ export interface DescuentoAlumno {
     fecha_fin: string | null;
     observacion: string | null;
     activo: boolean;
-    estudiante?: { perfil?: { primer_nombre: string; primer_apellido: string } };
+    estudiante?: { perfil?: { primer_nombre: string; apellido_paterno: string; apellido_materno?: string } };
+    nivel?: { nombre_nivel: string };
+    grado?: { nombre_grado: string };
+    seccion?: { nombre_seccion: string };
     concepto?: { nombre: string } | null;
 }
 
@@ -55,6 +63,12 @@ export default function DescuentoAlumnoPage() {
     const [editing, setEditing]       = useState<DescuentoAlumno | null>(null);
     const [filtroActivo, setFiltroActivo] = useState<'todos' | 'activos'>('activos');
 
+    // Modales de confirmación
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+    const [selected, setSelected] = useState<DescuentoAlumno | null>(null);
+    const [processing, setProcessing] = useState(false);
+
     const cargar = async () => {
         setLoading(true);
         try {
@@ -74,23 +88,75 @@ export default function DescuentoAlumnoPage() {
     const openNew  = () => { setEditing(null); setModalOpen(true); };
     const openEdit = (d: DescuentoAlumno) => { setEditing(d); setModalOpen(true); };
 
-    const eliminar = async (d: DescuentoAlumno) => {
-        if (!confirm(`¿Eliminar descuento de ${d.estudiante?.perfil?.primer_nombre ?? 'este alumno'}?`)) return;
-        await api.delete(`/descuentos/${d.descuento_id}`);
-        cargar();
+    const openDelete = (d: DescuentoAlumno) => { setSelected(d); setConfirmDeleteOpen(true); };
+    const openToggle = (d: DescuentoAlumno) => { setSelected(d); setConfirmToggleOpen(true); };
+
+    const confirmarEliminar = async () => {
+        if (!selected) return;
+        setProcessing(true);
+        try {
+            await api.delete(`/descuentos/${selected.descuento_id}`);
+            setConfirmDeleteOpen(false);
+            cargar();
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const confirmarToggle = async () => {
+        if (!selected) return;
+        setProcessing(true);
+        try {
+            await api.put(`/descuentos/${selected.descuento_id}`, {
+                ...selected,
+                activo: !selected.activo
+            });
+            setConfirmToggleOpen(false);
+            cargar();
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const lista = filtroActivo === 'activos' ? descuentos.filter(d => d.activo) : descuentos;
 
-    const nombreAlumno = (d: DescuentoAlumno) =>
-        d.estudiante?.perfil
-            ? `${d.estudiante.perfil.primer_nombre} ${d.estudiante.perfil.primer_apellido}`
-            : `Est. #${d.estu_id}`;
+    const nombreAplicable = (d: DescuentoAlumno | null) => {
+        if (!d) return '';
+        if (d.estudiante) {
+            return d.estudiante.perfil
+                ? `${d.estudiante.perfil.primer_nombre} ${d.estudiante.perfil.apellido_paterno} ${d.estudiante.perfil.apellido_materno ?? ''}`.trim()
+                : `Est. #${d.estu_id}`;
+        }
+        if (d.nivel) return `Nivel: ${d.nivel.nombre_nivel}`;
+        if (d.grado) return `Grado: ${d.grado.nombre_grado}`;
+        return 'General';
+    };
 
     const columns: Column<DescuentoAlumno>[] = [
         { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
-        { label: 'Alumno',    render: d => <span className="font-semibold">{nombreAlumno(d)}</span> },
-        { label: 'Concepto',  render: d => <span className="text-xs">{d.concepto?.nombre ?? <span className="italic text-gray-400">General</span>}</span> },
+        { 
+            label: 'Aplicable a', 
+            render: d => {
+                const Icon = d.estu_id ? User : d.nivel_id ? Layers : GraduationCap;
+                const color = d.estu_id ? 'text-blue-600' : d.nivel_id ? 'text-purple-600' : 'text-amber-600';
+                const bgColor = d.estu_id ? 'bg-blue-50' : d.nivel_id ? 'bg-purple-50' : 'bg-amber-50';
+                
+                return (
+                    <div className="flex items-center gap-3 text-left">
+                        <div className={`p-2 rounded-lg ${bgColor} ${color}`}>
+                            <Icon className="size-4" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-gray-900 leading-tight">{nombreAplicable(d)}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>
+                                {d.estu_id ? 'Alumno Individual' : d.nivel_id ? 'Nivel Educativo' : 'Grado Académico'}
+                            </span>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        { label: 'Concepto',  render: d => <span className="text-xs font-medium text-gray-600 px-2 py-1 bg-gray-50 rounded-md border border-gray-100">{d.concepto?.nombre ?? 'General'}</span> },
         {
             label: 'Motivo',
             render: d => (
@@ -110,9 +176,9 @@ export default function DescuentoAlumnoPage() {
         {
             label: 'Vigencia',
             render: d => (
-                <span className="text-xs text-gray-500">
-                    {d.fecha_inicio}
-                    {d.fecha_fin ? ` → ${d.fecha_fin}` : <span className="text-emerald-600 font-medium"> Indefinido</span>}
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {d.fecha_inicio.split('T')[0]}
+                    {d.fecha_fin ? ` → ${d.fecha_fin.split('T')[0]}` : <span className="text-emerald-600 font-medium"> Indefinido</span>}
                 </span>
             ),
         },
@@ -165,7 +231,18 @@ export default function DescuentoAlumnoPage() {
                             columns={columns}
                             getKey={d => d.descuento_id}
                             onEdit={openEdit}
-                            onDelete={eliminar}
+                            onDelete={openDelete}
+                            extraActions={d => (
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className={`size-7 ${d.activo ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                    onClick={() => openToggle(d)}
+                                    title={d.activo ? 'Desactivar' : 'Activar'}
+                                >
+                                    {d.activo ? <Ban className="size-3.5" /> : <CheckCircle className="size-3.5" />}
+                                </Button>
+                            )}
                         />
                     )}
                 </SectionCard>
@@ -177,6 +254,26 @@ export default function DescuentoAlumnoPage() {
                 editing={editing}
                 conceptos={conceptos}
                 onSaved={cargar}
+            />
+
+            <ConfirmDeleteModal
+                open={confirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)}
+                onConfirm={confirmarEliminar}
+                title="Eliminar Descuento"
+                message={`¿Estás seguro de eliminar el descuento de ${nombreAplicable(selected!)}? Esta acción no se puede deshacer.`}
+                processing={processing}
+            />
+
+            <ConfirmModal
+                open={confirmToggleOpen}
+                onClose={() => setConfirmToggleOpen(false)}
+                onConfirm={confirmarToggle}
+                title={selected?.activo ? 'Desactivar Descuento' : 'Activar Descuento'}
+                message={`¿Deseas ${selected?.activo ? 'desactivar' : 'activar'} el descuento de ${nombreAplicable(selected!)}?`}
+                confirmText={selected?.activo ? 'Desactivar' : 'Activar'}
+                variant={selected?.activo ? 'warning' : 'default'}
+                processing={processing}
             />
         </AppLayout>
     );

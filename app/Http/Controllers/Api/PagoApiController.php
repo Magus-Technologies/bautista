@@ -157,6 +157,46 @@ class PagoApiController extends Controller
         return response()->json($resultado, 201);
     }
 
+    public function generarIndividual(Request $request, int $estuId): JsonResponse
+    {
+        $mesesValidos = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                         'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+        $request->validate([
+            'mes'  => ['required', Rule::in($mesesValidos)],
+            'anio' => ['required', 'integer', 'min:2020', 'max:2099'],
+        ]);
+
+        $resultado = $this->service->generarMensualidadAlumno(
+            instiId: $request->user()->insti_id,
+            estuId:  $estuId,
+            mes:     strtoupper($request->input('mes')),
+            anio:    (int) $request->input('anio'),
+        );
+
+        if ($resultado['status'] === 'error') {
+            return response()->json($resultado, 404);
+        }
+        if ($resultado['status'] === 'exists') {
+            return response()->json($resultado, 422);
+        }
+
+        return response()->json($resultado, 201);
+    }
+
+    public function sugerido(Request $request, int $estuId): JsonResponse
+    {
+        $anio = (int) $request->get('anio', now()->year);
+
+        $data = $this->service->obtenerMontoSugerido(
+            $request->user()->insti_id,
+            $estuId,
+            $anio
+        );
+
+        return response()->json($data);
+    }
+
     // ── Historial por alumno ───────────────────────────────────────────────
 
     public function historialAlumno(Request $request, int $estuId): JsonResponse
@@ -187,49 +227,21 @@ class PagoApiController extends Controller
         $request->validate([
             'estu_id'    => ['required', 'integer'],
             'contacto_id'=> ['required', 'integer'],
-            'grado_id'   => ['required', 'integer'],
             'anio'       => ['required', 'integer'],
             'conceptos'  => ['required', 'array'],
-            'conceptos.*.concepto_id' => ['required', 'integer'],
-            'conceptos.*.monto'       => ['required', 'numeric', 'min:0'],
-            'conceptos.*.nombre'      => ['required', 'string'],
+            'conceptos.*.monto'  => ['required', 'numeric', 'min:0'],
+            'conceptos.*.nombre' => ['required', 'string'],
         ]);
 
-        $instiId   = $request->user()->insti_id;
-        $estuId    = $request->input('estu_id');
-        $contactoId= $request->input('contacto_id');
-        $anio      = $request->input('anio');
-        $conceptos = $request->input('conceptos');
-        $today     = now()->toDateString();
-        $mes       = strtoupper(now()->locale('es')->isoFormat('MMMM'));
+        $resultado = $this->service->generarPagosMatricula(
+            instiId:    $request->user()->insti_id,
+            estuId:     $request->input('estu_id'),
+            contactoId: $request->input('contacto_id'),
+            anio:       $request->input('anio'),
+            conceptos:  $request->input('conceptos'),
+        );
 
-        $creados = 0;
-        foreach ($conceptos as $c) {
-            // Evitar duplicados: mismo alumno + concepto + año
-            $existe = \App\Models\Pago::where('estu_id', $estuId)
-                ->where('pag_anual', $anio)
-                ->where('pag_nombre1', $c['nombre'])
-                ->exists();
-            if ($existe) continue;
-
-            \App\Models\Pago::create([
-                'insti_id'    => $instiId,
-                'estu_id'     => $estuId,
-                'contacto_id' => $contactoId,
-                'pag_anual'   => $anio,
-                'pag_mes'     => $mes,
-                'pag_monto'   => 0,
-                'pag_nombre1' => $c['nombre'],
-                'pag_otro1'   => $c['monto'],
-                'pag_otro2'   => 0,
-                'total'       => $c['monto'],
-                'estatus'     => 0,
-                'pag_fecha'   => $today,
-            ]);
-            $creados++;
-        }
-
-        return response()->json(['creados' => $creados]);
+        return response()->json($resultado);
     }
 
     // ── Reporte consolidado PDF ───────────────────────────────────────────

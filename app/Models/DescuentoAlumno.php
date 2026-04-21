@@ -13,6 +13,9 @@ class DescuentoAlumno extends Model
     protected $fillable = [
         'insti_id',
         'estu_id',
+        'nivel_id',
+        'grado_id',
+        'seccion_id',
         'concepto_id',
         'motivo',
         'tipo',
@@ -33,6 +36,21 @@ class DescuentoAlumno extends Model
     public function estudiante(): BelongsTo
     {
         return $this->belongsTo(Estudiante::class, 'estu_id', 'estu_id');
+    }
+
+    public function nivel(): BelongsTo
+    {
+        return $this->belongsTo(NivelEducativo::class, 'nivel_id', 'nivel_id');
+    }
+
+    public function grado(): BelongsTo
+    {
+        return $this->belongsTo(Grado::class, 'grado_id', 'grado_id');
+    }
+
+    public function seccion(): BelongsTo
+    {
+        return $this->belongsTo(Seccion::class, 'seccion_id', 'seccion_id');
     }
 
     public function concepto(): BelongsTo

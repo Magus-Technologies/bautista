@@ -104,6 +104,7 @@ class AppServiceProvider extends ServiceProvider
         // Pagos
         $this->app->bind(PagoRepositoryInterface::class, PagoRepository::class);
         $this->app->bind(PagoServiceInterface::class, PagoService::class);
+        $this->app->bind(\App\Repositories\Interfaces\PadreRepositoryInterface::class, \App\Repositories\Implements\PadreRepository::class);
 
         // Vouchers / Notificaciones de pago
         $this->app->bind(PagoNotificaRepositoryInterface::class, PagoNotificaRepository::class);

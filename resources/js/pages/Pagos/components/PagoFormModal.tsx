@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Pago } from '../hooks/usePago';
 import { MESES } from '../hooks/usePago';
+import api from '@/lib/api';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export type PagoFormData = {
     contacto_id:   string;
@@ -21,13 +23,19 @@ export type PagoFormData = {
     pag_fecha:     string;
 };
 
+type Concepto = {
+    concepto_id: number;
+    nombre: string;
+    opcional: boolean;
+};
+
 type Props = {
     open:          boolean;
     onClose:       () => void;
     contactoId:    number;
     estudianteId:  number;
     mensualidad:   string | null;
-    editing:       Pago | null;           // null → modo crear
+    editing:       Pago | null;
     onSave:        (data: PagoFormData) => Promise<void>;
     apiErrors:     Record<string, string[]>;
     clearErrors:   () => void;
@@ -67,11 +75,51 @@ export default function PagoFormModal({
 }: Props) {
     const [form, setForm]       = useState<PagoFormData>(blank(contactoId, estudianteId));
     const [processing, setProc] = useState(false);
+    const [conceptos, setConceptos] = useState<Concepto[]>([]);
+    const [loadingSugerido, setLoadingSugerido] = useState(false);
+    const [sugerido, setSugerido] = useState<{ monto_final: number; observacion: string | null } | null>(null);
 
     useEffect(() => {
-        clearErrors();
-        setForm(editing ? fromPago(editing) : blank(contactoId, estudianteId));
-    }, [open, editing]);
+        if (open) {
+            clearErrors();
+            setForm(editing ? fromPago(editing) : blank(contactoId, estudianteId));
+            fetchConceptos();
+        }
+    }, [open, editing, estudianteId]);
+
+    useEffect(() => {
+        if (open && !editing && form.pag_anual) {
+            fetchSugerido();
+        }
+    }, [form.pag_anual, form.pag_mes, estudianteId, open]);
+
+    const fetchConceptos = async () => {
+        if (!estudianteId) return;
+        try {
+            const { data } = await api.get(`/conceptos-pago/estudiante/${estudianteId}`);
+            setConceptos(data);
+        } catch (err) {
+            console.error('Error al cargar conceptos:', err);
+        }
+    };
+
+    const fetchSugerido = async () => {
+        setLoadingSugerido(true);
+        try {
+            const { data } = await api.get(`/pagos/sugerido/${estudianteId}`, {
+                params: { anio: form.pag_anual }
+            });
+            setSugerido(data);
+            // Si es un registro nuevo, auto-llenar el monto si está vacío
+            if (!editing && (!form.pag_monto || form.pag_monto === '0')) {
+                set('pag_monto', data.monto_final.toString());
+            }
+        } catch (err) {
+            console.error('Error al cargar sugerido:', err);
+        } finally {
+            setLoadingSugerido(false);
+        }
+    };
 
     const set = (key: keyof PagoFormData, value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -97,14 +145,27 @@ export default function PagoFormModal({
                     <DialogTitle className="text-base sm:text-lg">
                         {editing ? 'Editar Pago' : 'Registrar Pago'}
                     </DialogTitle>
-                    {!editing && mensualidad && (
-                        <p className="text-xs sm:text-sm text-gray-500">
-                            Mensualidad: <span className="font-semibold text-green-700">S/ {mensualidad}</span>
-                        </p>
+                    {!editing && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-md">
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs text-blue-700 flex items-center gap-1">
+                                    <Sparkles className="size-3" />
+                                    Tarifa configurada ({form.pag_anual}):
+                                </p>
+                                {loadingSugerido ? (
+                                    <Loader2 className="size-3 animate-spin text-blue-500" />
+                                ) : (
+                                    <span className="font-bold text-blue-800">S/ {sugerido?.monto_final.toFixed(2) ?? '0.00'}</span>
+                                )}
+                            </div>
+                            {sugerido?.observacion && (
+                                <p className="text-[10px] text-blue-600 mt-1 italic">{sugerido.observacion}</p>
+                            )}
+                        </div>
                     )}
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 mt-2">
                     {!editing && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
@@ -160,8 +221,9 @@ export default function PagoFormModal({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="__none__">—</SelectItem>
-                                    <SelectItem value="UNIFORME">UNIFORME</SelectItem>
-                                    <SelectItem value="OTROS">OTROS</SelectItem>
+                                    {conceptos.map(c => (
+                                        <SelectItem key={`c1-${c.concepto_id}`} value={c.nombre}>{c.nombre}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -187,8 +249,9 @@ export default function PagoFormModal({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="__none__">—</SelectItem>
-                                    <SelectItem value="UNIFORME">UNIFORME</SelectItem>
-                                    <SelectItem value="OTROS">OTROS</SelectItem>
+                                    {conceptos.map(c => (
+                                        <SelectItem key={`c2-${c.concepto_id}`} value={c.nombre}>{c.nombre}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

@@ -19,6 +19,33 @@ class ConceptoPagoApiController extends Controller
         return response()->json($conceptos);
     }
 
+    public function porEstudiante(Request $request, int $estuId): JsonResponse
+    {
+        $instiId = $request->user()->insti_id;
+        
+        // 1. Obtener todos los conceptos activos
+        $conceptos = ConceptoPago::where('insti_id', $instiId)
+            ->where('activo', true)
+            ->get();
+
+        // 2. Obtener nombres de conceptos que el alumno ya tiene registrados en sus pagos
+        $conceptosUsados = \App\Models\Pago::where('estu_id', $estuId)
+            ->select('pag_nombre1', 'pag_nombre2')
+            ->get()
+            ->flatMap(fn($p) => [$p->pag_nombre1, $p->pag_nombre2])
+            ->filter()
+            ->unique()
+            ->toArray();
+
+        // 3. Filtrar: mostrar si NO es opcional O si ya lo ha usado (se inscribió en él)
+        $filtrados = $conceptos->filter(function($c) use ($conceptosUsados) {
+            if (!$c->opcional) return true;
+            return in_array($c->nombre, $conceptosUsados);
+        })->values();
+
+        return response()->json($filtrados);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([

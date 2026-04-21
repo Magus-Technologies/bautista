@@ -9,8 +9,10 @@ import type { Column } from '@/components/shared/ResourceTable';
 import ConfirmModal from '@/components/shared/ConfirmModal';
 import api from '@/lib/api';
 import type { Pagador, Pago, PagoFormData, PagoUpdateData } from '../hooks/usePago';
+import { MESES } from '../hooks/usePago';
 import PagoFormModal from './PagoFormModal';
 import VoucherModal from './VoucherModal';
+import AlertModal from '@/components/shared/AlertModal';
 
 type Props = {
     open:     boolean;
@@ -30,6 +32,11 @@ export default function PagosDrawer({ open, onClose, pagador }: Props) {
     const [confirmGenerar, setConfirmGenerar] = useState(false);
     const [generando, setGenerando]   = useState(false);
     const [voucherPagId, setVoucherPagId] = useState<number | null>(null);
+    const [alertConfig, setAlertConfig] = useState<{ open: boolean; message: string; variant: 'error' | 'warning' | 'info' | 'success' }>({
+        open: false,
+        message: '',
+        variant: 'info'
+    });
 
     const cargar = useCallback(async () => {
         if (!pagador) {
@@ -62,11 +69,8 @@ cargar();
         }
 
         const filtered = pagos.filter((p) => {
-            if (!p.pag_fecha) {
-return false;
-}
-
-            const fecha = new Date(p.pag_fecha);
+            const dateStr = p.pag_fecha || `${p.pag_anual}-${(MESES.indexOf(p.pag_mes as any) + 1).toString().padStart(2, '0')}-01`;
+            const fecha = new Date(dateStr);
             const inicio = new Date(fecIni);
             const fin = new Date(fecFin);
 
@@ -90,29 +94,21 @@ return;
 
         try {
             const currentYear = new Date().getFullYear();
-            const currentMonth = new Date().getMonth() + 1;
-            const monthNames = [
-                'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-                'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
-            ];
+            const currentMonth = new Date().getMonth();
             
-            await api.post('/pagos/', {
-                contacto_id: pagador.id_contacto.toString(),
-                estudiante_id: pagador.estu_id.toString(),
-                pag_anual: currentYear.toString(),
-                pag_mes: monthNames[currentMonth - 1],
-                pag_monto: '0',
-                pag_nombre1: '',
-                pag_otro1: '0',
-                pag_nombre2: '',
-                pag_otro2: '0',
-                pag_notifica: 'NO',
-                pag_fecha: new Date().toISOString().slice(0, 10),
+            await api.post(`/pagos/generar-individual/${pagador.estu_id}`, {
+                anio: currentYear.toString(),
+                mes:  MESES[currentMonth],
             });
             await cargar();
             setConfirmGenerar(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error al generar mensualidad:', err);
+            setAlertConfig({
+                open: true,
+                message: err.response?.data?.message || 'Error al generar mensualidad',
+                variant: err.response?.status === 422 ? 'warning' : 'error'
+            });
         } finally {
             setGenerando(false);
         }
@@ -135,15 +131,24 @@ return;
         }
     };
 
-    const handleUpdate = async (data: PagoUpdateData) => {
+    const handleUpdate = async (data: PagoFormData) => {
         if (!editPago) {
-return;
-}
+            return;
+        }
 
         setApiErrors({});
 
         try {
-            await api.put(`/pagos/${editPago.pag_id}`, data);
+            const payload: PagoUpdateData = {
+                pag_monto:    data.pag_monto,
+                pag_nombre1:  data.pag_nombre1,
+                pag_otro1:    data.pag_otro1,
+                pag_nombre2:  data.pag_nombre2,
+                pag_otro2:    data.pag_otro2,
+                pag_notifica: data.pag_notifica,
+                pag_fecha:    data.pag_fecha,
+            };
+            await api.put(`/pagos/${editPago.pag_id}`, payload);
             await cargar();
         } catch (err: unknown) {
             const e = err as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
@@ -176,12 +181,26 @@ return;
         { label: 'Mes',         render: p => p.pag_mes },
         { label: 'Mensualidad', render: p => `S/ ${Number(p.pag_monto).toFixed(2)}` },
         {
-            label: 'Uniforme',
-            render: p => Number(p.pag_otro1) > 0 ? `S/ ${Number(p.pag_otro1).toFixed(2)}` : '—',
+            label: 'Adicional 1',
+            render: p => (
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 uppercase leading-tight">{p.pag_nombre1 || 'Sin concepto'}</span>
+                    <span className={Number(p.pag_otro1) > 0 ? '' : 'text-gray-300'}>
+                        {Number(p.pag_otro1) > 0 ? `S/ ${Number(p.pag_otro1).toFixed(2)}` : '—'}
+                    </span>
+                </div>
+            ),
         },
         {
-            label: 'Otros',
-            render: p => Number(p.pag_otro2) > 0 ? `S/ ${Number(p.pag_otro2).toFixed(2)}` : '—',
+            label: 'Adicional 2',
+            render: p => (
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 uppercase leading-tight">{p.pag_nombre2 || 'Sin concepto'}</span>
+                    <span className={Number(p.pag_otro2) > 0 ? '' : 'text-gray-300'}>
+                        {Number(p.pag_otro2) > 0 ? `S/ ${Number(p.pag_otro2).toFixed(2)}` : '—'}
+                    </span>
+                </div>
+            ),
         },
         {
             label: 'Total',
@@ -390,10 +409,17 @@ return;
                 onClose={() => setConfirmGenerar(false)}
                 onConfirm={handleGenerarMensualidad}
                 title="Generar Mensualidad"
-                message={`¿Está seguro que desea generar una mensualidad automática para el mes actual? Se creará un registro de pago con monto en S/ 0.00 que podrá editar posteriormente.`}
+                message={`¿Está seguro que desea generar la mensualidad para el mes actual? El sistema calculará automáticamente el monto según la tarifa y los descuentos vigentes del alumno.`}
                 processing={generando}
                 confirmText="Sí, Generar"
                 variant="default"
+            />
+
+            <AlertModal
+                open={alertConfig.open}
+                onClose={() => setAlertConfig(prev => ({ ...prev, open: false }))}
+                message={alertConfig.message}
+                variant={alertConfig.variant}
             />
         </>
     );

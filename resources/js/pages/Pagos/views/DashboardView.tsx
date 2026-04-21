@@ -143,6 +143,11 @@ export default function DashboardView() {
                             <p className="text-xs text-green-700 mt-0.5">
                                 Crea pagos pendientes para todos los alumnos con contacto pagador activo en {mes} {anio}.
                             </p>
+                            {stats && stats.total_registros > 0 && !genResult && (
+                                <div className="mt-2 text-[10px] font-bold text-amber-700 bg-amber-100/50 rounded-lg px-2 py-1 w-fit flex items-center gap-1">
+                                    <AlertTriangle className="size-3" /> Este período ya tiene {stats.total_registros} registros
+                                </div>
+                            )}
                             {genResult && (
                                 <div className="mt-2 text-xs font-bold text-green-800 bg-green-100 rounded-lg px-3 py-1.5">
                                     ✓ {genResult.creados} creados · {genResult.omitidos} omitidos (ya existían)

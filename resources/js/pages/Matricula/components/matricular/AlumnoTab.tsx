@@ -20,6 +20,9 @@ type Descuento = {
     valor: number;
     fecha_fin: string | null;
     concepto_id: number | null;
+    estu_id: number | null;
+    nivel_id: number | null;
+    grado_id: number | null;
 };
 
 export type ConceptoCobro = {
@@ -145,16 +148,29 @@ export default function AlumnoTab({
             .finally(() => setLoadingTarifas(false));
     }, [selectedGrado]);
 
-    // ── Al encontrar alumno existente → cargar descuentos activos ─────────
+    // ── Cargar descuentos activos (Alumno, Grado o Nivel) ─────────
     useEffect(() => {
-        if (!alumno.estu_id) { setDescuentos([]); return; }
-        api.get('/descuentos', { params: { estu_id: alumno.estu_id } })
+        if (!alumno.estu_id && !selectedGrado) { setDescuentos([]); return; }
+        
+        const params: any = {};
+        if (alumno.estu_id) params.estu_id = alumno.estu_id;
+        
+        if (selectedGrado) {
+            params.grado_id = selectedGrado;
+            // Buscar el nivel_id del grado seleccionado
+            const g = grados.find(x => String(x.grado_id) === String(selectedGrado));
+            if (g?.nivel_id) params.nivel_id = g.nivel_id;
+        } else if (nivelId) {
+            params.nivel_id = nivelId;
+        }
+
+        api.get('/descuentos', { params })
             .then(res => {
                 const activos = (res.data as Descuento[]).filter((d: any) => d.activo);
                 setDescuentos(activos);
             })
             .catch(() => setDescuentos([]));
-    }, [alumno.estu_id]);
+    }, [alumno.estu_id, selectedGrado, nivelId]);
 
     // ── Aplicar descuentos a los conceptos cuando cambian ─────────────────
     useEffect(() => {
@@ -416,20 +432,26 @@ export default function AlumnoTab({
                         {descuentos.length > 0 && (
                             <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-4 py-3 space-y-1.5">
                                 <p className="text-[10px] font-black uppercase tracking-wider text-indigo-400 flex items-center gap-1">
-                                    <Tag className="size-3" /> Descuentos activos del alumno
+                                    <Tag className="size-3" /> Descuentos aplicables encontrados
                                 </p>
                                 <div className="flex flex-wrap gap-2">
-                                    {descuentos.map(d => (
-                                        <div key={d.descuento_id} className="flex items-center gap-1.5 rounded-lg bg-white border border-indigo-100 px-2.5 py-1.5 text-xs">
-                                            <TrendingDown className="size-3 text-indigo-500" />
-                                            <span className="font-bold text-indigo-700">{MOTIVO_LABEL[d.motivo] ?? d.motivo}</span>
-                                            <span className="text-gray-500">
-                                                {d.tipo === 'porcentaje' ? `-${d.valor}%` : `-S/ ${Number(d.valor).toFixed(2)}`}
+                                {descuentos.map(d => (
+                                    <div key={d.descuento_id} className="flex items-center gap-1.5 rounded-lg bg-white border border-indigo-100 px-2.5 py-1.5 text-xs">
+                                        <TrendingDown className="size-3 text-indigo-500" />
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-indigo-700">{MOTIVO_LABEL[d.motivo] ?? d.motivo}</span>
+                                                <span className="text-gray-500 font-medium">
+                                                    {d.tipo === 'porcentaje' ? `-${d.valor}%` : `-S/ ${Number(d.valor).toFixed(2)}`}
+                                                </span>
+                                            </div>
+                                            <span className="text-[9px] text-indigo-400 font-bold uppercase leading-none">
+                                                {d.estu_id ? 'Personal' : d.nivel_id ? 'Nivel' : 'Grado'}
+                                                {d.concepto_id && ' (Concepto Específico)'}
                                             </span>
-                                            {d.concepto_id && <span className="text-gray-400 text-[10px]">(concepto específico)</span>}
-                                            {d.fecha_fin && <span className="text-gray-400 text-[10px]">hasta {d.fecha_fin}</span>}
                                         </div>
-                                    ))}
+                                    </div>
+                                ))}
                                 </div>
                             </div>
                         )}

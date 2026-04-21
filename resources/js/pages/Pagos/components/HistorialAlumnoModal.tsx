@@ -8,6 +8,7 @@ interface Voucher {
     id: number;
     estado: 'pendiente' | 'validado' | 'rechazado';
     comentario: string | null;
+    archivo: string | null;
     created_at: string | null;
 }
 
@@ -236,10 +237,21 @@ export default function HistorialAlumnoModal({ open, onClose, estuId }: Props) {
                                                                             : <Clock className="size-3.5 text-amber-500" />
                                                                         }
                                                                         <span className="text-xs text-gray-600">{v.created_at}</span>
+                                                                        {v.archivo && (
+                                                                            <a
+                                                                                href={`/storage/${v.archivo}`}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="text-indigo-600 hover:text-indigo-800"
+                                                                                title="Ver comprobante"
+                                                                            >
+                                                                                <FileText className="size-3.5" />
+                                                                            </a>
+                                                                        )}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         {v.comentario && (
-                                                                            <span className="text-xs text-gray-400 italic max-w-[120px] truncate">{v.comentario}</span>
+                                                                            <span className="text-xs text-gray-400 italic max-w-[120px] truncate" title={v.comentario}>{v.comentario}</span>
                                                                         )}
                                                                         <span className={`text-[10px] font-black rounded-full px-2 py-0.5 ${ESTADO_VOUCHER[v.estado]?.cls ?? ''}`}>
                                                                             {ESTADO_VOUCHER[v.estado]?.label ?? v.estado}
