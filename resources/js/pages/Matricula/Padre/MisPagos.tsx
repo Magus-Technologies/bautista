@@ -1,13 +1,12 @@
 import { Head } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { CreditCard, Upload, TrendingUp, FileText, AlertCircle } from 'lucide-react';
+import { CreditCard, TrendingUp, FileText, AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import SectionCard from '@/components/shared/SectionCard';
-import SubirVoucherModal from './components/SubirVoucherModal';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -21,8 +20,6 @@ export default function MisPagosPage() {
     const [hijoSel, setHijoSel] = useState<number | 'todos'>('todos');
     const [anioFiltro, setAnioFiltro] = useState(new Date().getFullYear());
     const [loading, setLoading] = useState(true);
-    const [voucherPagId, setVoucherPagId] = useState<number | null>(null);
-    const [voucherMes, setVoucherMes] = useState('');
 
     const aniosDisponibles = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
@@ -52,7 +49,7 @@ export default function MisPagosPage() {
 
     const pagosFiltrados = pagos.filter(p =>
         (hijoSel === 'todos' || p.estu_id === hijoSel) &&
-        p.pag_anual === anioFiltro
+        Number(p.pag_anual) === anioFiltro
     );
 
     const totalPagado  = pagosFiltrados.filter(p => p.estatus == 1).reduce((sum, p) => sum + parseFloat(p.total ?? p.pag_monto ?? 0), 0);
@@ -181,7 +178,7 @@ export default function MisPagosPage() {
                                             </td>
                                             <td className="py-3 text-center">
                                                 <div className="flex flex-col items-center gap-1">
-                                                    {p.ultimo_voucher && (() => {
+                                                    {p.ultimo_voucher ? (() => {
                                                         const v = p.ultimo_voucher;
                                                         const cfg: Record<string, { label: string; cls: string }> = {
                                                             pendiente: { label: 'En revisión', cls: 'bg-amber-100 text-amber-700' },
@@ -199,15 +196,22 @@ export default function MisPagosPage() {
                                                                         {v.comentario}
                                                                     </span>
                                                                 )}
+                                                                {v.archivo_url && (
+                                                                    <a 
+                                                                        href={v.archivo_url} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        className="mt-1 flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                                        title="Descargar Comprobante"
+                                                                    >
+                                                                        <Download size={12} /> Ver Recibo
+                                                                    </a>
+                                                                )}
                                                             </div>
                                                         );
-                                                    })()}
-                                                    <Button size="sm" variant="ghost"
-                                                        className="h-7 w-7 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                                        onClick={() => { setVoucherPagId(p.pag_id); setVoucherMes(p.pag_mes ?? ''); }}
-                                                    >
-                                                        <Upload className="h-3.5 w-3.5" />
-                                                    </Button>
+                                                    })() : (
+                                                        <span className="text-xs text-gray-400">-</span>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -219,12 +223,6 @@ export default function MisPagosPage() {
                 </SectionCard>
             </div>
 
-            <SubirVoucherModal
-                open={voucherPagId !== null}
-                onClose={() => setVoucherPagId(null)}
-                pagId={voucherPagId}
-                mes={voucherMes}
-            />
         </AppLayout>
     );
 }

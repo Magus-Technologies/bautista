@@ -48,16 +48,16 @@ const blank = (contactoId: number, estudianteId: number): PagoFormData => ({
 });
 
 const fromPago = (pago: Pago): PagoFormData => ({
-    contacto_id:   pago.contacto_id.toString(),
-    estudiante_id: pago.estudiante_id.toString(),
-    pag_anual:     pago.pag_anual.toString(),
-    pag_mes:       pago.pag_mes,
-    pag_monto:     pago.pag_monto,
+    contacto_id:   (pago.contacto_id ?? '').toString(),
+    estudiante_id: (pago.estudiante_id ?? '').toString(),
+    pag_anual:     (pago.pag_anual ?? new Date().getFullYear()).toString(),
+    pag_mes:       pago.pag_mes ?? MESES[new Date().getMonth()],
+    pag_monto:     pago.pag_monto ?? '',
     pag_nombre1:   pago.pag_nombre1 ?? '',
-    pag_otro1:     pago.pag_otro1,
+    pag_otro1:     pago.pag_otro1 ?? '',
     pag_nombre2:   pago.pag_nombre2 ?? '',
-    pag_otro2:     pago.pag_otro2,
-    pag_notifica:  pago.pag_notifica,
+    pag_otro2:     pago.pag_otro2 ?? '',
+    pag_notifica:  pago.pag_notifica ?? 'NO',
     pag_fecha:     pago.pag_fecha ?? '',
 });
 

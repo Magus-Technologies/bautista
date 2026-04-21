@@ -1,11 +1,11 @@
-import axios from 'axios';
-import { CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CheckCircle, XCircle, Clock, ExternalLink, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import api from '@/lib/api';
 
 type Voucher = {
     id: number;
@@ -18,45 +18,71 @@ type Voucher = {
 };
 
 type Props = {
-    open: boolean;
+    open:    boolean;
     onClose: () => void;
-    pagId: number | null;
+    pagId:   number | null;
 };
 
 const ESTADO_BADGE: Record<Voucher['estado'], { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
-    pendiente:  { label: 'Pendiente',  variant: 'secondary' },
-    validado:   { label: 'Validado',   variant: 'default' },
-    rechazado:  { label: 'Rechazado',  variant: 'destructive' },
+    pendiente: { label: 'Pendiente', variant: 'secondary' },
+    validado:  { label: 'Validado',  variant: 'default' },
+    rechazado: { label: 'Rechazado', variant: 'destructive' },
 };
 
 const ESTADO_ICON: Record<Voucher['estado'], React.ReactNode> = {
-    pendiente:  <Clock className="h-4 w-4 text-yellow-500" />,
-    validado:   <CheckCircle className="h-4 w-4 text-green-600" />,
-    rechazado:  <XCircle className="h-4 w-4 text-red-500" />,
+    pendiente: <Clock       className="h-4 w-4 text-yellow-500" />,
+    validado:  <CheckCircle className="h-4 w-4 text-green-600" />,
+    rechazado: <XCircle     className="h-4 w-4 text-red-500" />,
 };
 
 export default function VoucherModal({ open, onClose, pagId }: Props) {
-    const [vouchers, setVouchers]       = useState<Voucher[]>([]);
-    const [loading, setLoading]         = useState(false);
-    const [comentario, setComentario]   = useState('');
-    const [procesando, setProcesando]   = useState<number | null>(null);
+    const [vouchers, setVouchers]     = useState<Voucher[]>([]);
+    const [loading, setLoading]       = useState(false);
+    const [comentario, setComentario] = useState('');
+    const [procesando, setProcesando] = useState<number | null>(null);
+    const [uploading, setUploading]   = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const fileRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (!open || !pagId) {
-return;
-}
+        if (!open || !pagId) return;
+        cargar();
+    }, [open, pagId]);
 
+    const cargar = () => {
         setLoading(true);
-        axios.get(`/api/pagos/${pagId}/vouchers`)
+        api.get(`/pagos/${pagId}/vouchers`)
             .then(r => setVouchers(r.data.data ?? r.data))
             .finally(() => setLoading(false));
-    }, [open, pagId]);
+    };
+
+    const subirVoucher = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !pagId) return;
+
+        setUploading(true);
+        setUploadError('');
+
+        const form = new FormData();
+        form.append('archivo', file);
+
+        try {
+            await api.post(`/pagos/${pagId}/vouchers`, form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            cargar();
+        } catch (err: any) {
+            setUploadError(err.response?.data?.message ?? 'Error al subir el comprobante');
+        } finally {
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = '';
+        }
+    };
 
     const validar = async (notificaId: number, estado: 'validado' | 'rechazado') => {
         setProcesando(notificaId);
-
         try {
-            const { data } = await axios.patch(`/api/pagos/vouchers/${notificaId}/estado`, {
+            const { data } = await api.patch(`/pagos/vouchers/${notificaId}/estado`, {
                 estado,
                 comentario: comentario || null,
             });
@@ -74,15 +100,40 @@ return;
                     <DialogTitle className="text-base sm:text-lg">Comprobantes de pago</DialogTitle>
                 </DialogHeader>
 
+                {/* Subir comprobante */}
+                <div className="border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                    <p className="text-xs text-gray-500 mb-2">Subir comprobante (JPG, PNG, PDF — máx. 5MB)</p>
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={fileRef}
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            className="hidden"
+                            onChange={subirVoucher}
+                        />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={uploading}
+                            onClick={() => fileRef.current?.click()}
+                            className="text-xs h-8 gap-1.5"
+                        >
+                            <Upload className="h-3.5 w-3.5" />
+                            {uploading ? 'Subiendo...' : 'Seleccionar archivo'}
+                        </Button>
+                    </div>
+                    {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+                </div>
+
                 {loading && <p className="text-xs sm:text-sm text-muted-foreground py-4 text-center">Cargando...</p>}
 
                 {!loading && vouchers.length === 0 && (
-                    <p className="text-xs sm:text-sm text-muted-foreground py-4 text-center">
-                        No hay comprobantes subidos para este pago.
+                    <p className="text-xs sm:text-sm text-muted-foreground py-2 text-center">
+                        No hay comprobantes subidos aún.
                     </p>
                 )}
 
-                <div className="space-y-3 sm:space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="space-y-3 sm:space-y-4 max-h-[50vh] overflow-y-auto pr-1">
                     {vouchers.map(v => (
                         <div key={v.id} className="border rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -126,22 +177,20 @@ return;
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <Button
                                             size="sm"
-                                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
+                                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto text-xs h-8"
                                             disabled={procesando === v.id}
                                             onClick={() => validar(v.id, 'validado')}
                                         >
-                                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                                            Validar
+                                            <CheckCircle className="h-3.5 w-3.5 mr-1" /> Validar
                                         </Button>
                                         <Button
                                             size="sm"
                                             variant="destructive"
                                             disabled={procesando === v.id}
                                             onClick={() => validar(v.id, 'rechazado')}
-                                            className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
+                                            className="w-full sm:w-auto text-xs h-8"
                                         >
-                                            <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                                            Rechazar
+                                            <XCircle className="h-3.5 w-3.5 mr-1" /> Rechazar
                                         </Button>
                                     </div>
                                 </div>

@@ -281,14 +281,26 @@ return;
                             <Button
                                 size="sm"
                                 className="bg-orange-500 hover:bg-orange-600 text-white h-8 sm:h-9"
-                                onClick={() => {
-                                    const params = new URLSearchParams({
-                                        contacto_id: pagador.id_contacto.toString(),
-                                        estudiante_id: pagador.estu_id.toString(),
-                                        ...(fecIni && { fecha_inicio: fecIni }),
-                                        ...(fecFin && { fecha_fin: fecFin }),
-                                    });
-                                    window.open(`/api/pagos/reporte-pdf?${params.toString()}`, '_blank');
+                                onClick={async () => {
+                                    try {
+                                        const res = await api.get('/pagos/reporte-pdf', {
+                                            params: {
+                                                contacto_id:   pagador.id_contacto,
+                                                estudiante_id: pagador.estu_id,
+                                                ...(fecIni && { fecha_inicio: fecIni }),
+                                                ...(fecFin && { fecha_fin: fecFin }),
+                                            },
+                                            responseType: 'blob',
+                                        });
+                                        const url  = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                                        const link = document.createElement('a');
+                                        link.href     = url;
+                                        link.download = `Reporte_Pagos_${pagador.estu_id}.pdf`;
+                                        link.click();
+                                        URL.revokeObjectURL(url);
+                                    } catch {
+                                        alert('Error al generar el PDF');
+                                    }
                                 }}
                                 title="Generar PDF"
                             >

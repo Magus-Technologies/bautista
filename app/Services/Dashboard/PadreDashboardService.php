@@ -20,7 +20,7 @@ class PadreDashboardService
             return ['hijos' => [], 'resumen' => [], 'notificaciones' => [], 'mensajes_pendientes' => []];
         }
 
-        $padreId = $padre->id;
+        $padreId = $padre->id_contacto;
 
         $hijosData = Cache::store('database')->remember("padre_hijos_{$padreId}", 180, function () use ($padre) {
             $hijos = $padre->estudiantes()->with('perfil')->get();
@@ -45,7 +45,7 @@ class PadreDashboardService
         });
 
         $pagosRecientes = Cache::store('database')->remember("padre_pagos_{$padreId}", 120, function () use ($padre) {
-            $estuIds = $padre->estudiantes()->pluck('estu_id');
+            $estuIds = $padre->estudiantes()->pluck('estudiantes.estu_id');
             return Pago::whereIn('estu_id', $estuIds)
                 ->orderBy('pag_fecha', 'desc')
                 ->limit(5)

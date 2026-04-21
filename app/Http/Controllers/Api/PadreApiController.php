@@ -199,9 +199,11 @@ class PadreApiController extends Controller
                 $ultimo = $p->notificas->first();
                 $arr = $p->toArray();
                 unset($arr['notificas']);
+                $arr['pag_fecha'] = $p->pag_fecha ? \Carbon\Carbon::parse($p->pag_fecha)->format('Y-m-d') : null;
                 $arr['ultimo_voucher'] = $ultimo ? [
-                    'estado'     => $ultimo->estado,
-                    'comentario' => $ultimo->comentario,
+                    'estado'      => $ultimo->estado,
+                    'comentario'  => $ultimo->comentario,
+                    'archivo_url' => $ultimo->archivo ? \Illuminate\Support\Facades\Storage::url($ultimo->archivo) : null,
                 ] : null;
 
                 return $arr;

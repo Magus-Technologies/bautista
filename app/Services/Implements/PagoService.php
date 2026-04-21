@@ -38,6 +38,12 @@ class PagoService implements PagoServiceInterface
 
     public function crearPago(array $data): Pago
     {
+        // El request envía 'estudiante_id' pero la columna en BD es 'estu_id'
+        if (isset($data['estudiante_id']) && !isset($data['estu_id'])) {
+            $data['estu_id'] = $data['estudiante_id'];
+        }
+        unset($data['estudiante_id']);
+
         $data['total'] = ($data['pag_monto'] ?? 0)
                        + ($data['pag_otro1'] ?? 0)
                        + ($data['pag_otro2'] ?? 0);
