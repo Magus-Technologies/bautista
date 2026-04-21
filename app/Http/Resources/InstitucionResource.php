@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class InstitucionResource extends JsonResource
 {
@@ -20,7 +21,7 @@ class InstitucionResource extends JsonResource
             'insti_director'     => $this->insti_director,
             'insti_ndni'         => $this->insti_ndni,
             'insti_logo'         => $this->insti_logo
-                ? asset('storage/instituciones/' . $this->insti_logo)
+                ? Storage::disk('public')->url($this->insti_logo)
                 : null,
             'insti_estatus'      => $this->insti_estatus,
         ];

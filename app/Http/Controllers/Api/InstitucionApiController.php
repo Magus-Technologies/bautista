@@ -53,7 +53,7 @@ class InstitucionApiController extends Controller
         if ($request->hasFile('logo')) {
             $institucion = $this->service->obtener($id);
             if ($institucion->insti_logo) {
-                Storage::disk('public')->delete('instituciones/' . $institucion->insti_logo);
+                Storage::disk('public')->delete($institucion->insti_logo);
             }
             $data['insti_logo'] = $this->subirLogo($request, $data['insti_ruc'] ?? 'logo');
         }
@@ -72,7 +72,8 @@ class InstitucionApiController extends Controller
     {
         $file     = $request->file('logo');
         $filename = $ruc . '.' . $file->getClientOriginalExtension();
+        $path     = 'instituciones/' . $filename;
         $file->storeAs('instituciones', $filename, 'public');
-        return $filename;
+        return $path;
     }
 }

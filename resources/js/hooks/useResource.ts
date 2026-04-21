@@ -70,7 +70,13 @@ export function useResource<T>(endpoint: string, initialParams: Record<string, a
 
     const update = async (id: number, payload: unknown) => {
         setErrors({});
-        await api.put(`${endpoint}/${id}`, payload);
+        // PHP/Laravel no parsea FormData en PUT; usar POST con _method spoofing
+        if (payload instanceof FormData) {
+            payload.append('_method', 'PUT');
+            await api.post(`${endpoint}/${id}`, payload);
+        } else {
+            await api.put(`${endpoint}/${id}`, payload);
+        }
         setSuccess('Registro actualizado correctamente.');
         setPage(1);
         await fetch(false);
