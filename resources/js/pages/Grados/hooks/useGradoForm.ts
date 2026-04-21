@@ -3,28 +3,33 @@ import type { Grado, GradoFormData } from './useGrados';
 import { defaultForm } from './useGrados';
 
 type Props = {
-    editing:     Grado | null;
-    open:        boolean;
-    onSave:      (data: GradoFormData) => Promise<void>;
-    onClose:     () => void;
+    editing: Grado | null;
+    open: boolean;
+    defaultNivelId?: string;
+    onSave: (data: GradoFormData) => Promise<void>;
+    onClose: () => void;
     clearErrors: () => void;
 };
 
-export function useGradoForm({ editing, open, onSave, onClose, clearErrors }: Props) {
-    const [form, setForm]       = useState<GradoFormData>(defaultForm);
+export function useGradoForm({ editing, open, onSave, onClose, clearErrors, defaultNivelId }: Props) {
+    const [form, setForm] = useState<GradoFormData>(defaultForm);
     const [processing, setProc] = useState(false);
 
     useEffect(() => {
         clearErrors();
-        setForm(editing
-            ? {
-                nivel_id:     editing.nivel_id.toString(),
+        if (editing) {
+            setForm({
+                nivel_id: editing.nivel_id.toString(),
                 nombre_grado: editing.nombre_grado,
-                abreviatura:  editing.abreviatura ?? '',
-            }
-            : defaultForm,
-        );
-    }, [editing, open]);
+                abreviatura: editing.abreviatura ?? '',
+            });
+        } else {
+            setForm({
+                ...defaultForm,
+                nivel_id: defaultNivelId ?? '',
+            });
+        }
+    }, [editing, open, defaultNivelId]);
 
     const set = (key: keyof GradoFormData, value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }));

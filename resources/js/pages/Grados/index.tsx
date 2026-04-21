@@ -12,7 +12,7 @@ import { gradosColumns } from './hooks/useGradosColumns';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Grados',    href: '/grados' },
+    { title: 'Grados', href: '/grados' },
 ];
 
 export default function GradosPage() {
@@ -20,17 +20,17 @@ export default function GradosPage() {
     const queryParams = useMemo(() => new URLSearchParams(url.split('?')[1] || ''), [url]);
     const queryNivelId = queryParams.get('nivel_id');
 
-    const res     = useResource<Grado>('/grados', queryNivelId ? { nivel_id: queryNivelId } : {});
+    const res = useResource<Grado>('/grados', queryNivelId ? { nivel_id: queryNivelId } : {});
     const niveles = useOptions<Nivel>('/niveles');
     const [modalOpen, setModalOpen] = useState(false);
-    const [editing, setEditing]     = useState<Grado | null>(null);
+    const [editing, setEditing] = useState<Grado | null>(null);
 
-    const openCreate   = () => {
- setEditing(null); setModalOpen(true); 
-};
-    const openEdit     = (g: Grado) => {
- setEditing(g); setModalOpen(true); 
-};
+    const openCreate = () => {
+        setEditing(null); setModalOpen(true);
+    };
+    const openEdit = (g: Grado) => {
+        setEditing(g); setModalOpen(true);
+    };
     const handleDelete = (g: Grado) => {
         if (confirm(`¿Eliminar el grado "${g.nombre_grado}"?`)) {
             res.remove(g.grado_id);
@@ -58,7 +58,7 @@ export default function GradosPage() {
                             <span className="text-sm font-medium">Filtrando por Nivel ID: </span>
                             <span className="font-bold">{queryNivelId}</span>
                         </div>
-                        <button 
+                        <button
                             onClick={() => window.location.href = '/grados'}
                             className="text-xs text-blue-600 hover:underline font-bold"
                         >
@@ -82,10 +82,11 @@ export default function GradosPage() {
             <GradoFormModal
                 open={modalOpen}
                 onClose={() => {
- setModalOpen(false); res.clearSuccess(); 
-}}
+                    setModalOpen(false); res.clearSuccess();
+                }}
                 editing={editing}
                 niveles={niveles}
+                defaultNivelId={queryNivelId ?? undefined}
                 onSave={editing
                     ? (data) => res.update(editing.grado_id, data)
                     : (data) => res.create(data)}
