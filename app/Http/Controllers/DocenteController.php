@@ -27,7 +27,7 @@ class DocenteController extends Controller
             ->with([
                 'estudiante' => fn($q) => $q->select('estu_id', 'perfil_id', 'foto'),
                 'estudiante.perfil' => fn($q) => $q->select('perfil_id', 'doc_numero', 'primer_nombre', 'segundo_nombre', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'telefono', 'direccion'),
-                'seccion' => fn($q) => $q->select('seccion_id', 'grado_id', 'nombre'),
+                'seccion' => fn($q) => $q->select('seccion_id', 'id_grado', 'nombre'),
                 'seccion.grado' => fn($q) => $q->select('grado_id', 'nivel_id', 'nombre_grado'),
                 'seccion.grado.nivel' => fn($q) => $q->select('nivel_id', 'nombre_nivel')
             ])
