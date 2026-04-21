@@ -5,7 +5,8 @@ import api from '@/lib/api';
 import type { TarifaPago } from '../index';
 import type { ConceptoPago } from '../../ConceptoPago/index';
 
-interface Grado { grado_id: number; nombre_grado: string; nivel?: { nombre: string } }
+interface Grado { grado_id: number; nombre_grado: string; nivel_id: number; }
+interface Nivel { nivel_id: number; nombre_nivel: string; }
 
 interface Props {
     open: boolean;
@@ -15,22 +16,35 @@ interface Props {
     onSaved: () => void;
 }
 
-const BLANK = { concepto_id: '', grado_id: '', anio_escolar: new Date().getFullYear(), monto: '', dia_vencimiento: '', activo: true };
+const BLANK = { 
+    concepto_id: '', 
+    targetType: 'general', // 'general' | 'nivel' | 'grado'
+    nivel_id: '', 
+    grado_id: '', 
+    anio_escolar: new Date().getFullYear(), 
+    monto: '', 
+    dia_vencimiento: '', 
+    activo: true 
+};
 
 export default function TarifaPagoFormModal({ open, onClose, editing, conceptos, onSaved }: Props) {
     const [form, setForm]     = useState<any>(BLANK);
     const [grados, setGrados] = useState<Grado[]>([]);
+    const [niveles, setNiveles] = useState<Nivel[]>([]);
     const [saving, setSaving] = useState(false);
     const [error, setError]   = useState('');
 
     useEffect(() => {
-        api.get('/grados').then(r => setGrados(r.data?.data ?? r.data ?? [])).catch(() => {});
+        api.get('/grados', { params: { per_page: 100 } }).then(r => setGrados(r.data?.data ?? r.data ?? [])).catch(() => {});
+        api.get('/niveles', { params: { per_page: 50 } }).then(r => setNiveles(r.data?.data ?? r.data ?? [])).catch(() => {});
     }, []);
 
     useEffect(() => {
         if (editing) {
             setForm({
                 concepto_id:     String(editing.concepto_id),
+                targetType:      editing.grado_id ? 'grado' : editing.nivel_id ? 'nivel' : 'general',
+                nivel_id:        editing.nivel_id ? String(editing.nivel_id) : '',
                 grado_id:        editing.grado_id ? String(editing.grado_id) : '',
                 anio_escolar:    editing.anio_escolar,
                 monto:           String(editing.monto),
@@ -50,7 +64,8 @@ export default function TarifaPagoFormModal({ open, onClose, editing, conceptos,
         try {
             const payload = {
                 concepto_id:     Number(form.concepto_id),
-                grado_id:        form.grado_id ? Number(form.grado_id) : null,
+                nivel_id:        form.targetType === 'nivel' ? Number(form.nivel_id) : null,
+                grado_id:        form.targetType === 'grado' ? Number(form.grado_id) : null,
                 anio_escolar:    Number(form.anio_escolar),
                 monto:           Number(form.monto),
                 dia_vencimiento: form.dia_vencimiento ? Number(form.dia_vencimiento) : null,
@@ -96,18 +111,56 @@ export default function TarifaPagoFormModal({ open, onClose, editing, conceptos,
                         </select>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Grado <span className="text-gray-400 font-normal">(vacío = tarifa general)</span></label>
-                        <select
-                            value={form.grado_id}
-                            onChange={e => setForm((f: any) => ({ ...f, grado_id: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                            <option value="">General (aplica a todos)</option>
-                            {grados.map(g => (
-                                <option key={g.grado_id} value={g.grado_id}>{g.nombre_grado}</option>
+                    <div className="space-y-3">
+                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block">Aplicar a:</label>
+                        <div className="flex gap-2">
+                            {['general', 'nivel', 'grado'].map(t => (
+                                <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => setForm((f: any) => ({ ...f, targetType: t }))}
+                                    className={`flex-1 py-1.5 text-[11px] font-bold uppercase rounded-md border transition-all ${
+                                        form.targetType === t 
+                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm' 
+                                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {t === 'general' ? 'General' : t === 'nivel' ? 'Por Nivel' : 'Por Grado'}
+                                </button>
                             ))}
-                        </select>
+                        </div>
+
+                        {form.targetType === 'nivel' && (
+                            <select
+                                value={form.nivel_id}
+                                onChange={e => setForm((f: any) => ({ ...f, nivel_id: e.target.value }))}
+                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">Seleccionar nivel…</option>
+                                {niveles.map(n => (
+                                    <option key={n.nivel_id} value={n.nivel_id}>{n.nombre_nivel}</option>
+                                ))}
+                            </select>
+                        )}
+
+                        {form.targetType === 'grado' && (
+                            <select
+                                value={form.grado_id}
+                                onChange={e => setForm((f: any) => ({ ...f, grado_id: e.target.value }))}
+                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">Seleccionar grado…</option>
+                                {grados.map(g => (
+                                    <option key={g.grado_id} value={g.grado_id}>{g.nombre_grado}</option>
+                                ))}
+                            </select>
+                        )}
+
+                        {form.targetType === 'general' && (
+                            <div className="p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200 text-center">
+                                <p className="text-[10px] text-gray-400 font-medium">Esta tarifa aplicará a todos los estudiantes de la institución.</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">

@@ -30,7 +30,7 @@ interface PagoRepositoryInterface
 
     // Métodos de acceso a datos para la lógica de negocio en el Service
     public function getEstudiantesParaGeneracion(int $instiId, int $anio): Collection;
-    public function getMontoTarifa(int $instiId, ?int $gradoId, int $anio, string $periodicidad): ?float;
+    public function getMontoTarifa(int $instiId, ?int $gradoId, int $anio, string $periodicidad, ?int $nivelId = null): ?float;
     public function getDescuentosEstudiante(int $estuId, string $fecha, ?int $conceptoId, ?int $nivelId = null, ?int $gradoId = null): Collection;
     public function existePago(int $estuId, string $mes, int $anio): bool;
 }

@@ -224,7 +224,7 @@ class PagoRepository implements PagoRepositoryInterface
             ->get();
     }
 
-    public function getMontoTarifa(int $instiId, ?int $gradoId, int $anio, string $periodicidad): ?float
+    public function getMontoTarifa(int $instiId, ?int $gradoId, int $anio, string $periodicidad, ?int $nivelId = null): ?float
     {
         $base = DB::table('tarifa_pago as tp')
             ->join('concepto_pago as cp', 'tp.concepto_id', '=', 'cp.concepto_id')
@@ -239,7 +239,12 @@ class PagoRepository implements PagoRepositoryInterface
             if ($monto !== null) return (float) $monto;
         }
 
-        $monto = (clone $base)->whereNull('tp.grado_id')->value('tp.monto');
+        if ($nivelId) {
+            $monto = (clone $base)->where('tp.nivel_id', $nivelId)->value('tp.monto');
+            if ($monto !== null) return (float) $monto;
+        }
+
+        $monto = (clone $base)->whereNull('tp.grado_id')->whereNull('tp.nivel_id')->value('tp.monto');
         return $monto !== null ? (float) $monto : null;
     }
 

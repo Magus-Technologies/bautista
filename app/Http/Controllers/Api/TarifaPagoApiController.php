@@ -11,7 +11,7 @@ class TarifaPagoApiController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tarifas = TarifaPago::with(['concepto', 'grado'])
+        $tarifas = TarifaPago::with(['concepto', 'grado', 'nivel'])
             ->where('insti_id', $request->user()->insti_id)
             ->orderBy('anio_escolar', 'desc')
             ->orderBy('concepto_id')
@@ -26,6 +26,7 @@ class TarifaPagoApiController extends Controller
 
         $data = $request->validate([
             'concepto_id'      => ['required', 'integer'],
+            'nivel_id'         => ['nullable', 'integer'],
             'grado_id'         => ['nullable', 'integer'],
             'anio_escolar'     => ['required', 'integer', 'min:2020', 'max:2099'],
             'monto'            => ['required', 'numeric', 'min:0'],
@@ -35,6 +36,7 @@ class TarifaPagoApiController extends Controller
         // Impedir duplicado activo para misma combinación
         $duplicado = TarifaPago::where('insti_id', $instiId)
             ->where('concepto_id', $data['concepto_id'])
+            ->where('nivel_id', $data['nivel_id'] ?? null)
             ->where('grado_id', $data['grado_id'] ?? null)
             ->where('anio_escolar', $data['anio_escolar'])
             ->where('activo', true)
@@ -51,7 +53,7 @@ class TarifaPagoApiController extends Controller
             'activo'   => true,
         ]));
 
-        return response()->json($tarifa->load(['concepto', 'grado']), 201);
+        return response()->json($tarifa->load(['concepto', 'grado', 'nivel']), 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -62,6 +64,7 @@ class TarifaPagoApiController extends Controller
 
         $data = $request->validate([
             'concepto_id'      => ['required', 'integer'],
+            'nivel_id'         => ['nullable', 'integer'],
             'grado_id'         => ['nullable', 'integer'],
             'anio_escolar'     => ['required', 'integer', 'min:2020', 'max:2099'],
             'monto'            => ['required', 'numeric', 'min:0'],
@@ -71,7 +74,7 @@ class TarifaPagoApiController extends Controller
 
         $tarifa->update($data);
 
-        return response()->json($tarifa->load(['concepto', 'grado']));
+        return response()->json($tarifa->load(['concepto', 'grado', 'nivel']));
     }
 
     public function destroy(Request $request, int $id): JsonResponse

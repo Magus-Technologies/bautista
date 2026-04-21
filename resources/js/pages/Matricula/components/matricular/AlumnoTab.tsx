@@ -106,16 +106,31 @@ export default function AlumnoTab({
                     t.activo && Number(t.anio_escolar) === anio,
                 );
 
-                // Para cada tarifa activa, tomar la más específica (grado > general)
+                // Para cada tarifa activa, tomar la más específica (grado > nivel > general)
                 const porConcepto = new Map<number, any>();
+                // Obtener nivel del grado seleccionado
+                const gSel = grados.find(x => String(x.grado_id) === String(selectedGrado));
+                const nIdSel = gSel?.nivel_id;
+
                 for (const t of activas) {
                     const cid = t.concepto_id;
                     const prev = porConcepto.get(cid);
-                    // Prioridad: grado específico > general (grado_id null)
+
                     if (!prev) {
                         porConcepto.set(cid, t);
-                    } else if (String(t.grado_id) === String(selectedGrado)) {
-                        porConcepto.set(cid, t); // reemplazar con la específica del grado
+                        continue;
+                    }
+
+                    // Prioridades de reemplazo:
+                    const esGradoPropio = String(t.grado_id) === String(selectedGrado);
+                    const esNivelPropio = nIdSel && String(t.nivel_id) === String(nIdSel);
+                    const prevEsGeneral = !prev.grado_id && !prev.nivel_id;
+                    const prevEsNivel   = !prev.grado_id && prev.nivel_id;
+
+                    if (esGradoPropio) {
+                        porConcepto.set(cid, t); // Grado siempre manda
+                    } else if (esNivelPropio && prevEsGeneral) {
+                        porConcepto.set(cid, t); // Nivel manda sobre General
                     }
                 }
 

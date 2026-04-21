@@ -13,6 +13,7 @@ class TarifaPago extends Model
     protected $fillable = [
         'insti_id',
         'concepto_id',
+        'nivel_id',
         'grado_id',
         'anio_escolar',
         'monto',
@@ -28,6 +29,11 @@ class TarifaPago extends Model
     public function concepto(): BelongsTo
     {
         return $this->belongsTo(ConceptoPago::class, 'concepto_id', 'concepto_id');
+    }
+
+    public function nivel(): BelongsTo
+    {
+        return $this->belongsTo(NivelEducativo::class, 'nivel_id', 'nivel_id');
     }
 
     public function grado(): BelongsTo

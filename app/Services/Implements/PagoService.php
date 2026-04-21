@@ -94,7 +94,7 @@ class PagoService implements PagoServiceInterface
                 $omitidos++; continue;
             }
 
-            $monto = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad);
+            $monto = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad, $est->nivel_id);
             [$montoFinal, $obs] = $this->aplicarDescuentos($est->estu_id, $monto, $today, $this->getConceptoMensualId($instiId), $est->nivel_id, $est->grado_id);
 
             $this->repo->create([
@@ -125,7 +125,7 @@ class PagoService implements PagoServiceInterface
         $est = $this->repo->getEstudiantesParaGeneracion($instiId, $anio)->firstWhere('estu_id', $estuId);
         if (!$est) return ['status' => 'error', 'message' => 'Estudiante no encontrado'];
 
-        $monto = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad);
+        $monto = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad, $est->nivel_id);
         [$montoFinal, $obs] = $this->aplicarDescuentos($estuId, $monto, now()->toDateString(), $this->getConceptoMensualId($instiId), $est->nivel_id, $est->grado_id);
 
         $pago = $this->repo->create([
@@ -150,7 +150,7 @@ class PagoService implements PagoServiceInterface
         $est = $this->repo->getEstudiantesParaGeneracion($instiId, $anio)->firstWhere('estu_id', $estuId);
         if (!$est) return ['monto_base' => 0, 'monto_final' => 0, 'observacion' => 'No encontrado'];
 
-        $montoBase = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad);
+        $montoBase = $this->resolverMontoMensual($instiId, $est->grado_id, $anio, $est->mensualidad, $est->nivel_id);
         [$montoFinal, $obs] = $this->aplicarDescuentos($estuId, $montoBase, now()->toDateString(), $this->getConceptoMensualId($instiId), $est->nivel_id, $est->grado_id);
 
         return ['monto_base' => $montoBase, 'monto_final' => $montoFinal, 'observacion' => $obs];
@@ -159,9 +159,9 @@ class PagoService implements PagoServiceInterface
     /**
      * Lógica de Negocio: Cálculos
      */
-    private function resolverMontoMensual(int $instiId, ?int $gradoId, int $anio, ?string $fallback): float
+    private function resolverMontoMensual(int $instiId, ?int $gradoId, int $anio, ?string $fallback, ?int $nivelId = null): float
     {
-        $monto = $this->repo->getMontoTarifa($instiId, $gradoId, $anio, 'mensual');
+        $monto = $this->repo->getMontoTarifa($instiId, $gradoId, $anio, 'mensual', $nivelId);
         return $monto ?? (float)($fallback ?? 0);
     }
 

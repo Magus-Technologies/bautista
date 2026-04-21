@@ -21,11 +21,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 export interface TarifaPago {
     tarifa_id: number;
     concepto_id: number;
+    nivel_id: number | null;
     grado_id: number | null;
     anio_escolar: number | string;
     monto: string;
     activo: boolean;
     concepto?: { nombre: string; periodicidad: string };
+    nivel?: { nombre_nivel: string } | null;
     grado?: { nombre_grado: string } | null;
 }
 
@@ -72,7 +74,19 @@ export default function TarifaPagoPage() {
     const columns: Column<TarifaPago>[] = [
         { label: '#', render: (_, i) => <span className="text-gray-400 font-bold tabular-nums">{(i ?? 0) + 1}</span> },
         { label: 'Concepto', render: t => <span className="font-semibold">{t.concepto?.nombre ?? `Concepto #${t.concepto_id}`}</span> },
-        { label: 'Grado',    render: t => t.grado?.nombre_grado ?? <span className="italic text-gray-400">General</span> },
+        { 
+            label: 'Aplicable a', 
+            render: t => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">
+                        {t.grado?.nombre_grado ?? t.nivel?.nombre_nivel ?? <span className="italic text-gray-400">General</span>}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase text-gray-400">
+                        {t.grado_id ? 'Grado' : t.nivel_id ? 'Nivel' : 'Institucional'}
+                    </span>
+                </div>
+            )
+        },
         { label: 'Año',      render: t => t.anio_escolar },
         { label: 'Monto',    render: t => <span className="font-bold">S/ {Number(t.monto).toFixed(2)}</span> },
         {
