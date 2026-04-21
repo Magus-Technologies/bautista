@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Users, Search, ArrowLeft, Phone, MapPin, IdCard, ChevronRight, Award, Calendar, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,12 +38,14 @@ export default function MisAlumnosPage({ alumnos }: Props) {
     const [search, setSearch] = useState('');
     const [selectedStudent, setSelectedStudent] = useState<Alumno | null>(null);
 
-    const filtrados = alumnos.filter(a => {
-        const q = search.toLowerCase();
-        const nombreCompleto = `${a.primer_nombre} ${a.segundo_nombre} ${a.apellido_paterno} ${a.apellido_materno}`.toLowerCase();
-        const dni = (a.doc_numero ?? '').toLowerCase();
-        return nombreCompleto.includes(q) || dni.includes(q);
-    });
+    const filtrados = useMemo(() => {
+        return alumnos.filter(a => {
+            const q = search.toLowerCase();
+            const nombreCompleto = `${a.primer_nombre} ${a.segundo_nombre} ${a.apellido_paterno} ${a.apellido_materno}`.toLowerCase();
+            const dni = (a.doc_numero ?? '').toLowerCase();
+            return nombreCompleto.includes(q) || dni.includes(q);
+        });
+    }, [alumnos, search]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

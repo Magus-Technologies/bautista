@@ -9,6 +9,7 @@ use App\Models\Matricula;
 use App\Models\NotaActividad;
 use App\Models\User;
 use App\Services\Notifications\NotificationService;
+use Illuminate\Support\Facades\Cache;
 
 class EstudianteDashboardService
 {
@@ -26,13 +27,19 @@ class EstudianteDashboardService
             ];
         }
 
+        $estuId = $estudiante->estu_id;
+
+        $stats = Cache::store('database')->remember("est_stats_{$estuId}", 180, fn() => [
+            'tareas_pendientes' => $this->getTareasPendientes($estudiante),
+            'asistencia_perc'   => $this->getAsistenciaPercentage($estudiante),
+            'promedio_general'  => $this->getPromedioGeneral($estudiante),
+        ]);
+
+        $cursos = Cache::store('database')->remember("est_cursos_{$estuId}", 180, fn() => $this->getCursos($estudiante));
+
         return [
-            'stats' => [
-                'tareas_pendientes' => $this->getTareasPendientes($estudiante),
-                'asistencia_perc'   => $this->getAsistenciaPercentage($estudiante),
-                'promedio_general'  => $this->getPromedioGeneral($estudiante),
-            ],
-            'cursos'              => $this->getCursos($estudiante),
+            'stats'               => $stats,
+            'cursos'              => $cursos,
             'notificaciones'      => $this->notifService->forEstudiante($user),
             'mensajes_pendientes' => [],
         ];

@@ -5,6 +5,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import FotocheckCardPreview from './FotocheckCardPreview';
 import api from '@/lib/api';
 
+// Cache simple para evitar peticiones repetitivas en la misma sesión
+let cachedConfig: any = null;
+
 // Tipos mínimos necesarios para que funcione en ambos contextos
 interface MinimalEstudiante {
     estu_id: number;
@@ -52,9 +55,18 @@ export default function FotocheckModal({ open, onClose, matricula, estudiante }:
 
     useEffect(() => {
         if (open) {
+            if (cachedConfig) {
+                setConfig(cachedConfig);
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             api.get('/configuracion-fotocheck')
-                .then(res => setConfig(res.data))
+                .then(res => {
+                    cachedConfig = res.data;
+                    setConfig(res.data);
+                })
                 .catch(err => console.error("Error loading config:", err))
                 .finally(() => setLoading(false));
         }

@@ -120,7 +120,12 @@ class MatriculaRepository implements MatriculaRepositoryInterface
     {
         return Matricula::whereIn('seccion_id', $seccionIds)
             ->where('estado', '1')
-            ->with(['estudiante.perfil', 'seccion.grado'])
+            ->with([
+                'estudiante' => fn($q) => $q->select('estu_id', 'perfil_id', 'foto', 'user_id'),
+                'estudiante.perfil' => fn($q) => $q->select('perfil_id', 'doc_numero', 'primer_nombre', 'segundo_nombre', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'telefono', 'direccion'),
+                'seccion' => fn($q) => $q->select('seccion_id', 'grado_id', 'nombre'),
+                'seccion.grado' => fn($q) => $q->select('grado_id', 'nombre_grado')
+            ])
             ->get();
     }
 
@@ -129,7 +134,10 @@ class MatriculaRepository implements MatriculaRepositoryInterface
         return Matricula::where('seccion_id', $seccionId)
             ->when($aperturaId, fn($q) => $q->where('apertura_id', $aperturaId))
             ->where('estado', '1')
-            ->with('estudiante.perfil')
+            ->with([
+                'estudiante' => fn($q) => $q->select('estu_id', 'perfil_id', 'foto', 'user_id'),
+                'estudiante.perfil' => fn($q) => $q->select('perfil_id', 'doc_numero', 'primer_nombre', 'segundo_nombre', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'telefono', 'direccion')
+            ])
             ->get();
     }
 }

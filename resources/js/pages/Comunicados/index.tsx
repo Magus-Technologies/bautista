@@ -1,15 +1,16 @@
 import { Head, usePage } from '@inertiajs/react';
 import { Inbox, Plus, Users } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
 import BandejaEntrada from './components/BandejaEntrada';
 import Conversacion from './components/Conversacion';
-import CrearGrupoModal from './components/CrearGrupoModal';
-import EnviarMensajeModal from './components/EnviarMensajeModal';
 import { usePermission } from '@/hooks/usePermission';
+
+const CrearGrupoModal    = lazy(() => import('./components/CrearGrupoModal'));
+const EnviarMensajeModal = lazy(() => import('./components/EnviarMensajeModal'));
 
 type Mensaje = {
     id:          number;
@@ -152,19 +153,19 @@ export default function MensajesPage() {
                 </div>
             </div>
 
-            <EnviarMensajeModal
-                open={modalEnviar}
-                onClose={() => setModalEnviar(false)}
-                onSent={() => {
- cargarBandeja(); cargarNoLeidos(); 
-}}
-                grupos={grupos}
-            />
-            <CrearGrupoModal
-                open={modalGrupo}
-                onClose={() => setModalGrupo(false)}
-                onSaved={cargarGrupos}
-            />
+            <Suspense fallback={null}>
+                <EnviarMensajeModal
+                    open={modalEnviar}
+                    onClose={() => setModalEnviar(false)}
+                    onSent={() => { cargarBandeja(); cargarNoLeidos(); }}
+                    grupos={grupos}
+                />
+                <CrearGrupoModal
+                    open={modalGrupo}
+                    onClose={() => setModalGrupo(false)}
+                    onSaved={cargarGrupos}
+                />
+            </Suspense>
         </AppLayout>
     );
 }

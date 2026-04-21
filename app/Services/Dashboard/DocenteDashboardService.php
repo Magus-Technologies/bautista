@@ -8,6 +8,7 @@ use App\Models\Matricula;
 use App\Models\NotaActividad;
 use App\Models\User;
 use App\Services\Notifications\NotificationService;
+use Illuminate\Support\Facades\Cache;
 
 class DocenteDashboardService
 {
@@ -18,34 +19,43 @@ class DocenteDashboardService
         $docente = Docente::where('id_usuario', $user->id)->first();
         if (!$docente) return ['error' => 'No docente found'];
 
-        $cursosCount = DocenteCurso::where('docente_id', $docente->docente_id)->count();
+        $docenteId = $docente->docente_id;
 
-        // Alumnos únicos en las secciones del docente (no todos los de la institución)
-        $seccionIds = DocenteCurso::where('docente_id', $docente->docente_id)
-            ->whereNotNull('seccion_id')
-            ->pluck('seccion_id')
-            ->unique();
+        $resumen = Cache::store('database')->remember("docente_resumen_{$docenteId}", 180, function () use ($docenteId) {
+            $cursosCount = DocenteCurso::where('docente_id', $docenteId)->count();
 
-        $estudiantesCount = Matricula::whereIn('seccion_id', $seccionIds)
-            ->where('estado', '1')
-            ->distinct('estu_id')
-            ->count('estu_id');
+            $seccionIds = DocenteCurso::where('docente_id', $docenteId)
+                ->whereNotNull('seccion_id')
+                ->pluck('seccion_id')
+                ->unique();
 
-        $pendientesCalificar = NotaActividad::whereHas('actividad', function ($q) use ($docente) {
-            $q->whereHas('clase.unidad.curso', function ($q2) use ($docente) {
-                $q2->whereHas('docenteCursos', fn($q3) => $q3->where('docente_id', $docente->docente_id));
-            });
-        })->whereNull('nota')->whereNotNull('archivo_entrega')->count();
+            $estudiantesCount = Matricula::whereIn('seccion_id', $seccionIds)
+                ->where('estado', '1')
+                ->distinct('estu_id')
+                ->count('estu_id');
 
-        return [
-            'resumen' => [
+            $pendientesCalificar = NotaActividad::whereHas('actividad', function ($q) use ($docenteId) {
+                $q->whereHas('clase.unidad.curso', function ($q2) use ($docenteId) {
+                    $q2->whereHas('docenteCursos', fn($q3) => $q3->where('docente_id', $docenteId));
+                });
+            })->whereNull('nota')->whereNotNull('archivo_entrega')->count();
+
+            return [
                 'cursos'               => $cursosCount,
                 'estudiantes'          => $estudiantesCount,
                 'pendientes_calificar' => $pendientesCalificar,
-            ],
-            'cursos' => DocenteCurso::where('docente_id', $docente->docente_id)
+            ];
+        });
+
+        $cursos = Cache::store('database')->remember("docente_cursos_{$docenteId}", 180, fn() =>
+            DocenteCurso::where('docente_id', $docenteId)
                 ->with(['curso', 'seccion.grado'])
-                ->get(),
+                ->get()
+        );
+
+        return [
+            'resumen'             => $resumen,
+            'cursos'              => $cursos,
             'notificaciones'      => $this->notifService->forDocente($user),
             'mensajes_pendientes' => [],
         ];

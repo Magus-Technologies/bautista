@@ -1,10 +1,11 @@
 import { Send } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import RichTextEditor from '@/components/shared/RichTextEditor';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import api from '@/lib/api';
+
+const RichTextEditor = lazy(() => import('@/components/shared/RichTextEditor'));
 
 
 type Usuario = { id: number; nombre: string; username: string; rol?: string };
@@ -192,12 +193,14 @@ clearTimeout(debounceRef.current);
                     <div className="flex flex-col gap-1">
                         <label className="text-sm font-medium text-neutral-600">Mensaje:</label>
 
-                        <RichTextEditor
-                            value={cuerpo}
-                            onChange={setCuerpo}
-                            placeholder="Escribe tu mensaje..."
-                            minHeight={180}
-                        />
+                        <Suspense fallback={<div className="h-[180px] rounded-lg border border-neutral-200 bg-neutral-50 animate-pulse" />}>
+                            <RichTextEditor
+                                value={cuerpo}
+                                onChange={setCuerpo}
+                                placeholder="Escribe tu mensaje..."
+                                minHeight={180}
+                            />
+                        </Suspense>
                     </div>
 
                     {error && <p className="text-sm text-red-500">{error}</p>}

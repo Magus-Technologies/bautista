@@ -1,5 +1,4 @@
 import { Head } from '@inertiajs/react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
 import {
     QrCode, Shield, Clock, UserCheck, History,
     Zap, Settings, ScanLine, Keyboard, GraduationCap, BookOpen,
@@ -12,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import api from '@/lib/api';
 import type { BreadcrumbItem } from '@/types';
+
+// html5-qrcode se carga de forma lazy — solo cuando se necesita la cámara
+type Html5QrcodeScannerType = import('html5-qrcode').Html5QrcodeScanner;
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Asistencia',  href: '/asistencia' },
@@ -109,7 +111,7 @@ export default function AsistenciaScanner() {
     const [inputVal, setInputVal]       = useState('');
     const [processing, setProcessing]   = useState(false);
 
-    const scannerRef  = useRef<Html5QrcodeScanner | null>(null);
+    const scannerRef  = useRef<Html5QrcodeScannerType | null>(null);
     const tipoRef     = useRef(tipo);
     const scanningRef = useRef(false);
     const inputRef    = useRef<HTMLInputElement>(null);
@@ -129,12 +131,16 @@ export default function AsistenciaScanner() {
         loadHistorial();
 
         if (modo === 'camara' && !scannerRef.current && window.isSecureContext) {
-            scannerRef.current = new Html5QrcodeScanner(
-                'reader',
-                { fps: 20, qrbox: { width: 450, height: 350 }, aspectRatio: 1.0, showTorchButtonIfSupported: true, showZoomSliderIfSupported: true },
-                false,
-            );
-            scannerRef.current.render(onScanSuccess, () => undefined);
+            // Import dinámico — html5-qrcode solo se descarga cuando se usa la cámara
+            import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+                if (scannerRef.current) return; // ya fue montado
+                scannerRef.current = new Html5QrcodeScanner(
+                    'reader',
+                    { fps: 20, qrbox: { width: 450, height: 350 }, aspectRatio: 1.0, showTorchButtonIfSupported: true, showZoomSliderIfSupported: true },
+                    false,
+                );
+                scannerRef.current.render(onScanSuccess, () => undefined);
+            });
         }
 
         return () => {

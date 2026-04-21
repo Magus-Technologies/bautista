@@ -24,10 +24,18 @@ class DocenteController extends Controller
 
         $alumnos = Matricula::whereIn('seccion_id', $seccionIds)
             ->where('estado', '1')
-            ->with(['estudiante.perfil', 'seccion.grado.nivel'])
+            ->with([
+                'estudiante' => fn($q) => $q->select('estu_id', 'perfil_id', 'foto'),
+                'estudiante.perfil' => fn($q) => $q->select('perfil_id', 'doc_numero', 'primer_nombre', 'segundo_nombre', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'telefono', 'direccion'),
+                'seccion' => fn($q) => $q->select('seccion_id', 'grado_id', 'nombre'),
+                'seccion.grado' => fn($q) => $q->select('grado_id', 'nivel_id', 'nombre_grado'),
+                'seccion.grado.nivel' => fn($q) => $q->select('nivel_id', 'nombre_nivel')
+            ])
             ->get()
+            ->unique('estu_id')
             ->map(fn ($m) => [
                 'estu_id'          => $m->estudiante?->estu_id,
+                'foto'             => $m->estudiante?->foto,
                 'doc_numero'       => $m->estudiante?->perfil?->doc_numero,
                 'primer_nombre'    => $m->estudiante?->perfil?->primer_nombre,
                 'segundo_nombre'   => $m->estudiante?->perfil?->segundo_nombre,
@@ -40,7 +48,6 @@ class DocenteController extends Controller
                 'nivel'            => $m->seccion?->grado?->nivel?->nombre_nivel,
                 'seccion'          => $m->seccion?->nombre,
             ])
-            ->unique('estu_id')
             ->values();
 
         return Inertia::render('PortalDocente/MisAlumnos', [

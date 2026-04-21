@@ -12,6 +12,7 @@ use App\Models\Pago;
 use App\Models\Perfil;
 use App\Models\User;
 use App\Services\Notifications\NotificationService;
+use Illuminate\Support\Facades\Cache;
 
 class AdminDashboardService
 {
@@ -20,11 +21,15 @@ class AdminDashboardService
     {
         $instiId = $user->insti_id;
 
-        return [
+        $totales = Cache::store('database')->remember('admin_totales', 300, fn() => [
             'total_instituciones' => InstitucionEducativa::count(),
             'total_docentes'      => Docente::count(),
             'total_estudiantes'   => Estudiante::count(),
             'total_cursos'        => Curso::count(),
+        ]);
+
+        return [
+            ...$totales,
             'notificaciones'      => $this->getNotifications($user, $instiId),
             'mensajes_pendientes' => $this->getPendingMessages($user),
             'cursos'              => [],
