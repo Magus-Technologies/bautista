@@ -67,19 +67,25 @@ class MatriculaRepository implements MatriculaRepositoryInterface
 
     public function countByNivel(int $aperturaId): \Illuminate\Support\Collection
     {
-        return DB::table('matriculas')
-            ->leftJoin('secciones', 'matriculas.seccion_id', '=', 'secciones.seccion_id')
-            ->leftJoin('grados', 'secciones.id_grado', '=', 'grados.grado_id')
-            ->leftJoin('niveles_educativos', 'grados.nivel_id', '=', 'niveles_educativos.nivel_id')
-            ->where('matriculas.apertura_id', $aperturaId)
-            ->where('matriculas.estado', '1')
-            ->groupBy('niveles_educativos.nivel_id', 'niveles_educativos.nombre_nivel')
+        $apertura = MatriculaApertura::findOrFail($aperturaId);
+
+        return DB::table('niveles_educativos as ne')
+            ->leftJoin('grados as g', 'ne.nivel_id', '=', 'g.nivel_id')
+            ->leftJoin('secciones as s', 'g.grado_id', '=', 's.id_grado')
+            ->leftJoin('matriculas as m', function($join) use ($aperturaId) {
+                $join->on('s.seccion_id', '=', 'm.seccion_id')
+                     ->where('m.apertura_id', '=', $aperturaId)
+                     ->where('m.estado', '=', '1');
+            })
+            ->where('ne.insti_id', $apertura->insti_id)
+            ->where('ne.nivel_estatus', '1')
+            ->groupBy('ne.nivel_id', 'ne.nombre_nivel')
             ->select(
-                'niveles_educativos.nivel_id',
-                DB::raw('COALESCE(niveles_educativos.nombre_nivel, "POR ASIGNAR") as nombre_nivel'),
-                DB::raw('COUNT(*) as total')
+                'ne.nivel_id',
+                'ne.nombre_nivel',
+                DB::raw('COUNT(m.matricula_id) as total')
             )
-            ->orderBy('niveles_educativos.nivel_id')
+            ->orderBy('ne.nivel_id')
             ->get();
     }
 
