@@ -37,25 +37,49 @@ class VerifyDocenteCurso
             ?? $request->input('docente_curso_id')
             ?? $request->input('docen_curso_id');
 
-        // Si tenemos un ID de asignación (DocenteCurso)
+        // Si tenemos un ID, verificar según el contexto de la ruta
         if ($id) {
-            // Primero intentar como docen_curso_id directo
-            $hasAccess = DocenteCurso::where('docente_id', $docente->docente_id)
-                ->where('docen_curso_id', $id)
-                ->exists();
+            $hasAccess = false;
+            $routeName = $request->route()->getName();
+            $uri = $request->route()->uri();
 
-            // Si no, puede ser un actividadId — resolver el curso_id desde la actividad
-            if (!$hasAccess) {
-                $cursoIdFromActividad = \App\Models\ActividadCurso::where('actividad_id', $id)->value('id_curso');
-                if ($cursoIdFromActividad) {
+            // 1. Si es una ruta de Contenido (Unidades/Clases)
+            if (str_contains($uri, 'contenido/clases')) {
+                $cursoIdFromClase = \App\Models\Clase::where('clase_id', $id)
+                    ->join('unidades', 'clases.unidad_id', '=', 'unidades.unidad_id')
+                    ->value('unidades.curso_id');
+                if ($cursoIdFromClase) {
                     $hasAccess = DocenteCurso::where('docente_id', $docente->docente_id)
-                        ->where('curso_id', $cursoIdFromActividad)
+                        ->where('curso_id', $cursoIdFromClase)
                         ->exists();
+                }
+            } else if (str_contains($uri, 'contenido/unidades')) {
+                $cursoIdFromUnidad = \App\Models\Unidad::where('unidad_id', $id)->value('curso_id');
+                if ($cursoIdFromUnidad) {
+                    $hasAccess = DocenteCurso::where('docente_id', $docente->docente_id)
+                        ->where('curso_id', $cursoIdFromUnidad)
+                        ->exists();
+                }
+            } 
+            // 2. Si es un ID de asignación (DocenteCurso) directo
+            else {
+                $hasAccess = DocenteCurso::where('docente_id', $docente->docente_id)
+                    ->where('docen_curso_id', $id)
+                    ->exists();
+
+                // 3. Si no, puede ser un actividadId
+                if (!$hasAccess) {
+                    $cursoIdFromActividad = \App\Models\ActividadCurso::where('actividad_id', $id)->value('id_curso');
+                    if ($cursoIdFromActividad) {
+                        $hasAccess = DocenteCurso::where('docente_id', $docente->docente_id)
+                            ->where('curso_id', $cursoIdFromActividad)
+                            ->exists();
+                    }
                 }
             }
 
-            // Si no, puede ser un sessionId de asistencia_clases
-            if (!$hasAccess) {
+            // 4. Si no, puede ser un sessionId de asistencia_clases
+            if (!$hasAccess && str_contains($uri, 'asistencia')) {
                 $claseId = \App\Models\AsistenciaActividad::where('id', $id)->value('id_clase_curso');
                 if ($claseId) {
                     $cursoIdFromClase = \App\Models\Clase::where('clase_id', $claseId)
@@ -70,7 +94,7 @@ class VerifyDocenteCurso
             }
 
             if (!$hasAccess) {
-                return response()->json(['message' => 'No tienes permiso para acceder a este curso.'], 403);
+                return response()->json(['message' => 'No tienes permiso para acceder a este curso o recurso.'], 403);
             }
         }
 

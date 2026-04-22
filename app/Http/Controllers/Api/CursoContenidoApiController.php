@@ -134,6 +134,20 @@ class CursoContenidoApiController extends Controller
         return response()->json(null, 204);
     }
 
+    public function updateArchivo(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'titulo' => ['required', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string'],
+            'visible' => ['required', 'in:0,1'],
+        ]);
+
+        $archivo = ArchivoClase::findOrFail($id);
+        $archivo->update($request->only(['titulo', 'descripcion', 'visible']));
+
+        return response()->json($archivo);
+    }
+
     // ── Archivos de Actividad ────────────────────────────────────────────────
     public function listarArchivosActividad(int $actividadId): JsonResponse
     {

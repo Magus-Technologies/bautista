@@ -83,205 +83,217 @@ export default function ClaseVer({ claseId }: { claseId: number }) {
 
     return (
         <AppSidebarLayout>
-            <div className="min-h-screen bg-[#FDFDFF] p-4 md:p-10 space-y-10 font-sans">
-            <Head title={clase.titulo} />
+            <div className="min-h-screen bg-[#F8F9FC] p-4 md:p-8 space-y-8 font-sans">
+                <Head title={clase.titulo} />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center space-x-6">
-                    <Link href={`/alumno/cursos/${clase.docen_curso_id || clase.unidad?.curso_id}`}>
-                        <Button variant="ghost" className="h-12 w-12 rounded-2xl bg-white border border-gray-100 shadow-sm hover:bg-gray-50 p-0">
-                            <ChevronLeft className="w-6 h-6" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{clase.unidad?.titulo}</p>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tighter">{clase.titulo}</h1>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4">
+                        <Link href={`/alumno/cursos/${clase.docen_curso_id || clase.unidad?.curso_id}`}>
+                            <Button variant="ghost" className="h-10 w-10 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 p-0">
+                                <ChevronLeft className="w-5 h-5 text-gray-600" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{clase.unidad?.titulo}</p>
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{clase.titulo}</h1>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                
-                {/* Main Content: Info & Materials */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-gray-100 shadow-2xl shadow-gray-200/50 space-y-8">
-                        <div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-4">Descripción de la Sesión</h3>
-                            <div 
-                                className="text-gray-500 leading-relaxed font-medium prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ 
-                                    __html: clase.descripcion || 'En esta clase exploraremos los conceptos fundamentales de la unidad. Revisa los materiales adjuntos antes de realizar las actividades.' 
-                                }}
-                            />
-                        </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    {/* Main Content: Info & Materials */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white p-6 md:p-10 rounded-3xl border border-gray-100 shadow-sm space-y-8">
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center">
+                                    <FileText className="w-5 h-5 mr-2 text-indigo-600" /> Descripción de la Sesión
+                                </h3>
+                                <div 
+                                    className="text-gray-600 leading-relaxed font-medium prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ 
+                                        __html: clase.descripcion || 'No hay descripción disponible para esta sesión.' 
+                                    }}
+                                />
+                            </div>
 
-                        <div className="space-y-6 pt-4 border-t border-gray-50">
-                            <h4 className="text-lg font-black text-gray-800 flex items-center">
-                                <FileText className="w-5 h-5 mr-3 text-indigo-600" /> Materiales de Clase
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {clase.archivos.length === 0 ? (
-                                    <p className="text-sm italic text-gray-400">No hay archivos adjuntos para esta clase.</p>
-                                ) : (
-                                    clase.archivos.map((archivo: any) => (
-                                        <a key={archivo.archivo_id} href={archivo.url} target="_blank" className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-indigo-50 hover:border-indigo-100 transition-all group">
-                                            <div className="bg-white p-3 rounded-xl shadow-sm mr-4 group-hover:text-indigo-600">
-                                                <Download className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p className="text-xs font-black text-gray-800 line-clamp-1 truncate uppercase tracking-tighter">{archivo.nombre_archivo || 'Documento PDF'}</p>
-                                                <p className="text-[10px] font-bold text-gray-400">3.4 MB</p>
-                                            </div>
-                                        </a>
-                                    ))
-                                )}
+                            <div className="space-y-4 pt-6 border-t border-gray-50">
+                                <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">
+                                    Recursos Descargables
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {clase.archivos.length === 0 ? (
+                                        <div className="col-span-2 py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                            <p className="text-xs text-gray-400 font-bold">No hay archivos adjuntos para esta clase.</p>
+                                        </div>
+                                    ) : (
+                                        clase.archivos.map((archivo: any) => (
+                                            <a key={archivo.archivo_id} href={archivo.url || `/storage/${archivo.path}`} target="_blank" className="flex flex-col p-4 bg-white rounded-2xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group">
+                                                <div className="flex items-center mb-2">
+                                                    <div className="bg-gray-50 p-2.5 rounded-xl text-gray-500 group-hover:text-indigo-600 transition-colors shrink-0">
+                                                        <Download className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="ml-3 flex-1 overflow-hidden">
+                                                        <p className="text-[11px] font-black text-gray-800 truncate uppercase tracking-tight">
+                                                            {archivo.titulo || archivo.nombre || 'Documento de apoyo'}
+                                                        </p>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                                                            {archivo.tipo || 'Archivo'} • {archivo.tamanio ? `${(archivo.tamanio / 1024).toFixed(1)} KB` : 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {archivo.descripcion && (
+                                                    <p className="text-[10px] text-gray-500 font-medium leading-relaxed border-t border-gray-50 pt-2 mt-1">
+                                                        {archivo.descripcion}
+                                                    </p>
+                                                )}
+                                            </a>
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Sidebar: Activities */}
-                <div className="space-y-8">
-                    <div className="bg-indigo-900 rounded-[3rem] p-8 text-white shadow-2xl shadow-indigo-200">
-                        <h4 className="text-xl font-black mb-6 flex items-center">
-                            <ClipboardList className="w-5 h-5 mr-3 text-indigo-400" /> Tareas y Evaluaciones
-                        </h4>
-                        <div className="space-y-4">
-                            {clase.actividades.map((act: any) => {
-                                const typeId = act.id_tipo_actividad || act.tipo_id;
-                                const isQuiz = typeId == 2 || typeId == 3;
-                                const isDrawing = typeId == 5;
-                                const isPuzzle = typeId == 6;
-                                const isCompleted = Boolean(act.entregado) || (isQuiz && act.nota !== null && act.nota !== undefined);
-                                
-                                return (
-                                    <div key={act.actividad_id} className={`p-6 rounded-[2rem] border transition-all ${
-                                        isCompleted 
-                                        ? 'bg-emerald-500/10 border-emerald-500/20' 
-                                        : 'bg-white/5 border-white/10'
-                                    }`}>
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isCompleted ? 'text-emerald-400' : 'text-indigo-300'}`}>
-                                                    {act.tipo_actividad?.nombre || 'Tarea'}
-                                                </span>
-                                                <p className={`font-bold text-sm leading-tight ${isCompleted ? 'text-white/90' : 'text-white'}`}>
-                                                    {act.nombre_actividad}
-                                                </p>
-                                            </div>
-                                            {isCompleted ? (
-                                                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                                            ) : (
-                                                <AlertCircle className="w-5 h-5 text-orange-400" />
-                                            )}
-                                        </div>
+                    {/* Sidebar: Activities */}
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="p-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                    <ClipboardList className="w-4 h-4 mr-2 text-indigo-600" /> Tareas y Actividades
+                                </h4>
+                                <span className="bg-indigo-100 text-indigo-700 text-[9px] font-black px-2 py-0.5 rounded-full">
+                                    {clase.actividades.length}
+                                </span>
+                            </div>
+                            
+                            <div className="p-4 space-y-4">
+                                {clase.actividades.map((act: any) => {
+                                    const typeId = act.id_tipo_actividad || act.tipo_id;
+                                    const isQuiz = typeId == 2 || typeId == 3;
+                                    const isDrawing = typeId == 5;
+                                    const isPuzzle = typeId == 6;
+                                    const isCompleted = Boolean(act.entregado) || (isQuiz && act.nota !== null && act.nota !== undefined);
+                                    
+                                    return (
+                                        <div key={act.actividad_id} className={`rounded-2xl border transition-all overflow-hidden ${
+                                            isCompleted 
+                                            ? 'bg-emerald-50/30 border-emerald-100' 
+                                            : 'bg-white border-gray-100 shadow-sm'
+                                        }`}>
+                                            <div className="p-5 space-y-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                                                isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-50 text-indigo-600'
+                                                            }`}>
+                                                                {act.tipo_actividad?.nombre || 'Tarea'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="font-bold text-sm text-gray-900 leading-snug">
+                                                            {act.nombre_actividad}
+                                                        </p>
+                                                    </div>
+                                                    {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                                                </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                            <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/10">
-                                                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                                                <div className="flex-1">
-                                                    <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest leading-none mb-1">Apertura</p>
-                                                    <p className="text-[10px] font-bold text-white leading-none">
-                                                        {act.fecha_inicio ? format(new Date(act.fecha_inicio), "d 'de' MMM, h:mm a", { locale: es }).toUpperCase().replace(/\./g, '') : 'No definido'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/10">
-                                                <Clock className="w-3.5 h-3.5 text-rose-400" />
-                                                <div className="flex-1">
-                                                    <p className="text-[8px] font-black text-rose-300 uppercase tracking-widest leading-none mb-1">Cierre</p>
-                                                    <p className="text-[10px] font-bold text-white leading-none">
-                                                        {act.fecha_cierre ? format(new Date(act.fecha_cierre), "d 'de' MMM, h:mm a", { locale: es }).toUpperCase().replace(/\./g, '') : 'No definido'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Archivos del docente */}
-                                        {act.archivos_docente?.length > 0 && (
-                                            <div className="space-y-2 mb-3">
-                                                <p className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">Material adjunto</p>
-                                                {act.archivos_docente.map((archivo: any, i: number) => {
-                                                    const isImg = ['jpg','jpeg','png','gif','webp'].includes(archivo.tipo?.toLowerCase());
-                                                    return isImg ? (
-                                                        <a key={i} href={archivo.url} target="_blank" className="block rounded-xl overflow-hidden border border-white/10">
-                                                            <img src={archivo.url} alt={archivo.nombre} className="w-full max-h-40 object-contain bg-black/20" />
-                                                        </a>
-                                                    ) : (
-                                                        <a key={i} href={archivo.url} target="_blank"
-                                                            className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all">
-                                                            <Download className="w-4 h-4 text-indigo-300 shrink-0" />
-                                                            <span className="text-[10px] font-bold text-white truncate">{archivo.nombre}</span>
-                                                        </a>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-
-                                        {isQuiz ? (
-                                            isCompleted ? (
-                                                <div className="text-center py-2 px-4 bg-emerald-500/20 rounded-xl text-emerald-400 font-black text-[10px] uppercase">
-                                                    Examen Finalizado - Nota: {act.nota || 'Pendiente'}
-                                                </div>
-                                            ) : (
-                                                <Link href={`/alumno/examen/${act.actividad_id}/resolver`} className="block">
-                                                    <Button className="w-full h-11 rounded-2xl bg-white text-indigo-900 hover:bg-indigo-50 font-black text-[10px] uppercase shadow-xl shadow-indigo-950/20">
-                                                        Iniciar Examen
-                                                    </Button>
-                                                </Link>
-                                            )
-                                        ) : isDrawing ? (
-                                            <Link href={`/alumno/dibujo/${act.actividad_id}`} className="block">
-                                                <Button className="w-full h-11 rounded-2xl bg-white text-indigo-900 hover:bg-indigo-50 font-black text-[10px] uppercase shadow-xl shadow-indigo-950/20">
-                                                    Abrir Lienzo
-                                                </Button>
-                                            </Link>
-                                        ) : isPuzzle ? (
-                                            <Link href={`/alumno/puzzles/${act.actividad_id}`} className="block">
-                                                <Button className="w-full h-11 rounded-2xl bg-white text-indigo-900 hover:bg-indigo-50 font-black text-[10px] uppercase shadow-xl shadow-indigo-950/20">
-                                                    Jugar Rompecabezas
-                                                </Button>
-                                            </Link>
-                                        ) : act.entregado ? (
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-center p-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-black text-[10px] uppercase gap-2">
-                                                    ✅ Tarea Enviada
-                                                </div>
-                                                {act.nota && (
-                                                    <div className="text-center text-[10px] font-black text-indigo-200">
-                                                        CALIFICACIÓN: <span className="text-white">{act.nota}</span>
+                                                {/* Instrucciones del maestro (NUEVO) */}
+                                                {act.descripcion_larga && (
+                                                    <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
+                                                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Instrucciones</p>
+                                                        <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
+                                                            {act.descripcion_larga}
+                                                        </p>
                                                     </div>
                                                 )}
+
+                                                <div className="flex items-center justify-between text-[10px] font-bold py-2 border-y border-gray-50">
+                                                    <div className="flex items-center text-gray-400">
+                                                        <Calendar className="w-3 h-3 mr-1" />
+                                                        <span>Vence:</span>
+                                                    </div>
+                                                    <span className={isCompleted ? 'text-emerald-600' : 'text-rose-500'}>
+                                                        {act.fecha_cierre ? format(new Date(act.fecha_cierre), "d 'de' MMM", { locale: es }) : 'N/A'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Archivos del docente */}
+                                                {act.archivos_docente?.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Material adjunto</p>
+                                                        {act.archivos_docente.map((archivo: any, i: number) => (
+                                                            <a key={i} href={archivo.url} target="_blank"
+                                                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-all">
+                                                                <Download className="w-3 h-3 text-gray-400" />
+                                                                <span className="text-[10px] font-bold text-gray-600 truncate">{archivo.nombre}</span>
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {isQuiz ? (
+                                                    isCompleted ? (
+                                                        <div className="text-center py-2 bg-emerald-100 rounded-xl text-emerald-700 font-black text-[10px] uppercase">
+                                                            Nota: {act.nota || 'Pendiente'}
+                                                        </div>
+                                                    ) : (
+                                                        <Link href={`/alumno/examen/${act.actividad_id}/resolver`} className="block">
+                                                            <Button className="w-full h-9 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-black text-[10px] uppercase">
+                                                                Realizar Examen
+                                                            </Button>
+                                                        </Link>
+                                                    )
+                                                ) : isDrawing ? (
+                                                    <Link href={`/alumno/dibujo/${act.actividad_id}`} className="block">
+                                                        <Button className="w-full h-9 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-black text-[10px] uppercase">
+                                                            Abrir Lienzo
+                                                        </Button>
+                                                    </Link>
+                                                ) : isPuzzle ? (
+                                                    <Link href={`/alumno/puzzles/${act.actividad_id}`} className="block">
+                                                        <Button className="w-full h-9 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-black text-[10px] uppercase">
+                                                            Resolver Puzzle
+                                                        </Button>
+                                                    </Link>
+                                                ) : act.entregado ? (
+                                                    <div className="flex items-center justify-center p-2 rounded-xl bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase gap-2">
+                                                        ✅ Enviado {act.nota && `| Nota: ${act.nota}`}
+                                                    </div>
+                                                ) : (
+                                                    <Button 
+                                                        onClick={() => handleUpload(act.actividad_id, act.allowed_formats)}
+                                                        disabled={submitting === act.actividad_id}
+                                                        className="w-full h-9 rounded-xl bg-gray-900 hover:bg-black text-white font-black text-[10px] uppercase"
+                                                    >
+                                                        {submitting === act.actividad_id ? 'Subiendo...' : 'Entregar Tarea'}
+                                                    </Button>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <Button 
-                                                onClick={() => handleUpload(act.actividad_id, act.allowed_formats)}
-                                                disabled={submitting === act.actividad_id}
-                                                className="w-full h-11 rounded-2xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-[10px] uppercase shadow-lg shadow-indigo-950/50"
-                                            >
-                                                {submitting === act.actividad_id ? 'Procesando...' : 'Subir Tarea'} <Upload className="w-3 h-3 ml-2" />
-                                            </Button>
-                                        )}
+                                        </div>
+                                    );
+                                })}
+                                {clase.actividades.length === 0 && (
+                                    <div className="py-10 text-center">
+                                        <p className="text-xs text-gray-400 font-bold italic">No hay tareas programadas.</p>
                                     </div>
-                                );
-                            })}
-                            {clase.actividades.length === 0 && <p className="text-xs text-white/50 italic text-center py-4">No hay tareas programadas.</p>}
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-indigo-50/50 rounded-3xl p-6 border border-indigo-100/50">
+                            <div className="flex items-center space-x-2 mb-2">
+                                <AlertCircle className="w-4 h-4 text-indigo-600" />
+                                <h4 className="text-xs font-black text-indigo-900 uppercase">Información</h4>
+                            </div>
+                            <p className="text-[11px] font-medium text-indigo-700/70 leading-relaxed">
+                                Revisa los materiales y completa las actividades para avanzar en tu progreso académico.
+                            </p>
                         </div>
                     </div>
 
-                    <div className="bg-emerald-50 rounded-[3rem] p-8 border border-emerald-100">
-                        <div className="flex items-center space-x-3 mb-4">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                            <h4 className="font-black text-emerald-900">Estado de la Clase</h4>
-                        </div>
-                        <p className="text-xs font-medium text-emerald-700/80 leading-relaxed">
-                            Una vez revisados todos los materiales y entregadas las actividades, esta clase se marcará como completa automáticamente en tu progreso.
-                        </p>
-                    </div>
                 </div>
-
             </div>
-        </div>
-    </AppSidebarLayout>
+        </AppSidebarLayout>
     );
 }

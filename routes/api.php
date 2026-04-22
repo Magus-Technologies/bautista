@@ -141,6 +141,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('clases/{id}',                             [CursoContenidoApiController::class, 'destroyClase']);
         Route::post('unidades/{unidadId}/reordenar-clases',      [CursoContenidoApiController::class, 'reordenarClases']);
         Route::post('clases/{claseId}/archivos',                 [CursoContenidoApiController::class, 'subirArchivo']);
+        Route::put('archivos/{id}',                              [CursoContenidoApiController::class, 'updateArchivo']);
         Route::delete('archivos/{archivoId}',                    [CursoContenidoApiController::class, 'eliminarArchivo']);
     });
 
@@ -282,6 +283,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::delete('clases/{id}', [CursoContenidoApiController::class, 'destroyClase']);
             
             Route::post('clases/{clase}/archivos', [CursoContenidoApiController::class, 'subirArchivo']);
+            Route::put('archivos/{id}', [CursoContenidoApiController::class, 'updateArchivo']);
             Route::delete('archivos/{id}', [CursoContenidoApiController::class, 'eliminarArchivo']);
         });
     });

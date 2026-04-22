@@ -256,38 +256,38 @@ export default function ActividadesTab({ courseData, docenteCursoId, onRefresh }
                                         {/* Right: Actions */}
                                         <div className="flex lg:flex-col gap-2">
                                             <Button 
-                                                variant="outline" 
+                                                variant="ghost" 
                                                 size="sm"
                                                 onClick={() => handleViewSubmissions(actividad.actividad_id)}
-                                                className="rounded-xl hover:bg-purple-50 hover:text-purple-600 font-bold text-xs gap-2"
+                                                className="rounded-xl text-purple-600 hover:bg-purple-50 font-bold text-xs gap-2 px-3 h-10 border border-purple-100"
                                                 title="Ver entregas y calificar"
                                             >
                                                 <FileCheck size={14} />
                                                 Ver Entregas
                                             </Button>
                                             <Button 
-                                                variant="outline" 
+                                                variant="ghost" 
                                                 size="icon" 
                                                 onClick={() => toggleVisibility(actividad.actividad_id, actividad.ocultar_actividad)}
-                                                className="size-10 rounded-xl hover:bg-emerald-50 hover:text-emerald-600"
+                                                className="size-10 rounded-xl text-emerald-600 hover:bg-emerald-50"
                                                 title={actividad.ocultar_actividad === '1' ? 'Mostrar' : 'Ocultar'}
                                             >
                                                 {actividad.ocultar_actividad === '1' ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </Button>
                                             <Button 
-                                                variant="outline" 
+                                                variant="ghost" 
                                                 size="icon" 
                                                 onClick={() => setEditingActividad(actividad)}
-                                                className="size-10 rounded-xl hover:bg-blue-50 hover:text-blue-600"
+                                                className="size-10 rounded-xl text-blue-600 hover:bg-blue-50"
                                                 title="Editar"
                                             >
                                                 <Edit3 size={16} />
                                             </Button>
                                             <Button 
-                                                variant="outline" 
+                                                variant="ghost" 
                                                 size="icon" 
                                                 onClick={() => setDeletingId(actividad.actividad_id)}
-                                                className="size-10 rounded-xl hover:bg-red-50 hover:text-red-600"
+                                                className="size-10 rounded-xl text-red-600 hover:bg-red-50"
                                                 title="Eliminar"
                                             >
                                                 <Trash2 size={16} />

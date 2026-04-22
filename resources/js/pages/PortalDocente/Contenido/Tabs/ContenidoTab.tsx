@@ -7,6 +7,8 @@ import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal';
 import PromptModal from '@/components/shared/PromptModal';
 import CreateActivityModal from '../components/modals/CreateActivityModal';
 import UploadFileModal from '../components/modals/UploadFileModal';
+import ClaseFormModal from '../components/modals/ClaseFormModal';
+import EditArchivoModal from '../components/modals/EditArchivoModal';
 
 interface Props {
     unidades: any[];
@@ -19,6 +21,9 @@ interface Props {
 
 export default function ContenidoTab({ unidades, expanded, setExpanded, docenteCursoId, courseData, onRefresh }: Props) {
     const [deletingId, setDeletingId] = useState<{ id: number; type: 'unidad' | 'clase' | 'archivo' } | null>(null);
+    const [editingClase, setEditingClase] = useState<any>(null);
+    const [creatingClaseInUnidad, setCreatingClaseInUnidad] = useState<number | null>(null);
+    const [editingArchivo, setEditingArchivo] = useState<any>(null);
     const [promptConfig, setPromptConfig] = useState<{
         open: boolean;
         title: string;
@@ -56,17 +61,7 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
     };
 
     const addClase = (unidadId: number) => {
-        setPromptConfig({
-            open: true,
-            title: 'Nueva Sesión',
-            message: 'Ingresa el título de la nueva sesión:',
-            defaultValue: '',
-            action: async (titulo) => {
-                await api.post('/contenido/clases', { unidad_id: unidadId, titulo });
-                setPromptConfig(prev => ({ ...prev, open: false }));
-                onRefresh();
-            }
-        });
+        setCreatingClaseInUnidad(unidadId);
     };
 
     const confirmDelete = async () => {
@@ -101,20 +96,12 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
         });
     };
 
-    const renameClase = async (id: number, current: string) => {
-        setPromptConfig({
-            open: true,
-            title: 'Renombrar Sesión',
-            message: 'Ingresa el nuevo título para la sesión:',
-            defaultValue: current,
-            action: async (nuevo) => {
-                if (nuevo !== current) {
-                    await api.put(`/contenido/clases/${id}`, { titulo: nuevo });
-                }
-                setPromptConfig(prev => ({ ...prev, open: false }));
-                onRefresh();
-            }
-        });
+    const renameClase = (clase: any) => {
+        setEditingClase(clase);
+    };
+
+    const editArchivo = (archivo: any) => {
+        setEditingArchivo(archivo);
     };
 
     const handleFileUpload = async (claseId: number) => {
@@ -174,7 +161,7 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={(e) => { e.stopPropagation(); renameUnidad(unidad.unidad_id, unidad.titulo); }}
-                                    className="size-9 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                    className="size-9 rounded-xl text-emerald-600 hover:bg-emerald-50"
                                 >
                                     <Edit3 size={14} />
                                 </Button>
@@ -182,7 +169,7 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={(e) => { e.stopPropagation(); setDeletingId({ id: unidad.unidad_id, type: 'unidad' }); }}
-                                    className="size-9 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                    className="size-9 rounded-xl text-red-600 hover:bg-red-50"
                                 >
                                     <Trash2 size={14} />
                                 </Button>
@@ -227,8 +214,9 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
-                                                        onClick={(e) => { e.stopPropagation(); renameClase(clase.clase_id, clase.titulo); }}
-                                                        className="size-8 rounded-full text-gray-400 hover:text-emerald-600"
+                                                        onClick={(e) => { e.stopPropagation(); renameClase(clase); }}
+                                                        className="size-8 rounded-full text-emerald-600 hover:bg-emerald-50"
+                                                        title="Editar Sesión"
                                                     >
                                                         <Edit3 size={14} />
                                                     </Button>
@@ -236,7 +224,8 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                                         variant="ghost" 
                                                         size="icon" 
                                                         onClick={(e) => { e.stopPropagation(); setDeletingId({ id: clase.clase_id, type: 'clase' }); }}
-                                                        className="size-8 rounded-full text-gray-400 hover:text-red-500"
+                                                        className="size-8 rounded-full text-red-600 hover:bg-red-50"
+                                                        title="Eliminar Sesión"
                                                     >
                                                         <Trash2 size={14} />
                                                     </Button>
@@ -274,8 +263,17 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                                                                 <Button 
                                                                                     variant="ghost" 
                                                                                     size="icon"
+                                                                                    onClick={(e) => { e.stopPropagation(); editArchivo(f); }}
+                                                                                    className="size-8 rounded-lg text-emerald-600 hover:bg-emerald-50"
+                                                                                    title="Editar metadatos"
+                                                                                >
+                                                                                    <Edit3 size={14} />
+                                                                                </Button>
+                                                                                <Button 
+                                                                                    variant="ghost" 
+                                                                                    size="icon"
                                                                                     onClick={(e) => { e.stopPropagation(); window.open(`/storage/${f.path}`, '_blank'); }}
-                                                                                    className="size-8 rounded-lg hover:bg-blue-50 hover:text-blue-600"
+                                                                                    className="size-8 rounded-lg text-blue-600 hover:bg-blue-50"
                                                                                     title="Ver archivo"
                                                                                 >
                                                                                     <Eye size={14} />
@@ -284,7 +282,7 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                                                                                     variant="ghost" 
                                                                                     size="icon"
                                                                                     onClick={(e) => { e.stopPropagation(); setDeletingId({ id: f.archivo_id, type: 'archivo' }); }}
-                                                                                    className="size-8 rounded-lg hover:bg-red-50 hover:text-red-600"
+                                                                                    className="size-8 rounded-lg text-red-600 hover:bg-red-50"
                                                                                     title="Eliminar"
                                                                                 >
                                                                                     <Trash2 size={14} />
@@ -383,6 +381,24 @@ export default function ContenidoTab({ unidades, expanded, setExpanded, docenteC
                 type="file"
                 className="hidden"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.avi,.mov,.jpg,.jpeg,.png"
+            />
+
+            <ClaseFormModal 
+                open={!!editingClase || !!creatingClaseInUnidad}
+                onClose={() => {
+                    setEditingClase(null);
+                    setCreatingClaseInUnidad(null);
+                }}
+                clase={editingClase}
+                unidadId={creatingClaseInUnidad || 0}
+                onSuccess={onRefresh}
+            />
+
+            <EditArchivoModal 
+                open={!!editingArchivo}
+                onClose={() => setEditingArchivo(null)}
+                archivo={editingArchivo}
+                onSuccess={onRefresh}
             />
 
             <UploadFileModal 

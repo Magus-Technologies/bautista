@@ -28,19 +28,32 @@ export default function PromptModal({
 }: Props) {
     const [value, setValue] = useState(defaultValue);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
     useEffect(() => {
         if (open) {
             setValue(defaultValue);
             setIsSubmitting(false);
+            setStatus(null);
         }
     }, [open, defaultValue]);
 
     const handleSubmit = async (e?: React.FormEvent) => {
         e?.preventDefault();
+        if (!value.trim()) return;
+        
         try {
             setIsSubmitting(true);
+            setStatus(null);
             await onConfirm(value);
+            setStatus({ type: 'success', message: '¡Operación realizada con éxito!' });
+            setTimeout(() => onClose(), 1000);
+        } catch (error: any) {
+            console.error('Prompt error:', error);
+            setStatus({ 
+                type: 'error', 
+                message: error.response?.data?.message || 'Ocurrió un error inesperado.' 
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -55,6 +68,14 @@ export default function PromptModal({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                    {status && (
+                        <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200 ${
+                            status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'
+                        }`}>
+                            <div className={`size-1.5 rounded-full ${status.type === 'success' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                            {status.message}
+                        </div>
+                    )}
                     <Input 
                         autoFocus
                         value={value}
