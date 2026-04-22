@@ -96,10 +96,11 @@ export default function StudentCursos() {
                             courseCode={`COD-${c.curso_id}`}
                             title={c.curso?.nombre}
                             status="Activo"
-                            color={COURSE_COLORS[i % COURSE_COLORS.length]}
+                            color={c.settings?.color || COURSE_COLORS[i % COURSE_COLORS.length]}
                             href={`/alumno/cursos/${c.docen_curso_id}`}
                             role="student"
                             professor={`${c.docente?.perfil?.primer_nombre} ${c.docente?.perfil?.apellido_paterno}`}
+                            professorPic={c.docente?.perfil?.foto_perfil ? `/storage/${c.docente.perfil.foto_perfil}` : undefined}
                             progress={65} // Hardcoded por ahora, luego integrar progreso real
                             term={`${new Date().getFullYear()}-I`}
                         />

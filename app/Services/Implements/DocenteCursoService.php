@@ -61,7 +61,7 @@ class DocenteCursoService implements DocenteCursoServiceInterface
         }
 
         return DocenteCurso::where('docente_id', $docente->docente_id)
-            ->with(['curso', 'seccion.grado.nivel', 'apertura'])
+            ->with(['curso', 'seccion.grado.nivel', 'apertura', 'docente.perfil'])
             ->get()
             ->all();
     }

@@ -13,8 +13,8 @@ class PagoRepository implements PagoRepositoryInterface
     public function paginateEstudiantesConPagador(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator
     {
         return DB::table('estudiantes as es')
-            ->join('perfiles as p', 'es.estu_id', '=', 'p.perfilable_id')
-            ->join('users as u', 'p.user_id', '=', 'u.id')
+            ->join('perfiles as p', 'es.perfil_id', '=', 'p.perfil_id')
+            ->join('users as u', 'es.user_id', '=', 'u.id')
             ->join('estudiante_contacto as ec', 'es.estu_id', '=', 'ec.estu_id')
             ->leftJoin('matriculas as m', 'es.estu_id', '=', 'm.estu_id')
             ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
@@ -35,24 +35,23 @@ class PagoRepository implements PagoRepositoryInterface
                 '=',
                 'pag.estu_id'
             )
-            ->where('p.perfilable_type', 'App\\Models\\Estudiante')
             ->where('u.insti_id', $instiId)
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('p.nombres', 'like', "%{$search}%")
-                       ->orWhere('p.apellidos', 'like', "%{$search}%")
-                       ->orWhere('p.numero_doc', 'like', "%{$search}%");
+                    $q->where('p.primer_nombre', 'like', "%{$search}%")
+                       ->orWhere('p.apellido_paterno', 'like', "%{$search}%")
+                       ->orWhere('p.doc_numero', 'like', "%{$search}%");
                 });
             })
             ->select([
                 'u.id as id_usuario',
-                'p.nombres',
-                'p.apellidos',
-                'p.telefono_1',
-                'p.numero_doc',
+                'p.primer_nombre as nombres',
+                'p.apellido_paterno as apellidos',
+                'p.telefono as telefono_1',
+                'p.doc_numero as numero_doc',
                 DB::raw('COALESCE(tp_grado.monto, tp_gral.monto, ec.mensualidad, 0) as mensualidad'),
                 'es.estu_id',
-                'p.id_contacto',
+                'ec.contacto_id as id_contacto',
                 DB::raw('COALESCE(pag.pagos_count, 0) as pagos_count')
             ])
             ->orderBy('es.estu_id', 'desc')

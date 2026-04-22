@@ -119,14 +119,9 @@ export default function CourseCard({
 
                 {/* Acciones Finales */}
                 <div className="mt-auto flex gap-4">
-                    <Link href={href} className="flex-1">
+                    <Link href={href} className="w-full">
                         <Button className="w-full rounded-[1.25rem] bg-gray-900 h-14 text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200 hover:shadow-gray-300 active:scale-95 dark:shadow-none">
                             Entrar al curso
-                        </Button>
-                    </Link>
-                    <Link href={role === 'teacher' ? `${href}/asistencia` : '/alumno/notas'}>
-                        <Button variant="outline" className="size-14 rounded-[1.25rem] p-0 border-gray-100 hover:border-emerald-600 hover:text-emerald-600 transition-all shadow-sm hover:shadow-emerald-100 active:scale-95 dark:border-gray-800 dark:hover:shadow-none">
-                            {role === 'teacher' ? <Calendar size={22} /> : <GraduationCap size={22} />}
                         </Button>
                     </Link>
                 </div>

@@ -129,10 +129,11 @@ export default function TeacherCursos() {
                             courseCode={`COD-${c.curso_id}`}
                             title={c.curso?.nombre}
                             status="En progreso"
-                            color={COURSE_COLORS[i % COURSE_COLORS.length]}
+                            color={c.settings?.color || COURSE_COLORS[i % COURSE_COLORS.length]}
                             href={`/docente/cursos/${c.docen_curso_id}/contenido`}
                             role="teacher"
                             professor="Tú"
+                            professorPic={c.docente?.perfil?.foto_perfil ? `/storage/${c.docente.perfil.foto_perfil}` : undefined}
                             term={c.apertura?.nombre || '2024-I'}
                         />
                     ) : (
@@ -142,7 +143,7 @@ export default function TeacherCursos() {
                             className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-3xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-100/50 transition-all gap-4 group"
                         >
                             <div className="flex items-center gap-5">
-                                <div className="size-14 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-md" style={{ backgroundColor: COURSE_COLORS[i % COURSE_COLORS.length] }}>
+                                <div className="size-14 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-md" style={{ backgroundColor: c.settings?.color || COURSE_COLORS[i % COURSE_COLORS.length] }}>
                                     {c.curso?.nombre?.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div>
