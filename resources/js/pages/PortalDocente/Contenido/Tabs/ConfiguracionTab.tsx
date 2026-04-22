@@ -58,8 +58,6 @@ export default function ConfiguracionTab({ docenteCursoId, courseData, onRefresh
         }).catch(() => {});
     }, []);
     const [saving, setSaving] = useState(false);
-    const [uploadingBanner, setUploadingBanner] = useState(false);
-    const [previewBanner, setPreviewBanner] = useState<string | null>(courseData?.banner_url || null);
     
     // Alert modal state
     const [alertModal, setAlertModal] = useState<{
@@ -81,16 +79,12 @@ export default function ConfiguracionTab({ docenteCursoId, courseData, onRefresh
     useEffect(() => {
         if (courseData) {
             setSettings({
-                descripcion: courseData.curso?.descripcion || '',
-                color: courseData.curso?.color || '#10b981',
-                banner: courseData.banner || '',
+                descripcion: courseData.settings?.descripcion || courseData.curso?.descripcion || '',
+                color: courseData.settings?.color || courseData.curso?.color || '#10b981',
                 weights: (courseData.settings?.weights && Object.keys(courseData.settings.weights).length > 0)
                     ? courseData.settings.weights
                     : DEFAULT_WEIGHTS,
             });
-            if (courseData.banner_url) {
-                setPreviewBanner(courseData.banner_url);
-            }
         }
     }, [courseData]);
 
@@ -118,76 +112,13 @@ export default function ConfiguracionTab({ docenteCursoId, courseData, onRefresh
         }
     };
 
-    const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setAlertModal({
-                open: true,
-                variant: 'warning',
-                message: 'El archivo es demasiado grande. Máximo 5MB.',
-            });
-            e.target.value = ''; // Reset input
-            return;
-        }
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            setAlertModal({
-                open: true,
-                variant: 'warning',
-                message: 'Solo se permiten archivos de imagen.',
-            });
-            e.target.value = ''; // Reset input
-            return;
-        }
-
-        setUploadingBanner(true);
-        try {
-            const formData = new FormData();
-            formData.append('banner', file);
-
-            const res = await api.post(`/docente/curso/${docenteCursoId}/upload-banner`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            console.log('Banner upload response:', res.data);
-
-            setSettings(prev => ({ ...prev, banner: res.data.banner }));
-            setPreviewBanner(res.data.url);
-            e.target.value = ''; // Reset input
-            onRefresh();
-            
-            // Show success modal
-            setAlertModal({
-                open: true,
-                variant: 'success',
-                message: 'Banner subido correctamente',
-            });
-        } catch (error) {
-            console.error('Error uploading banner:', error);
-            e.target.value = ''; // Reset input
-            setAlertModal({
-                open: true,
-                variant: 'error',
-                message: 'Error al subir el banner',
-            });
-        } finally {
-            setUploadingBanner(false);
-        }
-    };
-
     const handleReset = () => {
         if (confirm('¿Estás seguro de que deseas restaurar la configuración predeterminada?')) {
             setSettings({
                 descripcion: courseData?.curso?.descripcion || '',
-                color: '#10b981',
-                banner: '',
+                color: courseData?.curso?.color || '#10b981',
                 weights: DEFAULT_WEIGHTS,
             });
-            setPreviewBanner(null);
         }
     };
 
@@ -372,56 +303,11 @@ export default function ConfiguracionTab({ docenteCursoId, courseData, onRefresh
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                                    Banner del Curso
-                                </label>
-                                <div className="relative">
-                                    <input 
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleBannerUpload}
-                                        className="hidden"
-                                        id="banner-upload"
-                                        disabled={uploadingBanner}
-                                    />
-                                    <label 
-                                        htmlFor="banner-upload"
-                                        className="flex flex-col items-center justify-center h-40 rounded-3xl border-2 border-dashed border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer bg-gray-50 hover:bg-emerald-50/30 group"
-                                    >
-                                        {uploadingBanner ? (
-                                            <div className="text-center">
-                                                <div className="size-12 mx-auto mb-3 rounded-2xl bg-emerald-100 flex items-center justify-center animate-pulse">
-                                                    <ImageIcon size={24} className="text-emerald-600" />
-                                                </div>
-                                                <p className="text-xs font-bold text-emerald-600">Subiendo...</p>
-                                            </div>
-                                        ) : previewBanner || settings.banner ? (
-                                            <div className="relative w-full h-full rounded-3xl overflow-hidden">
-                                                <img 
-                                                    src={previewBanner || (settings.banner ? `/storage/${settings.banner}` : '')} 
-                                                    alt="Banner" 
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <p className="text-white font-bold text-sm">Cambiar Banner</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center">
-                                                <div className="size-12 mx-auto mb-3 rounded-2xl bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                                                    <ImageIcon size={24} className="text-gray-400 group-hover:text-emerald-600 transition-colors" />
-                                                </div>
-                                                <p className="text-xs font-bold text-gray-600 group-hover:text-emerald-600 transition-colors">
-                                                    Click para subir banner
-                                                </p>
-                                                <p className="text-[9px] font-bold text-gray-400 mt-1">
-                                                    JPG, PNG o WebP • Máx. 5MB
-                                                </p>
-                                            </div>
-                                        )}
-                                    </label>
-                                </div>
+                            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-3">
+                                <Palette size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                                <p className="text-xs font-bold text-amber-700 leading-tight">
+                                    Este color se aplicará a la cabecera y botones de este curso para personalizar tu entorno de trabajo.
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -436,19 +322,11 @@ export default function ConfiguracionTab({ docenteCursoId, courseData, onRefresh
                                 <div className="rounded-3xl overflow-hidden border border-gray-100">
                                     {/* Banner Preview */}
                                     <div 
-                                        className="h-32 flex items-center justify-center text-white font-black text-lg relative overflow-hidden"
+                                        className="h-32 flex items-center justify-center text-white font-black text-lg relative overflow-hidden px-6 text-center"
                                         style={{ backgroundColor: settings.color }}
                                     >
-                                        {previewBanner || settings.banner ? (
-                                            <img 
-                                                src={previewBanner || (settings.banner ? `/storage/${settings.banner}` : '')} 
-                                                alt="Banner Preview" 
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="relative z-10">{courseData?.curso?.nombre || 'Nombre del Curso'}</span>
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                                        <span className="relative z-10 leading-tight">{courseData?.curso?.nombre || 'Nombre del Curso'}</span>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                                     </div>
                                     
                                     {/* Content Preview */}
