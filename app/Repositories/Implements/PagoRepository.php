@@ -12,18 +12,25 @@ class PagoRepository implements PagoRepositoryInterface
 {
     public function paginateEstudiantesConPagador(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator
     {
+        $anio = now()->year;
+
         return DB::table('estudiantes as es')
-            ->join('perfiles as p', 'es.perfil_id', '=', 'p.perfil_id')
-            ->join('users as u', 'es.user_id', '=', 'u.id')
             ->join('estudiante_contacto as ec', 'es.estu_id', '=', 'ec.estu_id')
-            ->leftJoin('matriculas as m', 'es.estu_id', '=', 'm.estu_id')
-            ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
-            ->leftJoin('tarifa_pago as tp_grado', function ($join) {
-                $join->on('s.id_grado', '=', 'tp_grado.grado_id')
-                     ->on('tp_grado.anio_escolar', '=', 'm.anio');
+            ->join('padre_apoderado as pa', 'ec.contacto_id', '=', 'pa.id_contacto')
+            ->leftJoin('matriculas as m', function ($join) use ($anio) {
+                $join->on('es.estu_id', '=', 'm.estu_id')->where('m.anio', '=', $anio);
             })
-            ->leftJoin('tarifa_pago as tp_gral', function ($join) {
-                $join->on('tp_gral.anio_escolar', '=', 'm.anio')
+            ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
+            ->leftJoin('tarifa_pago as tp_grado', function ($join) use ($instiId, $anio) {
+                $join->on('s.id_grado', '=', 'tp_grado.grado_id')
+                     ->where('tp_grado.insti_id', $instiId)
+                     ->where('tp_grado.anio_escolar', $anio)
+                     ->where('tp_grado.activo', 1);
+            })
+            ->leftJoin('tarifa_pago as tp_gral', function ($join) use ($instiId, $anio) {
+                $join->where('tp_gral.insti_id', $instiId)
+                     ->where('tp_gral.anio_escolar', $anio)
+                     ->where('tp_gral.activo', 1)
                      ->whereNull('tp_gral.grado_id');
             })
             ->leftJoinSub(
@@ -35,27 +42,33 @@ class PagoRepository implements PagoRepositoryInterface
                 '=',
                 'pag.estu_id'
             )
-            ->where('u.insti_id', $instiId)
+            ->where('pa.insti_id', $instiId)
+            ->where('pa.es_pagador', '1')
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('p.primer_nombre', 'like', "%{$search}%")
-                       ->orWhere('p.apellido_paterno', 'like', "%{$search}%")
-                       ->orWhere('p.doc_numero', 'like', "%{$search}%");
+                    $q->where('pa.nombres', 'like', "%{$search}%")
+                       ->orWhere('pa.apellidos', 'like', "%{$search}%")
+                       ->orWhere('pa.numero_doc', 'like', "%{$search}%");
                 });
             })
             ->select([
-                'u.id as id_usuario',
-                'p.primer_nombre as nombres',
-                'p.apellido_paterno as apellidos',
-                'p.telefono as telefono_1',
-                'p.doc_numero as numero_doc',
+                'pa.id_contacto as id_usuario',
+                'pa.nombres',
+                'pa.apellidos',
+                'pa.telefono_1',
+                'pa.numero_doc',
                 DB::raw('COALESCE(tp_grado.monto, tp_gral.monto, ec.mensualidad, 0) as mensualidad'),
                 'es.estu_id',
-                'ec.contacto_id as id_contacto',
+                'pa.id_contacto',
                 DB::raw('COALESCE(pag.pagos_count, 0) as pagos_count')
             ])
             ->orderBy('es.estu_id', 'desc')
             ->paginate($perPage);
+    }
+
+    public function paginatePagadores(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator
+    {
+        return $this->paginateEstudiantesConPagador($instiId, $search, $perPage);
     }
 
     public function pagosPorContacto(int $contactoId): Collection

@@ -318,7 +318,7 @@ return;
                                         link.click();
                                         URL.revokeObjectURL(url);
                                     } catch {
-                                        alert('Error al generar el PDF');
+                                        setAlertConfig({ open: true, message: 'Error al generar el PDF', variant: 'error' });
                                     }
                                 }}
                                 title="Generar PDF"
