@@ -51,6 +51,7 @@ class DocenteDashboardService
             DocenteCurso::where('docente_id', $docenteId)
                 ->with(['curso', 'seccion.grado'])
                 ->get()
+                ->toArray()
         );
 
         return [

@@ -116,7 +116,7 @@ class PadreNotification
                   ->where(fn($sub) => $sub->where('apertura_id', $pair['apertura_id'])->orWhereNull('apertura_id'));
             });
         }
-        return $query->with('curso:id_curso,nombre')->get();
+        return $query->with('curso:curso_id,nombre')->get();
     }
 
     private function fetchEntregadas(array $hijosIds)
@@ -135,7 +135,7 @@ class PadreNotification
             ->whereIn('id_curso', $cursoIds)
             ->where('es_calificado', '1')
             ->where('fecha_cierre', '>=', $now)
-            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:id_curso,nombre')
+            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:curso_id,nombre')
             ->get()
             ->groupBy('id_curso');
     }
@@ -156,7 +156,7 @@ class PadreNotification
             ->whereIn('estu_id', $hijosIds)
             ->whereNotNull('nota')
             ->whereDate('fecha_calificacion', $todayStr)
-            ->with('actividad:actividad_id,clase_id', 'actividad.clase:clase_id,unidad_id', 'actividad.clase.unidad:unidad_id,curso_id', 'actividad.clase.unidad.curso:id_curso,nombre')
+            ->with('actividad:actividad_id,clase_id', 'actividad.clase:clase_id,unidad_id', 'actividad.clase.unidad:unidad_id,curso_id', 'actividad.clase.unidad.curso:curso_id,nombre')
             ->get()
             ->groupBy('estu_id');
     }
@@ -167,7 +167,7 @@ class PadreNotification
         return Anuncio::select('id', 'docente_curso_id', 'titulo')
             ->whereIn('docente_curso_id', $dcIds)
             ->whereDate('created_at', $todayStr)
-            ->with('docenteCurso:docen_curso_id,curso_id', 'docenteCurso.curso:id_curso,nombre')
+            ->with('docenteCurso:docen_curso_id,curso_id', 'docenteCurso.curso:curso_id,nombre')
             ->get()
             ->groupBy('docente_curso_id');
     }

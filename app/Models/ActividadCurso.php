@@ -39,4 +39,9 @@ class ActividadCurso extends Model
     {
         return $this->hasOne(Cuestionario::class, 'id_actividad', 'actividad_id');
     }
+
+    public function notasActividad(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(NotaActividad::class, 'actividad_id', 'actividad_id');
+    }
 }

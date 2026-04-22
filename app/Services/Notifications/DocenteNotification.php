@@ -27,7 +27,7 @@ class DocenteNotification
 
         $docenteCursos = DocenteCurso::select('docen_curso_id', 'docente_id', 'curso_id')
             ->where('docente_id', $docente->docente_id)
-            ->with('curso:id_curso,nombre')
+            ->with('curso:curso_id,nombre')
             ->get();
 
         $cursoIds = $docenteCursos->pluck('curso_id');
@@ -42,7 +42,7 @@ class DocenteNotification
                     ->whereNull('nota')
                     ->whereNotNull('archivo_entrega'),
             ])
-            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:id_curso,nombre')
+            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:curso_id,nombre')
             ->get();
 
         foreach ($actividadesVencidas as $act) {
@@ -64,7 +64,7 @@ class DocenteNotification
         $anunciosHoy = Anuncio::select('id', 'docente_curso_id', 'titulo')
             ->whereIn('docente_curso_id', $dcIds)
             ->whereDate('created_at', $now->toDateString())
-            ->with('docenteCurso:docen_curso_id,curso_id', 'docenteCurso.curso:id_curso,nombre')
+            ->with('docenteCurso:docen_curso_id,curso_id', 'docenteCurso.curso:curso_id,nombre')
             ->get();
 
         foreach ($anunciosHoy as $anuncio) {

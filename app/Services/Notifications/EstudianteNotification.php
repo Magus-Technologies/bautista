@@ -35,7 +35,7 @@ class EstudianteNotification
         $docenteCursos = DocenteCurso::select('docen_curso_id', 'seccion_id', 'apertura_id', 'curso_id')
             ->where('seccion_id', $matricula->seccion_id)
             ->where(fn($q) => $q->where('apertura_id', $matricula->apertura_id)->orWhereNull('apertura_id'))
-            ->with('curso:id_curso,nombre')
+            ->with('curso:curso_id,nombre')
             ->get();
 
         $cursoIds = $docenteCursos->pluck('curso_id');
@@ -46,7 +46,7 @@ class EstudianteNotification
             ->whereIn('id_curso', $cursoIds)
             ->where('es_calificado', '1')
             ->where('fecha_cierre', '>=', $now)
-            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:id_curso,nombre')
+            ->with('clase:clase_id,unidad_id', 'clase.unidad:unidad_id,curso_id', 'clase.unidad.curso:curso_id,nombre')
             ->get();
 
         // Solo los IDs — no necesitamos el modelo completo
