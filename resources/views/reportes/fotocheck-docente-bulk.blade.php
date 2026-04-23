@@ -162,7 +162,7 @@
         /* QR + metadatos en tabla (DomPDF-safe) */
         .qr-metadata-area {
             width: 100%;
-            padding: 0 2mm;
+            padding: 0 1mm 0 8mm;
             margin-top: 1.5mm;
             box-sizing: border-box;
         }
@@ -179,6 +179,7 @@
 
         .qr-cell {
             width: 11mm;
+            padding-right: 2mm;
         }
 
         .qr-code {
@@ -211,7 +212,7 @@
         }
 
         table.metadata-table {
-            width: 100%;
+            width: auto;
             border-collapse: collapse;
         }
 
@@ -223,7 +224,7 @@
         }
 
         table.metadata-table td.label-cell {
-            width: 16mm;
+            width: 8mm;
         }
 
         /* ── Footer ── */
