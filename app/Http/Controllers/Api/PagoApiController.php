@@ -24,6 +24,50 @@ class PagoApiController extends Controller
         private readonly PagoNotificaServiceInterface $notificaService,
     ) {}
 
+    // ── Detalle de pagador (vista completa con tabs) ──────────────────────
+
+    public function detallePagador(Request $request, int $contactoId)
+    {
+        // Obtener información del pagador con sus estudiantes
+        $pagador = \App\Models\PadreApoderado::with('estudiantes')->findOrFail($contactoId);
+
+        // Obtener el primer estudiante asociado (o null si no tiene)
+        $estudiante = $pagador->estudiantes->first();
+
+        // Sincronización automática de deuda pendiente (Estado de Cuenta)
+        if ($estudiante) {
+            $this->service->sincronizarPagos($request->user()->insti_id, $estudiante->estu_id, now()->year);
+        }
+
+        // Obtener todos los pagos del contacto (ahora incluirá los recién creados)
+        $pagos = $this->service->pagosPorContacto($contactoId);
+
+        // Obtener conceptos activos
+        $conceptos = \App\Models\ConceptoPago::where('insti_id', $request->user()->insti_id)
+            ->where('activo', 1)
+            ->get();
+
+        return inertia('Pagos/DetallePagador', [
+            'pagador' => [
+                'id_contacto' => $pagador->id_contacto,
+                'nombres' => $pagador->nombres,
+                'apellidos' => $pagador->apellidos,
+                'numero_doc' => $pagador->numero_doc,
+                'telefono_1' => $pagador->telefono_1,
+                'estudiante_id' => $estudiante?->estu_id,
+                'grado' => $estudiante?->matriculas()->where('anio', now()->year)->first()?->seccion?->grado?->nombre_grado,
+                'seccion' => $estudiante?->matriculas()->where('anio', now()->year)->first()?->seccion?->nombre,
+            ],
+            'pagos' => PagoResource::collection($pagos),
+            'conceptos' => $conceptos->map(fn($c) => [
+                'concepto_id' => $c->concepto_id,
+                'nombre' => $c->nombre,
+                'unico' => $c->unico,
+                'periodicidad' => $c->periodicidad,
+            ]),
+        ]);
+    }
+
     // ── Pagadores (lista principal) ────────────────────────────────────────
 
     public function indexPagadores(Request $request): AnonymousResourceCollection
@@ -38,9 +82,12 @@ class PagoApiController extends Controller
 
     // ── Pagos por contacto ─────────────────────────────────────────────────
 
-    public function porContacto(int $contactoId): AnonymousResourceCollection
+    public function porContacto(Request $request, int $contactoId): AnonymousResourceCollection
     {
-        return PagoResource::collection($this->service->pagosPorContacto($contactoId));
+        $conceptoId = $request->get('concepto_id');
+        return PagoResource::collection(
+            $this->service->pagosPorContacto($contactoId, $conceptoId ? (int) $conceptoId : null)
+        );
     }
 
     // ── CRUD de pagos ──────────────────────────────────────────────────────
@@ -195,6 +242,22 @@ class PagoApiController extends Controller
         );
 
         return response()->json($data);
+    }
+
+    public function sincronizar(Request $request, int $estuId): JsonResponse
+    {
+        $anio = (int) $request->get('anio', now()->year);
+        $resultado = $this->service->sincronizarPagos(
+            $request->user()->insti_id,
+            $estuId,
+            $anio
+        );
+
+        if ($resultado['status'] === 'error') {
+            return response()->json($resultado, 404);
+        }
+
+        return response()->json($resultado);
     }
 
     // ── Historial por alumno ───────────────────────────────────────────────

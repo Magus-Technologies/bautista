@@ -2,11 +2,13 @@ import type { Paginated } from '@/components/shared/ResourceTable';
 
 export type Perfil = {
     primer_nombre:    string;
+    segundo_nombre:   string | null;
     apellido_paterno: string;
     apellido_materno: string | null;
     genero:           'M' | 'F' | null;
     doc_numero:       string | null;
     telefono:         string | null;
+    foto_perfil:      string | null;
 };
 
 export type UserAuth = {

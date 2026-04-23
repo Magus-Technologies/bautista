@@ -10,7 +10,7 @@ interface PagoRepositoryInterface
 {
     public function paginateEstudiantesConPagador(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator;
 
-    public function pagosPorContacto(int $contactoId): Collection;
+    public function pagosPorContacto(int $contactoId, ?int $conceptoId = null): Collection;
 
     public function findById(int $id): Pago;
 
@@ -32,5 +32,15 @@ interface PagoRepositoryInterface
     public function getEstudiantesParaGeneracion(int $instiId, int $anio): Collection;
     public function getMontoTarifa(int $instiId, ?int $gradoId, int $anio, string $periodicidad, ?int $nivelId = null): ?float;
     public function getDescuentosEstudiante(int $estuId, string $fecha, ?int $conceptoId, ?int $nivelId = null, ?int $gradoId = null): Collection;
-    public function existePago(int $estuId, string $mes, int $anio): bool;
+
+    /**
+     * Verifica si ya existe un pago mensual para el alumno en ese período.
+     * Si se pasa concepto_id, la unicidad es por alumno + concepto + mes + año.
+     */
+    public function existePago(int $estuId, string $mes, int $anio, ?int $conceptoId = null): bool;
+
+    /**
+     * Verifica si ya existe un pago de concepto único/anual para el alumno en ese año.
+     */
+    public function existePagoConcepto(int $estuId, int $anio, int $conceptoId): bool;
 }

@@ -331,4 +331,109 @@ class DocenteApiController extends Controller
 
         return response()->json($query->limit(100)->get());
     }
+
+    /**
+     * Generate fotocheck PDF for a single docente.
+     */
+    public function fotocheck(int $id)
+    {
+        // Use the existing FotocheckService which handles everything correctly
+        $fotocheckService = app(\App\Services\Interfaces\FotocheckServiceInterface::class);
+        return $fotocheckService->generateForId($id);
+    }
+
+    /**
+     * Generate fotochecks PDF for all active docentes.
+     */
+    public function fotochecksMasivo(Request $request)
+    {
+        $docentes = \App\Models\Docente::with(['perfil', 'user'])
+            ->where('id_insti', $request->user()->insti_id)
+            ->where('estado', '1')
+            ->get();
+
+        if ($docentes->isEmpty()) {
+            return response()->json(['message' => 'No hay docentes activos para generar fotochecks.'], 404);
+        }
+
+        $config = \App\Models\ConfiguracionFotocheck::where('is_active', true)->first() ?? new \App\Models\ConfiguracionFotocheck();
+
+        // Process logo to base64
+        $logoSrc = '';
+        if ($config->logo_path) {
+            $logoPath = storage_path('app/public/' . $config->logo_path);
+            if (file_exists($logoPath)) {
+                $mime = mime_content_type($logoPath);
+                $logoSrc = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoPath));
+            }
+        }
+        
+        if (!$logoSrc) {
+            $defaultLogoPath = public_path('images/logo.png');
+            if (file_exists($defaultLogoPath)) {
+                $mime = mime_content_type($defaultLogoPath);
+                $logoSrc = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($defaultLogoPath));
+            }
+        }
+
+        $fotochecksData = [];
+
+        foreach ($docentes as $docente) {
+            // Generate QR code
+            $qrCode = new \Endroid\QrCode\QrCode(
+                data: $docente->user->id . '',
+                encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+                errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Low,
+                size: 120,
+                margin: 0,
+                roundBlockSizeMode: \Endroid\QrCode\RoundBlockSizeMode::Margin
+            );
+
+            $writer = new \Endroid\QrCode\Writer\PngWriter();
+            $qrSrc = $writer->write($qrCode)->getDataUri();
+
+            // Process photo to base64
+            $fotoPath = ($docente->perfil && $docente->perfil->foto_perfil) 
+                        ? storage_path('app/public/' . $docente->perfil->foto_perfil) 
+                        : null;
+            
+            $defaultPath = public_path('images/default-avatar.png');
+            $imgPath = ($fotoPath && file_exists($fotoPath)) ? $fotoPath : $defaultPath;
+
+            $fotoSrc = '';
+            if (file_exists($imgPath)) {
+                $mime = mime_content_type($imgPath);
+                $fotoSrc = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imgPath));
+            }
+
+            // Build full name
+            $nombre = trim(
+                ($docente->perfil->primer_nombre ?? '') . ' ' .
+                ($docente->perfil->segundo_nombre ?? '') . ' ' .
+                ($docente->perfil->apellido_paterno ?? '') . ' ' .
+                ($docente->perfil->apellido_materno ?? '')
+            );
+
+            $fotochecksData[] = [
+                'qrSrc' => $qrSrc,
+                'fotoSrc' => $fotoSrc,
+                'logoSrc' => $logoSrc,
+                'tipo' => 'DOCENTE',
+                'nombre' => $nombre,
+                'idDisplay' => 'DOC-' . str_pad($docente->docente_id, 6, '0', STR_PAD_LEFT),
+                'dni' => $docente->perfil->doc_numero ?? null,
+                'especialidad' => $docente->especialidad ?? null,
+                'telefono' => $docente->perfil->telefono ?? null,
+                'config' => $config,
+                'periodo' => date('Y'),
+            ];
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.fotocheck-docente-bulk', [
+            'fotochecks' => $fotochecksData,
+            'periodo' => date('Y'),
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('fotochecks_docentes_' . date('Y-m-d') . '.pdf');
+    }
 }

@@ -21,21 +21,9 @@ class PagoRepository implements PagoRepositoryInterface
                 $join->on('es.estu_id', '=', 'm.estu_id')->where('m.anio', '=', $anio);
             })
             ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
-            ->leftJoin('tarifa_pago as tp_grado', function ($join) use ($instiId, $anio) {
-                $join->on('s.id_grado', '=', 'tp_grado.grado_id')
-                     ->where('tp_grado.insti_id', $instiId)
-                     ->where('tp_grado.anio_escolar', $anio)
-                     ->where('tp_grado.activo', 1);
-            })
-            ->leftJoin('tarifa_pago as tp_gral', function ($join) use ($instiId, $anio) {
-                $join->where('tp_gral.insti_id', $instiId)
-                     ->where('tp_gral.anio_escolar', $anio)
-                     ->where('tp_gral.activo', 1)
-                     ->whereNull('tp_gral.grado_id');
-            })
             ->leftJoinSub(
                 DB::table('pagos')
-                    ->select('estu_id', DB::raw('COUNT(*) as pagos_count'))
+                    ->select('estu_id', DB::raw('COUNT(*) as pagos_count'), DB::raw('SUM(pag_monto) as total_monto'))
                     ->groupBy('estu_id'),
                 'pag',
                 'es.estu_id',
@@ -43,7 +31,7 @@ class PagoRepository implements PagoRepositoryInterface
                 'pag.estu_id'
             )
             ->where('pa.insti_id', $instiId)
-            ->where('pa.es_pagador', '1')
+            ->whereIn('pa.es_pagador', ['1', 'si'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('pa.nombres', 'like', "%{$search}%")
@@ -57,11 +45,13 @@ class PagoRepository implements PagoRepositoryInterface
                 'pa.apellidos',
                 'pa.telefono_1',
                 'pa.numero_doc',
-                DB::raw('COALESCE(tp_grado.monto, tp_gral.monto, ec.mensualidad, 0) as mensualidad'),
+                DB::raw('COALESCE(ec.mensualidad, 0) as mensualidad'),
                 'es.estu_id',
                 'pa.id_contacto',
-                DB::raw('COALESCE(pag.pagos_count, 0) as pagos_count')
+                DB::raw('COALESCE(pag.pagos_count, 0) as pagos_count'),
+                DB::raw('COALESCE(pag.total_monto, 0) as total_monto')
             ])
+            ->groupBy('pa.id_contacto', 'pa.nombres', 'pa.apellidos', 'pa.telefono_1', 'pa.numero_doc', 'ec.mensualidad', 'es.estu_id', 'pag.pagos_count', 'pag.total_monto')
             ->orderBy('es.estu_id', 'desc')
             ->paginate($perPage);
     }
@@ -71,12 +61,29 @@ class PagoRepository implements PagoRepositoryInterface
         return $this->paginateEstudiantesConPagador($instiId, $search, $perPage);
     }
 
-    public function pagosPorContacto(int $contactoId): Collection
+    public function pagosPorContacto(int $contactoId, ?int $conceptoId = null): Collection
     {
-        return Pago::where('contacto_id', $contactoId)
+        // Obtener IDs de estudiantes vinculados a este contacto (donde este contacto es el pagador)
+        $estuIds = DB::table('estudiante_contacto')
+            ->where('contacto_id', $contactoId)
+            ->pluck('estu_id')
+            ->toArray();
+
+        $query = Pago::where(function($q) use ($contactoId, $estuIds) {
+                $q->where('contacto_id', $contactoId)
+                  ->when(!empty($estuIds), function($sq) use ($estuIds) {
+                      $sq->orWhereIn('estu_id', $estuIds);
+                  });
+            })
+            ->with('concepto')
             ->orderBy('pag_anual', 'desc')
-            ->orderByRaw("FIELD(pag_mes, 'DICIEMBRE', 'NOVIEMBRE', 'OCTUBRE', 'SEPTIEMBRE', 'AGOSTO', 'JULIO', 'JUNIO', 'MAYO', 'ABRIL', 'MARZO', 'FEBRERO', 'ENERO')")
-            ->get();
+            ->orderByRaw("FIELD(pag_mes, 'DICIEMBRE', 'NOVIEMBRE', 'OCTUBRE', 'SEPTIEMBRE', 'AGOSTO', 'JULIO', 'JUNIO', 'MAYO', 'ABRIL', 'MARZO', 'FEBRERO', 'ENERO')");
+
+        if ($conceptoId !== null) {
+            $query->where('concepto_id', $conceptoId);
+        }
+
+        return $query->get();
     }
 
     public function findById(int $id): Pago
@@ -231,7 +238,7 @@ class PagoRepository implements PagoRepositoryInterface
             ->leftJoin('secciones as s', 'm.seccion_id', '=', 's.seccion_id')
             ->leftJoin('grados as g', 's.id_grado', '=', 'g.grado_id')
             ->where('pa.insti_id', $instiId)
-            ->where('pa.es_pagador', '1')
+            ->whereIn('pa.es_pagador', ['1', 'si'])
             ->select('es.estu_id', 'ec.contacto_id', 'ec.mensualidad', 'ec.dia_pago', 's.id_grado as grado_id', 'g.nivel_id')
             ->get();
     }
@@ -277,8 +284,31 @@ class PagoRepository implements PagoRepositoryInterface
             ->get();
     }
 
-    public function existePago(int $estuId, string $mes, int $anio): bool
+    /**
+     * Verifica si ya existe un pago mensual para el alumno en ese período.
+     * Si se pasa concepto_id, la unicidad es por alumno + concepto + mes + año.
+     * Sin concepto_id mantiene el comportamiento legacy (cualquier pago en ese mes/año).
+     */
+    public function existePago(int $estuId, string $mes, int $anio, ?int $conceptoId = null): bool
     {
-        return Pago::where('estu_id', $estuId)->where('pag_mes', $mes)->where('pag_anual', $anio)->exists();
+        $q = Pago::where('estu_id', $estuId)->where('pag_mes', $mes)->where('pag_anual', $anio);
+
+        if ($conceptoId !== null) {
+            $q->where('concepto_id', $conceptoId);
+        }
+
+        return $q->exists();
+    }
+
+    /**
+     * Verifica si ya existe un pago de concepto único/anual para el alumno en ese año.
+     * Usado para evitar duplicados al generar pagos de matrícula.
+     */
+    public function existePagoConcepto(int $estuId, int $anio, int $conceptoId): bool
+    {
+        return Pago::where('estu_id', $estuId)
+            ->where('pag_anual', $anio)
+            ->where('concepto_id', $conceptoId)
+            ->exists();
     }
 }

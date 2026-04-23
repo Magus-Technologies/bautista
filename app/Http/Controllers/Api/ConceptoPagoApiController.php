@@ -28,22 +28,20 @@ class ConceptoPagoApiController extends Controller
             ->where('activo', true)
             ->get();
 
-        // 2. Obtener nombres de conceptos que el alumno ya tiene registrados en sus pagos
+        // 2. Obtener IDs de conceptos que el alumno ya tiene registrados en sus pagos
         $conceptosUsados = \App\Models\Pago::where('estu_id', $estuId)
-            ->select('pag_nombre1', 'pag_nombre2')
-            ->get()
-            ->flatMap(fn($p) => [$p->pag_nombre1, $p->pag_nombre2])
-            ->filter()
-            ->unique()
+            ->whereNotNull('concepto_id')
+            ->distinct('concepto_id')
+            ->pluck('concepto_id')
             ->toArray();
 
         // 3. Filtrar: mostrar si NO es opcional O si ya lo ha usado (se inscribió en él)
         $filtrados = $conceptos->filter(function($c) use ($conceptosUsados) {
             if (!$c->opcional) return true;
-            return in_array($c->nombre, $conceptosUsados);
+            return in_array($c->concepto_id, $conceptosUsados);
         })->values();
 
-        return response()->json($filtrados);
+        return response()->json(['data' => $filtrados]);
     }
 
     public function store(Request $request): JsonResponse

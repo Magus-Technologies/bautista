@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 import { UserInfo } from '@/components/layout/user-info';
 import {
@@ -30,8 +30,8 @@ export function UserMenuContent({ user }: Props) {
             // Limpiar cookie de autenticación
             document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
             cleanup();
-            // Usar router.visit() de Inertia en lugar de window.location.href
-            router.visit('/login', { method: 'get' });
+            // Full reload para limpiar completamente el estado de Inertia/React
+            window.location.href = '/login';
         }
     };
 

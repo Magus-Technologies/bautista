@@ -18,11 +18,13 @@ class DocenteResource extends JsonResource
             'estado'          => $this->estado,
             'perfil'      => $this->whenLoaded('perfil', fn () => [
                 'primer_nombre'    => $this->perfil->primer_nombre,
+                'segundo_nombre'   => $this->perfil->segundo_nombre,
                 'apellido_paterno' => $this->perfil->apellido_paterno,
                 'apellido_materno' => $this->perfil->apellido_materno,
                 'genero'           => $this->perfil->genero,
                 'doc_numero'       => $this->perfil->doc_numero,
                 'telefono'         => $this->perfil->telefono,
+                'foto_perfil'      => $this->perfil->foto_perfil,
             ]),
             'user' => $this->whenLoaded('user', fn () => [
                 'id'       => $this->user->id,

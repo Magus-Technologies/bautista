@@ -14,7 +14,9 @@ class UpdatePagoRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'concepto_id'  => ['nullable', 'integer', 'exists:concepto_pago,concepto_id'],
             'pag_monto'    => ['required', 'numeric', 'min:0'],
+            // Legacy
             'pag_nombre1'  => ['nullable', 'string', 'max:50'],
             'pag_otro1'    => ['nullable', 'numeric', 'min:0'],
             'pag_nombre2'  => ['nullable', 'string', 'max:50'],

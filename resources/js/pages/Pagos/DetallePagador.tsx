@@ -1,0 +1,279 @@
+import { Head, router } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Plus, Wallet, CreditCard, Clock, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import PagoFormModal from './components/PagoFormModal';
+import axios from 'axios';
+import api from '@/lib/api';
+import type { Pago } from './hooks/usePago';
+import AppLayout from '@/layouts/app-layout';
+import PageHeader from '@/components/shared/PageHeader';
+import PageTabs from '@/components/shared/PageTabs';
+import ResourceTable, { Column, Paginated } from '@/components/shared/ResourceTable';
+import type { BreadcrumbItem } from '@/types';
+
+interface Concepto {
+    concepto_id: number;
+    nombre: string;
+    unico: boolean;
+    periodicidad: 'mensual' | 'anual' | 'unico';
+}
+
+interface Pagador {
+    id_contacto: number;
+    nombres: string;
+    apellidos: string;
+    numero_doc: string;
+    telefono_1: string;
+    estudiante_id?: number;
+    grado?: string;
+    seccion?: string;
+}
+
+interface Props {
+    pagador: Pagador;
+    pagos: Pago[] | { data: Pago[] };
+    conceptos: Concepto[];
+}
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Pagos', href: '/pagos' },
+    { title: 'Detalle de Pagador', href: '#' },
+];
+
+export default function DetallePagador({ pagador, pagos: pagosData, conceptos }: Props) {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
+    const [apiErrors, setApiErrors] = useState<Record<string, string[]>>({});
+
+    // Extraer pagos de forma extremadamente robusta
+    const pagos = useMemo(() => {
+        const raw = pagosData as any;
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (raw.data && Array.isArray(raw.data)) return raw.data;
+        // Si por alguna razón llega envuelto doble (a veces pasa con transformaciones de API)
+        if (raw.data?.data && Array.isArray(raw.data.data)) return raw.data.data;
+        return [];
+    }, [pagosData]);
+
+    const pagosPorConcepto = useMemo(() => {
+        const map: Record<number, Pago[]> = {};
+        conceptos.forEach(c => {
+            map[c.concepto_id] = pagos.filter((p: Pago) => Number(p.concepto_id) === Number(c.concepto_id));
+        });
+        return map;
+    }, [pagos, conceptos]);
+
+    const handleEdit = (pago: Pago) => {
+        setSelectedPago(pago);
+        setModalOpen(true);
+    };
+
+    const openCreateModal = () => {
+        setSelectedPago(null);
+        setModalOpen(true);
+    };
+
+    const handleCreatePago = async (data: any) => {
+        try {
+            setApiErrors({});
+            await axios.post('/api/pagos', data);
+            router.reload();
+        } catch (error: any) {
+            if (error.response?.data?.errors) {
+                setApiErrors(error.response.data.errors);
+            }
+            throw error;
+        }
+    };
+
+    const handleUpdatePago = async (data: any) => {
+        if (!selectedPago) return;
+        try {
+            setApiErrors({});
+            await axios.put(`/api/pagos/${selectedPago.pag_id}`, data);
+            router.reload();
+        } catch (error: any) {
+            if (error.response?.data?.errors) {
+                setApiErrors(error.response.data.errors);
+            }
+            throw error;
+        }
+    };
+
+    const handleDelete = async (pago: Pago) => {
+        if (!confirm('¿Estás seguro de eliminar este pago?')) return;
+        try {
+            await axios.delete(`/api/pagos/${pago.pag_id}`);
+            router.reload();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Helper para adaptar array simple al componente ResourceTable
+    const wrapAsPaginated = (data: Pago[]): Paginated<Pago> => ({
+        data,
+        current_page: 1,
+        last_page: 1,
+        per_page: data.length,
+        total: data.length,
+        from: 1,
+        to: data.length,
+    });
+
+    const getColumns = (periodicidad?: string): Column<Pago>[] => {
+        const baseColumns: Column<Pago>[] = [
+            {
+                label: '#',
+                className: 'text-center w-10',
+                render: (_, i) => <span className="text-gray-400 font-mono text-xs">{i + 1}</span>
+            },
+            {
+                label: 'Concepto',
+                className: 'text-left',
+                render: (p) => (
+                    <div className="flex flex-col text-left">
+                        <span className="font-medium text-gray-900">{p.concepto_nombre || '—'}</span>
+                        {p.observacion && <span className="text-[10px] text-gray-400 italic">{p.observacion}</span>}
+                    </div>
+                )
+            }
+        ];
+
+        // Solo mostrar columna Mes si es mensual
+        if (periodicidad === 'mensual') {
+            baseColumns.push({
+                label: 'Mes',
+                render: (p) => p.pag_mes ? (
+                    <Badge variant="outline" className="font-normal border-gray-200">
+                        {p.pag_mes}
+                    </Badge>
+                ) : '—'
+            });
+        }
+
+        baseColumns.push(
+            {
+                label: 'Año',
+                render: (p) => <span className="font-semibold text-gray-600">{p.pag_anual}</span>
+            },
+            {
+                label: 'Monto',
+                className: 'text-right',
+                render: (p) => (
+                    <span className="font-bold text-blue-600">
+                        S/ {p.pag_monto ? Number(p.pag_monto).toFixed(2) : '0.00'}
+                    </span>
+                )
+            },
+            {
+                label: 'Estado',
+                render: (p) => (
+                    <Badge 
+                        className={`
+                            ${p.estatus === 1 ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200'}
+                            font-bold px-3 py-0.5
+                        `}
+                        variant="outline"
+                    >
+                        {p.estatus === 1 ? 'PAGADO' : 'PENDIENTE'}
+                    </Badge>
+                )
+            },
+            {
+                label: 'Fecha',
+                render: (p) => (
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500">
+                        <Clock className="size-3" />
+                        {p.pag_fecha || '—'}
+                    </div>
+                )
+            }
+        );
+
+        return baseColumns;
+    };
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Pagos - ${pagador.nombres}`} />
+
+            <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <PageHeader
+                        icon={Wallet}
+                        title={`${pagador.nombres} ${pagador.apellidos}`}
+                        subtitle={`DNI: ${pagador.numero_doc} • Teléfono: ${pagador.telefono_1} ${pagador.grado ? `• ${pagador.grado} ${pagador.seccion}` : ''}`}
+                        iconColor="bg-blue-600"
+                    />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button 
+                            onClick={openCreateModal}
+                            className="w-full sm:w-auto h-9 bg-[#00a65a] hover:bg-[#008d4c] text-white text-xs font-bold gap-2"
+                        >
+                            <Plus className="size-4" />
+                            Agregar Pago
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Tabs por Concepto */}
+                <Card className="border-none shadow-none bg-transparent">
+                    <CardContent className="p-0">
+                        <PageTabs
+                            defaultValue={conceptos.length > 0 ? String(conceptos[0].concepto_id) : ''}
+                            tabs={conceptos.map(concepto => ({
+                                value: String(concepto.concepto_id),
+                                label: `${concepto.nombre} (${pagosPorConcepto[concepto.concepto_id]?.length || 0})`,
+                                icon: CreditCard,
+                                content: (
+                                    <div className="space-y-4">
+                                        {concepto.unico && pagosPorConcepto[concepto.concepto_id]?.length > 0 && (
+                                            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-center gap-3 text-amber-800">
+                                                <span className="text-xl">⚠️</span>
+                                                <p className="text-sm font-medium">Este concepto es único. No se pueden agregar más pagos para este año.</p>
+                                            </div>
+                                        )}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                            <ResourceTable 
+                                                rows={wrapAsPaginated(pagosPorConcepto[concepto.concepto_id] || [])}
+                                                columns={getColumns(concepto.periodicidad)}
+                                                getKey={(p) => p.pag_id}
+                                                onEdit={handleEdit}
+                                                onDelete={handleDelete}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            }))}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Modal */}
+            {pagador.estudiante_id && (
+                <PagoFormModal
+                    open={modalOpen}
+                    onClose={() => {
+                        setModalOpen(false);
+                        setSelectedPago(null);
+                        setApiErrors({});
+                    }}
+                    contactoId={pagador.id_contacto}
+                    estudianteId={pagador.estudiante_id}
+                    editing={selectedPago}
+                    onSave={selectedPago ? handleUpdatePago : handleCreatePago}
+                    apiErrors={apiErrors}
+                    clearErrors={() => setApiErrors({})}
+                />
+            )}
+        </AppLayout>
+    );
+}

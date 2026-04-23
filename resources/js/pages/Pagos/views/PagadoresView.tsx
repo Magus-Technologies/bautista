@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import { PlusCircle, History } from 'lucide-react';
+import { History, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { router } from '@inertiajs/react';
 import SectionCard from '@/components/shared/SectionCard';
 import ResourceTable from '@/components/shared/ResourceTable';
 import type { Column } from '@/components/shared/ResourceTable';
 import { useResource } from '@/hooks/useResource';
-import PagosDrawer from '../components/PagosDrawer';
 import HistorialAlumnoModal from '../components/HistorialAlumnoModal';
 import type { Pagador } from '../hooks/usePago';
 
 export default function PagadoresView() {
     const res = useResource<Pagador>('/pagos/pagadores');
 
-    const [drawerOpen, setDrawerOpen]       = useState(false);
-    const [selected, setSelected]           = useState<Pagador | null>(null);
     const [historialEstu, setHistorialEstu] = useState<number | null>(null);
 
-    const openDrawer = (p: Pagador) => { setSelected(p); setDrawerOpen(true); };
+    const verDetalle = (p: Pagador) => {
+        router.visit(`/pagos/pagador/${p.id_contacto}`);
+    };
 
     const columns: Column<Pagador>[] = [
         { label: '#',         render: (p) => p.id_usuario },
@@ -36,8 +36,9 @@ export default function PagadoresView() {
                 <div className="flex gap-1">
                     <Button size="sm"
                         className="bg-[#00a65a] hover:bg-[#008d4c] text-white h-7 px-3"
-                        onClick={(e) => { e.stopPropagation(); openDrawer(p); }}>
-                        <PlusCircle className="h-3.5 w-3.5" />
+                        onClick={(e) => { e.stopPropagation(); verDetalle(p); }}>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Ver Pagos
                     </Button>
                     <Button size="sm" variant="outline"
                         className="h-7 px-3 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
@@ -81,12 +82,6 @@ export default function PagadoresView() {
                     <p className="py-6 text-center text-sm text-gray-400">Cargando...</p>
                 )}
             </SectionCard>
-
-            <PagosDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                pagador={selected}
-            />
 
             <HistorialAlumnoModal
                 open={historialEstu !== null}

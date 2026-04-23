@@ -63,27 +63,27 @@ export default function ResourceTable<T>({
                     <thead className="sticky top-0 z-20">
                         <tr className="bg-[#00a65a] text-white text-center">
                             {columns.map((c, idx) => (
-                                <th key={`col-${idx}`} className={`px-3 py-3 font-semibold first:rounded-tl-lg last:rounded-tr-lg border-b border-green-600 whitespace-nowrap ${c.className ?? ''}`}>{c.label}</th>
+                                <th key={`col-${idx}`} className={`px-3 py-2 font-semibold first:rounded-tl-lg last:rounded-tr-lg border-b border-green-600 whitespace-nowrap ${c.className ?? ''}`}>{c.label}</th>
                             ))}
-                            {showActions && <th className="px-3 py-3 font-semibold last:rounded-tr-lg border-b border-green-600 whitespace-nowrap">Acciones</th>}
+                            {showActions && <th className="px-3 py-2 font-semibold last:rounded-tr-lg border-b border-green-600 whitespace-nowrap">Acciones</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.data.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + 1 + (showActions ? 1 : 0)} className="py-8 text-center text-gray-400">
+                                <td colSpan={columns.length + (showActions ? 1 : 0)} className="py-8 text-center text-gray-400">
                                     No se encontraron registros.
                                 </td>
                             </tr>
                         ) : rows.data.map((row, i) => (
                             <tr key={getKey(row)} className="border-b border-gray-100 hover:bg-gray-50 text-center">
                                 {columns.map((c, idx) => (
-                                    <td key={`cell-${idx}`} className={`px-3 py-2 ${c.className ?? ''}`}>
+                                    <td key={`cell-${idx}`} className={`px-3 py-1.5 ${c.className ?? ''}`}>
                                         {c.render(row, i)}
                                     </td>
                                 ))}
                                 {showActions && (
-                                    <td className="px-3 py-2">
+                                    <td className="px-3 py-1.5">
                                         <div className="flex items-center justify-center gap-1">
                                             {onEdit && (
                                                 <Button size="icon" variant="ghost" className="size-7 text-blue-600 hover:bg-blue-50" onClick={() => onEdit(row)}>
@@ -103,7 +103,7 @@ export default function ResourceTable<T>({
                         ))}
                         {loading && (
                             <tr>
-                                <td colSpan={columns.length + 1 + (showActions ? 1 : 0)} className="py-4 text-center text-sm text-gray-400">
+                                <td colSpan={columns.length + (showActions ? 1 : 0)} className="py-4 text-center text-sm text-gray-400">
                                     Cargando más...
                                 </td>
                             </tr>

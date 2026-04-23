@@ -32,6 +32,8 @@ Route::middleware(['auth.token'])->group(function () {
     Route::get('/matriculas/aperturas/{aperturaId}/niveles/{nivelId}/fotochecks', [\App\Http\Controllers\Admin\FotocheckController::class, 'generateBulk'])->middleware('permission:personal.estudiantes.ver')->name('matriculas.fotochecks.bulk');
     
     Route::get('/docentes',     fn () => Inertia::render('GestionDocentes/index'))->middleware('permission:personal.docentes.ver')->name('docentes.index');
+    Route::get('/docentes/{id}/fotocheck', [\App\Http\Controllers\Api\DocenteApiController::class, 'fotocheck'])->middleware('permission:personal.docentes.ver')->name('docentes.fotocheck');
+    Route::get('/docentes/fotochecks/masivo', [\App\Http\Controllers\Api\DocenteApiController::class, 'fotochecksMasivo'])->middleware('permission:personal.docentes.ver')->name('docentes.fotochecks.masivo');
     
     Route::get('/niveles',      fn () => Inertia::render('Niveles/index'))->middleware('permission:academico.niveles.ver')->name('niveles.index');
     Route::get('/grados',       fn () => Inertia::render('Grados/index'))->middleware('permission:academico.cursos.ver')->name('grados.index');
@@ -48,6 +50,7 @@ Route::middleware(['auth.token'])->group(function () {
     Route::get('/cursos',       fn () => Inertia::render('Cursos/index'))->middleware('permission:academico.cursos.ver|portal.estudiante.cursos|portal.docente.cursos')->name('cursos.index');
     
     Route::get('/pagos',            fn () => Inertia::render('Pagos/index'))->middleware('permission:admin.pagos.ver')->name('pagos.index');
+    Route::get('/pagos/pagador/{id}', [\App\Http\Controllers\Api\PagoApiController::class, 'detallePagador'])->middleware('permission:admin.pagos.ver')->name('pagos.detalle-pagador');
     Route::get('/conceptos-pago',   fn () => Inertia::render('ConceptoPago/index'))->middleware('permission:admin.pagos.ver')->name('conceptos-pago.index');
     Route::get('/tarifas-pago',     fn () => Inertia::render('TarifaPago/index'))->middleware('permission:admin.pagos.ver')->name('tarifas-pago.index');
     Route::get('/descuentos',       fn () => Inertia::render('DescuentoAlumno/index'))->middleware('permission:admin.pagos.ver')->name('descuentos.index');

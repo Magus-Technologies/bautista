@@ -13,12 +13,14 @@ interface User {
     name: string;
     rol_name?: string;
     avatar?: string;
+    isDocente?: boolean;  // Nueva propiedad para identificar docentes
     details?: {
         student_id?: string;
         dni?: string;
         grado?: string;
         nivel?: string;
         seccion?: string;
+        especialidad?: string;  // Para docentes
         tel?: string;
     };
 }
@@ -44,7 +46,11 @@ export default function FotocheckCardPreview({ user, config, className }: Props)
                 {/* Logo: Engrandece de 16x8 a 22x10mm approx */}
                 <div className="w-[30mm] h-[11mm] mt-[1.5mm] flex items-center justify-center overflow-hidden">
                     {config.logo_path ? (
-                        <img src={`/storage/${config.logo_path}`} className="h-full w-auto object-contain" alt="Logo" />
+                        <img 
+                            src={config.logo_path.startsWith('http') || config.logo_path.startsWith('/storage/') ? config.logo_path : `/storage/${config.logo_path}`} 
+                            className="h-full w-auto object-contain" 
+                            alt="Logo" 
+                        />
                     ) : (
                         <div className="w-10 h-10 rounded-full border-2 border-blue-800 flex items-center justify-center">
                             <span className="text-blue-800 font-black text-[8px]">LOGO</span>
@@ -67,7 +73,11 @@ export default function FotocheckCardPreview({ user, config, className }: Props)
                 <div className="w-[32mm] h-[32mm] bg-white p-[0.6mm] border-[0.25mm] border-[#C8C8C8] overflow-hidden mt-[4mm]">
                     <div className="w-full h-full bg-gray-50 flex items-center justify-center overflow-hidden">
                         {user.avatar ? (
-                            <img src={user.avatar} className="w-full h-full object-cover" alt="Avatar" />
+                            <img 
+                                src={user.avatar.startsWith('http') || user.avatar.startsWith('/storage/') ? user.avatar : `/storage/${user.avatar}`} 
+                                className="w-full h-full object-cover" 
+                                alt="Avatar" 
+                            />
                         ) : (
                             <img 
                                 src="https://ui-avatars.com/api/?name=User&background=f3f4f6&color=d1d5db&size=150" 
@@ -129,22 +139,41 @@ export default function FotocheckCardPreview({ user, config, className }: Props)
                                 <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">DNI:</span>
                                 <span className="font-bold">{user.details?.dni || '—'}</span>
                             </div>
-                            <div className="flex mb-[0.65mm]">
-                                <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">GRADO:</span>
-                                <span className="font-bold">{user.details?.grado || '—'}</span>
-                            </div>
-                            <div className="flex mb-[0.65mm]">
-                                <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">NIVEL:</span>
-                                <span className="font-bold">{user.details?.nivel || '—'}</span>
-                            </div>
-                            <div className="flex mb-[0.65mm]">
-                                <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">SEC:</span>
-                                <span className="font-bold">{user.details?.seccion || 'UNICA'}</span>
-                            </div>
-                            <div className="flex">
-                                <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">TEL:</span>
-                                <span className="font-bold">{user.details?.tel || '—'}</span>
-                            </div>
+                            
+                            {/* Mostrar campos diferentes para docentes */}
+                            {user.isDocente || user.rol_name === 'DOCENTE' ? (
+                                <>
+                                    {user.details?.especialidad && (
+                                        <div className="flex mb-[0.65mm]">
+                                            <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">ESPECIALIDAD:</span>
+                                            <span className="font-bold">{user.details.especialidad}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex">
+                                        <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">TEL:</span>
+                                        <span className="font-bold">{user.details?.tel || '—'}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex mb-[0.65mm]">
+                                        <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">GRADO:</span>
+                                        <span className="font-bold">{user.details?.grado || '—'}</span>
+                                    </div>
+                                    <div className="flex mb-[0.65mm]">
+                                        <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">NIVEL:</span>
+                                        <span className="font-bold">{user.details?.nivel || '—'}</span>
+                                    </div>
+                                    <div className="flex mb-[0.65mm]">
+                                        <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">SEC:</span>
+                                        <span className="font-bold">{user.details?.seccion || 'UNICA'}</span>
+                                    </div>
+                                    <div className="flex">
+                                        <span className="w-[16mm] font-black uppercase tracking-tighter opacity-90">TEL:</span>
+                                        <span className="font-bold">{user.details?.tel || '—'}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

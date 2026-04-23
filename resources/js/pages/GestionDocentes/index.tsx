@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { BookOpen, Clock, UserCheck } from 'lucide-react';
+import { BookOpen, Clock, UserCheck, Download, IdCard } from 'lucide-react';
 import { useState } from 'react';
 import ResourcePage from '@/components/shared/ResourcePage';
 import ResourceTable from '@/components/shared/ResourceTable';
@@ -10,6 +10,7 @@ import type { BreadcrumbItem } from '@/types';
 import AsignarCursosModal from './components/AsignarCursosModal';
 import DocenteFormModal from './components/DocenteFormModal';
 import HorarioModal from './components/HorarioModal';
+import FotocheckDocenteModal from './components/FotocheckDocenteModal';
 import type { Docente } from './hooks/useDocentes';
 import { nombreCompleto } from './hooks/useDocentes';
 import { docentesColumns } from './hooks/useDocentesColumns';
@@ -26,6 +27,7 @@ export default function DocentesPage() {
     const [editing, setEditing]               = useState<Docente | null>(null);
     const [asignarDocente, setAsignarDocente] = useState<Docente | null>(null);
     const [horarioDocente, setHorarioDocente] = useState<Docente | null>(null);
+    const [fotocheckDocente, setFotocheckDocente] = useState<Docente | null>(null);
 
     const openCreate   = () => {
  setEditing(null); setModalOpen(true); 
@@ -37,6 +39,14 @@ export default function DocentesPage() {
         if (confirm(`¿Eliminar al docente "${nombreCompleto(d)}"?`)) {
             res.remove(d.docente_id);
         }
+    };
+
+    const handleDescargarFotocheckMasivo = () => {
+        window.open('/docentes/fotochecks/masivo', '_blank');
+    };
+
+    const handleVerFotocheck = (d: Docente) => {
+        setFotocheckDocente(d);
     };
 
     return (
@@ -53,6 +63,17 @@ export default function DocentesPage() {
                 flashSuccess={res.success}
                 btnLabel={can('personal.docentes.crear') ? "Nuevo Docente" : undefined}
                 onNew={can('personal.docentes.crear') ? openCreate : undefined}
+                extraButtons={
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDescargarFotocheckMasivo}
+                        className="gap-2"
+                    >
+                        <Download className="h-4 w-4" />
+                        Descargar Fotochecks
+                    </Button>
+                }
             >
                 {res.rows && (
                     <ResourceTable
@@ -64,6 +85,15 @@ export default function DocentesPage() {
                         onPageChange={res.setPage}
                         extraActions={(d) => (
                             <>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Ver Fotocheck"
+                                    className="size-7 text-blue-600 hover:bg-blue-50"
+                                    onClick={() => handleVerFotocheck(d)}
+                                >
+                                    <IdCard className="size-3.5" />
+                                </Button>
                                 {can('personal.docentes.cursos') && (
                                     <Button
                                         size="icon"
@@ -116,6 +146,12 @@ export default function DocentesPage() {
                 open={horarioDocente !== null}
                 onClose={() => setHorarioDocente(null)}
                 docente={horarioDocente}
+            />
+
+            <FotocheckDocenteModal
+                open={fotocheckDocente !== null}
+                onClose={() => setFotocheckDocente(null)}
+                docente={fotocheckDocente}
             />
         </>
     );

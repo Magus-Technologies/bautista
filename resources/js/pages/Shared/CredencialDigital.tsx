@@ -40,6 +40,27 @@ export default function CredencialDigital() {
     const getFotocheckUser = () => {
         if (!user) return null;
         
+        // Detectar si es docente
+        const isDocente = user.docente || user.rol === 'DOCENTE' || user.rol_name === 'DOCENTE';
+        
+        if (isDocente) {
+            // Datos para docente
+            return {
+                id: user.docente?.docente_id || user.id,
+                name: user.name,
+                rol_name: 'DOCENTE',
+                isDocente: true,
+                avatar: user.avatar,
+                details: {
+                    student_id: user.docente?.docente_id ? `DOC-${user.docente.docente_id.toString().padStart(6, '0')}` : `DOC-${user.id.toString().padStart(6, '0')}`,
+                    dni: user.perfil?.doc_numero,
+                    especialidad: user.docente?.especialidad,
+                    tel: user.perfil?.telefono,
+                }
+            };
+        }
+        
+        // Datos para estudiante
         const matricula = user.estudiante?.matriculas?.[0];
         const seccion = matricula?.seccion;
 

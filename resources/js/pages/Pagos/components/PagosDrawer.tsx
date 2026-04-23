@@ -1,5 +1,5 @@
 import { PlusCircle, Calendar, FileText, X, Receipt } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,14 @@ type Props = {
     pagador:  Pagador | null;
 };
 
+interface Concepto {
+    concepto_id: number;
+    nombre: string;
+    periodicidad: 'mensual' | 'anual' | 'unico';
+    opcional: boolean;
+    activo: boolean;
+}
+
 export default function PagosDrawer({ open, onClose, pagador }: Props) {
     const [pagos, setPagos]           = useState<Pago[]>([]);
     const [loading, setLoading]       = useState(false);
@@ -32,6 +40,8 @@ export default function PagosDrawer({ open, onClose, pagador }: Props) {
     const [confirmGenerar, setConfirmGenerar] = useState(false);
     const [generando, setGenerando]   = useState(false);
     const [voucherPagId, setVoucherPagId] = useState<number | null>(null);
+    const [conceptosDisponibles, setConceptosDisponibles] = useState<Concepto[]>([]);
+    const [tabActivo, setTabActivo]   = useState<number | null>(null);
     const [alertConfig, setAlertConfig] = useState<{ open: boolean; message: string; variant: 'error' | 'warning' | 'info' | 'success' }>({
         open: false,
         message: '',
@@ -55,11 +65,26 @@ return;
         }
     }, [pagador]);
 
+    const cargarConceptos = useCallback(async () => {
+        try {
+            const { data } = await api.get('/conceptos-pago/');
+            const conceptos = data.data ?? data;
+            setConceptosDisponibles(conceptos);
+            // Seleccionar primer concepto por defecto
+            if (conceptos.length > 0) {
+                setTabActivo(conceptos[0].concepto_id);
+            }
+        } catch (err) {
+            console.error('Error cargando conceptos:', err);
+        }
+    }, []);
+
     useEffect(() => {
         if (open && pagador) {
-cargar();
-}
-    }, [open, pagador, cargar]);
+            cargarConceptos();
+            cargar();
+        }
+    }, [open, pagador, cargar, cargarConceptos]);
 
     const handleFilter = () => {
         if (!fecIni || !fecFin) {
@@ -140,6 +165,7 @@ return;
 
         try {
             const payload: PagoUpdateData = {
+                concepto_id:  data.concepto_id || null,
                 pag_monto:    data.pag_monto,
                 pag_nombre1:  data.pag_nombre1,
                 pag_otro1:    data.pag_otro1,
@@ -173,40 +199,73 @@ return;
     const openCreate = () => { setEditPago(null); setModalOpen(true); };
     const openEdit   = (p: Pago) => { setEditPago(p); setModalOpen(true); };
 
+    const pagosPorConcepto = useMemo(() => {
+        return filteredPagos.reduce((acc, pago) => {
+            const key = pago.concepto_nombre || pago.pag_nombre1 || 'Sin Concepto';
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(pago);
+            return acc;
+        }, {} as Record<string, Pago[]>);
+    }, [filteredPagos]);
+
+    const pagosFiltrados = useMemo(() => {
+        if (!tabActivo) return filteredPagos;
+        return filteredPagos.filter(p => p.concepto_id === tabActivo);
+    }, [filteredPagos, tabActivo]);
+
+    // Detectar si el concepto activo es único
+    const conceptoUnicoActivo = useMemo(() => {
+        if (!tabActivo) return null;
+        return conceptosDisponibles.find(c => 
+            c.concepto_id === tabActivo && c.periodicidad === 'unico'
+        );
+    }, [tabActivo, conceptosDisponibles]);
+
+    // Validar si se puede agregar más pagos
+    const puedeAgregarPago = useMemo(() => {
+        // Si hay concepto único activo, solo se puede agregar si no hay pagos
+        if (conceptoUnicoActivo) {
+            return pagosFiltrados.length === 0;
+        }
+        // Si hay concepto único en otros tabs, no se puede agregar
+        const hayConceptoUnicoEnOtroTab = filteredPagos.some(p => {
+            const concepto = conceptosDisponibles.find(c => c.concepto_id === p.concepto_id);
+            return concepto?.periodicidad === 'unico';
+        });
+        return !hayConceptoUnicoEnOtroTab;
+    }, [conceptoUnicoActivo, pagosFiltrados, filteredPagos, conceptosDisponibles]);
+
     if (!pagador) { return null; }
 
     const pagoColumns: Column<Pago>[] = [
-        { label: '#',           render: (_, i) => i + 1 },
-        { label: 'Año',         render: p => p.pag_anual },
-        { label: 'Mes',         render: p => p.pag_mes },
-        { label: 'Mensualidad', render: p => `S/ ${Number(p.pag_monto).toFixed(2)}` },
+        { label: '#',      render: (_, i) => i + 1 },
+        { label: 'Año',    render: p => p.pag_anual },
         {
-            label: 'Adicional 1',
+            label: 'Concepto',
             render: p => (
                 <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 uppercase leading-tight">{p.pag_nombre1 || 'Sin concepto'}</span>
-                    <span className={Number(p.pag_otro1) > 0 ? '' : 'text-gray-300'}>
-                        {Number(p.pag_otro1) > 0 ? `S/ ${Number(p.pag_otro1).toFixed(2)}` : '—'}
+                    <span className="font-medium text-xs">
+                        {p.concepto_nombre ?? p.pag_nombre1 ?? 'Mensualidad'}
                     </span>
+                    {p.periodicidad && (
+                        <span className="text-[10px] text-gray-400 capitalize">{p.periodicidad}</span>
+                    )}
                 </div>
             ),
         },
         {
-            label: 'Adicional 2',
-            render: p => (
-                <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 uppercase leading-tight">{p.pag_nombre2 || 'Sin concepto'}</span>
-                    <span className={Number(p.pag_otro2) > 0 ? '' : 'text-gray-300'}>
-                        {Number(p.pag_otro2) > 0 ? `S/ ${Number(p.pag_otro2).toFixed(2)}` : '—'}
-                    </span>
-                </div>
-            ),
+            label: 'Mes',
+            render: p => p.pag_mes ?? <span className="text-gray-300">—</span>,
+        },
+        {
+            label: 'Monto',
+            render: p => `S/ ${Number(p.pag_monto).toFixed(2)}`,
         },
         {
             label: 'Total',
             render: p => <span className="font-semibold text-green-700">S/ {Number(p.total).toFixed(2)}</span>,
         },
-        { label: 'Fecha Reg.', render: p => p.pag_fecha ?? '—' },
+        { label: 'Fecha', render: p => p.pag_fecha ?? '—' },
         {
             label: 'Estatus',
             render: p => (
@@ -248,8 +307,10 @@ return;
                                 </Button>
                                 <Button
                                     size="sm"
-                                    className="bg-[#00a65a] hover:bg-[#008d4c] text-white w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
+                                    className="bg-[#00a65a] hover:bg-[#008d4c] text-white w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={openCreate}
+                                    disabled={!puedeAgregarPago}
+                                    title={!puedeAgregarPago ? 'No se pueden agregar más pagos. Este concepto es único.' : 'Agregar nuevo pago'}
                                 >
                                     <PlusCircle className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     Agregar Pago
@@ -258,8 +319,45 @@ return;
                         </DialogTitle>
                     </DialogHeader>
 
+                    {/* Tabs dinámicos por concepto */}
+                    <div className="flex gap-2 border-b overflow-x-auto pb-0">
+                        {conceptosDisponibles.map(concepto => {
+                            const countPagos = filteredPagos.filter(p => p.concepto_id === concepto.concepto_id).length;
+                            return (
+                                <button
+                                    key={concepto.concepto_id}
+                                    onClick={() => setTabActivo(concepto.concepto_id)}
+                                    className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                                        tabActivo === concepto.concepto_id
+                                            ? 'border-blue-600 text-blue-600'
+                                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    {concepto.nombre}
+                                    {concepto.periodicidad === 'unico' && (
+                                        <span className="ml-1 text-xs font-bold text-red-600">●</span>
+                                    )}
+                                    <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded">
+                                        {countPagos}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Advertencia si hay concepto único activo */}
+                    {conceptoUnicoActivo && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800 flex items-start gap-2">
+                            <span className="text-lg">⚠️</span>
+                            <div>
+                                <strong>Concepto Único</strong>
+                                <p className="text-xs mt-1">Este concepto es único y excluyente. No se pueden agregar otros pagos mientras esté activo.</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Filtros por fecha */}
-                    <div className="flex flex-col gap-3 pb-4 border-b">
+                    <div className="flex flex-col gap-3 py-4 border-b">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                             <div className="space-y-1">
                                 <Label className="text-xs sm:text-sm">Fecha Inicio</Label>
@@ -333,32 +431,42 @@ return;
                             <p className="py-6 text-center text-xs sm:text-sm text-gray-400">Cargando...</p>
                         )}
 
-                        {!loading && filteredPagos.length === 0 && (
+                        {!loading && pagosFiltrados.length === 0 && (
                             <p className="py-8 text-center text-xs sm:text-sm text-gray-400">
-                                No hay pagos registrados aún.
+                                No hay pagos registrados para {conceptosDisponibles.find(c => c.concepto_id === tabActivo)?.nombre}.
                             </p>
                         )}
 
-                        {!loading && filteredPagos.length > 0 && (
-                            <ResourceTable
-                                rows={{ data: filteredPagos, current_page: 1, last_page: 1, per_page: filteredPagos.length, total: filteredPagos.length, from: 1, to: filteredPagos.length }}
-                                columns={pagoColumns}
-                                getKey={p => p.pag_id}
-                                loading={loading}
-                                onEdit={openEdit}
-                                onDelete={p => handleDelete(p.pag_id)}
-                                extraActions={p => (
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        title="Ver comprobantes"
-                                        className="size-7 text-amber-500 hover:bg-amber-50"
-                                        onClick={() => setVoucherPagId(p.pag_id)}
-                                    >
-                                        <Receipt className="h-3.5 w-3.5" />
-                                    </Button>
-                                )}
-                            />
+                        {!loading && pagosFiltrados.length > 0 && (
+                            <div className="px-4 sm:px-0">
+                                <ResourceTable
+                                    rows={{ 
+                                        data: pagosFiltrados, 
+                                        current_page: 1, 
+                                        last_page: 1, 
+                                        per_page: pagosFiltrados.length, 
+                                        total: pagosFiltrados.length, 
+                                        from: 1, 
+                                        to: pagosFiltrados.length 
+                                    }}
+                                    columns={pagoColumns}
+                                    getKey={p => p.pag_id}
+                                    loading={false}
+                                    onEdit={openEdit}
+                                    onDelete={p => handleDelete(p.pag_id)}
+                                    extraActions={p => (
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            title="Ver comprobantes"
+                                            className="size-7 text-amber-500 hover:bg-amber-50"
+                                            onClick={() => setVoucherPagId(p.pag_id)}
+                                        >
+                                            <Receipt className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
+                                />
+                            </div>
                         )}
                     </div>
                 </DialogContent>
@@ -371,7 +479,6 @@ return;
                     onClose={() => setModalOpen(false)}
                     contactoId={pagador.id_contacto}
                     estudianteId={pagador.estu_id}
-                    mensualidad={pagador.mensualidad}
                     editing={null}
                     onSave={handleCreate}
                     apiErrors={apiErrors}
@@ -388,7 +495,6 @@ return;
 }}
                     contactoId={pagador.id_contacto}
                     estudianteId={pagador.estu_id}
-                    mensualidad={pagador.mensualidad}
                     editing={editPago}
                     onSave={handleUpdate}
                     apiErrors={apiErrors}

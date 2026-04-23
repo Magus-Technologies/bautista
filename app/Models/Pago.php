@@ -14,13 +14,14 @@ class Pago extends Model
         'insti_id',
         'estu_id',
         'contacto_id',
+        'concepto_id',   // nuevo — FK a concepto_pago
         'pag_anual',
-        'pag_mes',
+        'pag_mes',       // nullable para conceptos único/anual
         'pag_monto',
-        'pag_nombre1',
-        'pag_otro1',
-        'pag_nombre2',
-        'pag_otro2',
+        'pag_nombre1',   // legacy — deprecado
+        'pag_otro1',     // legacy — deprecado
+        'pag_nombre2',   // legacy — deprecado
+        'pag_otro2',     // legacy — deprecado
         'total',
         'pag_notifica',
         'pag_fecha',
@@ -50,6 +51,11 @@ class Pago extends Model
     public function institucion(): BelongsTo
     {
         return $this->belongsTo(InstitucionEducativa::class, 'insti_id', 'insti_id');
+    }
+
+    public function concepto(): BelongsTo
+    {
+        return $this->belongsTo(ConceptoPago::class, 'concepto_id', 'concepto_id');
     }
 
     public function notificas(): HasMany

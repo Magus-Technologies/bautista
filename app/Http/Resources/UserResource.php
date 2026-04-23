@@ -19,7 +19,13 @@ class UserResource extends JsonResource
             'rol'         => $this->rol?->name,
             'perfil'      => $this->whenLoaded('perfil'),
             'estudiante'  => $this->whenLoaded('estudiante'),
-            'docente'     => $this->whenLoaded('docente'),
+            'docente'     => $this->whenLoaded('docente', fn () => [
+                'docente_id'   => $this->docente->docente_id,
+                'especialidad' => $this->docente->especialidad,
+                'planilla'     => $this->docente->planilla,
+                'turno'        => $this->docente->turno,
+                'estado'       => $this->docente->estado,
+            ]),
             'institucion' => $this->whenLoaded('institucion', fn () =>
                 $this->institucion?->only(['insti_id', 'insti_razon_social', 'insti_logo'])
             ),
