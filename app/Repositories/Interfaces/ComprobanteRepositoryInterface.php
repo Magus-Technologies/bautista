@@ -20,7 +20,7 @@ interface ComprobanteRepositoryInterface
     public function porContacto(int $contactoId): Collection;
 
     /** Obtiene o crea la serie activa para el tipo dado. */
-    public function obtenerSerie(int $instiId, string $tipoDocumento): ComprobanteSerie;
+    public function obtenerSerie(int $instiId, string $tipoDocumento, ?string $tipoBase = null): ComprobanteSerie;
 
     /** Reserva el siguiente número correlativo de forma atómica. */
     public function siguienteNumero(ComprobanteSerie $serie): int;

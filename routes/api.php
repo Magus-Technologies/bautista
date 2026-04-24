@@ -177,6 +177,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/',                                     [\App\Http\Controllers\Api\ComprobanteApiController::class, 'store']);
         Route::post('/certificado',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'subirCertificado']);
         Route::post('/pdf-dual',                             [\App\Http\Controllers\Api\ComprobanteApiController::class, 'pdfDual']);
+        Route::post('/nota-credito',                         [\App\Http\Controllers\Api\ComprobanteApiController::class, 'emitirNotaCredito']);
+        Route::post('/nota-debito',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'emitirNotaDebito']);
+        Route::get('/tipos-nota-credito',                    [\App\Http\Controllers\Api\ComprobanteApiController::class, 'tiposNotaCredito']);
+        Route::get('/tipos-nota-debito',                     [\App\Http\Controllers\Api\ComprobanteApiController::class, 'tiposNotaDebito']);
         Route::get('/contacto/{contactoId}',                 [\App\Http\Controllers\Api\ComprobanteApiController::class, 'porContacto']);
         Route::get('/{id}',                                  [\App\Http\Controllers\Api\ComprobanteApiController::class, 'show']);
         Route::post('/{id}/pdf-token',                       [\App\Http\Controllers\Api\ComprobanteApiController::class, 'generatePdfToken']);

@@ -32,6 +32,13 @@ class Comprobante extends Model
         'endpoint',
         'contacto_id',
         'estu_id',
+        'comprobante_referencia_id',
+        'tipo_nota',
+        'motivo_nota',
+        'documento_referencia_tipo',
+        'documento_referencia_serie',
+        'documento_referencia_numero',
+        'documento_referencia_fecha',
     ];
 
     protected $casts = [
@@ -40,6 +47,8 @@ class Comprobante extends Model
         'igv'           => 'decimal:2',
         'total'         => 'decimal:2',
         'numero'        => 'integer',
+        'documento_referencia_numero' => 'integer',
+        'documento_referencia_fecha'  => 'date',
     ];
 
     public function institucion(): BelongsTo
@@ -71,5 +80,71 @@ class Comprobante extends Model
     public function getCodigoAttribute(): string
     {
         return "{$this->serie}-{$this->numero}";
+    }
+
+    /**
+     * Relación con el comprobante original (para notas de crédito/débito)
+     */
+    public function comprobanteReferencia(): BelongsTo
+    {
+        return $this->belongsTo(Comprobante::class, 'comprobante_referencia_id');
+    }
+
+    /**
+     * Notas de crédito emitidas sobre este comprobante
+     */
+    public function notasCredito(): HasMany
+    {
+        return $this->hasMany(Comprobante::class, 'comprobante_referencia_id')
+                    ->where('tipo_documento', 'nota_credito');
+    }
+
+    /**
+     * Notas de débito emitidas sobre este comprobante
+     */
+    public function notasDebito(): HasMany
+    {
+        return $this->hasMany(Comprobante::class, 'comprobante_referencia_id')
+                    ->where('tipo_documento', 'nota_debito');
+    }
+
+    /**
+     * Verifica si este comprobante es una nota (crédito o débito)
+     */
+    public function esNota(): bool
+    {
+        return in_array($this->tipo_documento, ['nota_credito', 'nota_debito']);
+    }
+
+    /**
+     * Calcula el monto neto después de aplicar notas de crédito y débito
+     */
+    public function getMontoNetoAttribute(): float
+    {
+        if ($this->esNota()) {
+            return (float) $this->total;
+        }
+
+        $total = (float) $this->total;
+        
+        // Restar notas de crédito aceptadas
+        $total -= $this->notasCredito()
+                       ->whereIn('estado', ['aceptado', 'enviado'])
+                       ->sum('total');
+        
+        // Sumar notas de débito aceptadas
+        $total += $this->notasDebito()
+                       ->whereIn('estado', ['aceptado', 'enviado'])
+                       ->sum('total');
+        
+        return $total;
+    }
+
+    /**
+     * Calcula el monto disponible para emitir notas de crédito
+     */
+    public function getMontoDisponibleAttribute(): float
+    {
+        return $this->monto_neto;
     }
 }

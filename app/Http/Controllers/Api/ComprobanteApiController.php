@@ -155,7 +155,13 @@ class ComprobanteApiController extends Controller
             $qrCodeDataUri = $writer->write($qrCode)->getDataUri();
         }
 
-        $tipoLabel = $comprobante->tipo_documento === 'boleta' ? 'BOLETA DE VENTA' : 'FACTURA';
+        $tipoLabel = match($comprobante->tipo_documento) {
+            'boleta' => 'BOLETA DE VENTA',
+            'factura' => 'FACTURA',
+            'nota_credito' => 'NOTA DE CRÉDITO',
+            'nota_debito' => 'NOTA DE DÉBITO',
+            default => 'COMPROBANTE',
+        };
 
         $html = view('pdf.comprobante', [
             'comprobante' => $comprobante->load('items'),
@@ -234,8 +240,20 @@ class ComprobanteApiController extends Controller
             $qrCodeDataUri2 = $writer->write($qrCode)->getDataUri();
         }
 
-        $tipoLabel1 = $comprobante1->tipo_documento === 'boleta' ? 'BOLETA DE VENTA' : 'FACTURA';
-        $tipoLabel2 = $comprobante2->tipo_documento === 'boleta' ? 'BOLETA DE VENTA' : 'FACTURA';
+        $tipoLabel1 = match($comprobante1->tipo_documento) {
+            'boleta' => 'BOLETA DE VENTA',
+            'factura' => 'FACTURA',
+            'nota_credito' => 'NOTA DE CRÉDITO',
+            'nota_debito' => 'NOTA DE DÉBITO',
+            default => 'COMPROBANTE',
+        };
+        $tipoLabel2 = match($comprobante2->tipo_documento) {
+            'boleta' => 'BOLETA DE VENTA',
+            'factura' => 'FACTURA',
+            'nota_credito' => 'NOTA DE CRÉDITO',
+            'nota_debito' => 'NOTA DE DÉBITO',
+            default => 'COMPROBANTE',
+        };
 
         $html = view('pdf.comprobante-dual', [
             'comprobante1' => $comprobante1->load('items'),
@@ -251,5 +269,57 @@ class ComprobanteApiController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
 
         return $pdf->download("comprobantes-dual.pdf");
+    }
+
+    /** POST /api/comprobantes/nota-credito — emitir nota de crédito */
+    public function emitirNotaCredito(\App\Http\Requests\StoreNotaCreditoRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $validated['insti_id'] = $request->user()->insti_id;
+
+        try {
+            $notaCredito = $this->service->emitirNotaCredito($validated);
+
+            return response()->json([
+                'message' => 'Nota de crédito emitida correctamente.',
+                'comprobante' => $notaCredito->load(['items', 'comprobanteReferencia']),
+            ], 201);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /** POST /api/comprobantes/nota-debito — emitir nota de débito */
+    public function emitirNotaDebito(\App\Http\Requests\StoreNotaDebitoRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $validated['insti_id'] = $request->user()->insti_id;
+
+        try {
+            $notaDebito = $this->service->emitirNotaDebito($validated);
+
+            return response()->json([
+                'message' => 'Nota de débito emitida correctamente.',
+                'comprobante' => $notaDebito->load(['items', 'comprobanteReferencia']),
+            ], 201);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /** GET /api/comprobantes/tipos-nota-credito — obtener catálogo de tipos de nota de crédito */
+    public function tiposNotaCredito(): JsonResponse
+    {
+        return response()->json(\App\Enums\TipoNotaCredito::toArray());
+    }
+
+    /** GET /api/comprobantes/tipos-nota-debito — obtener catálogo de tipos de nota de débito */
+    public function tiposNotaDebito(): JsonResponse
+    {
+        return response()->json(\App\Enums\TipoNotaDebito::toArray());
     }
 }

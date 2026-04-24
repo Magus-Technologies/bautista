@@ -329,6 +329,29 @@
             </div>
         </div>
 
+        <!-- Información del Documento Referencia (solo para notas) -->
+        @if(in_array($comprobante->tipo_documento, ['nota_credito', 'nota_debito']))
+        <div class="cliente-section" style="background: #fef3c7; border-color: #fbbf24;">
+            <div class="titulo" style="color: #92400e;">Documento que Modifica</div>
+            <div class="row">
+                <span class="label">Tipo:</span>
+                <span class="value">{{ $comprobante->documento_referencia_tipo === '03' ? 'BOLETA' : 'FACTURA' }}</span>
+            </div>
+            <div class="row">
+                <span class="label">Número:</span>
+                <span class="value">{{ $comprobante->documento_referencia_serie }}-{{ str_pad($comprobante->documento_referencia_numero, $config->digitos_numero, '0', STR_PAD_LEFT) }}</span>
+            </div>
+            <div class="row">
+                <span class="label">Fecha:</span>
+                <span class="value">{{ $comprobante->documento_referencia_fecha ? $comprobante->documento_referencia_fecha->format('d/m/Y') : '—' }}</span>
+            </div>
+            <div class="row">
+                <span class="label">Motivo:</span>
+                <span class="value">{{ $comprobante->motivo_nota }}</span>
+            </div>
+        </div>
+        @endif
+
         <!-- Datos del Cliente -->
         <div class="cliente-section">
             <div class="titulo">Datos del Cliente</div>

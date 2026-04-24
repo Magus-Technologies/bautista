@@ -42,4 +42,32 @@ interface ComprobanteServiceInterface
 
     /** Sube el certificado .pem a la API Magus para el RUC de la institución. */
     public function subirCertificado(int $instiId, UploadedFile $archivo): bool;
+
+    /**
+     * Emite una nota de crédito sobre un comprobante existente.
+     *
+     * @param  array{
+     *   insti_id: int,
+     *   comprobante_referencia_id: int,
+     *   tipo_nota: string,
+     *   motivo_nota: string,
+     *   total: float,
+     *   items: array,
+     * } $data
+     */
+    public function emitirNotaCredito(array $data): Comprobante;
+
+    /**
+     * Emite una nota de débito sobre un comprobante existente.
+     *
+     * @param  array{
+     *   insti_id: int,
+     *   comprobante_referencia_id: int,
+     *   tipo_nota: string,
+     *   motivo_nota: string,
+     *   total: float,
+     *   items: array,
+     * } $data
+     */
+    public function emitirNotaDebito(array $data): Comprobante;
 }
