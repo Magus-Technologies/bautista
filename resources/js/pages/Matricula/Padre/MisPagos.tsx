@@ -65,6 +65,13 @@ export default function MisPagosPage() {
 
     // Función para generar columnas
     const getColumns = (incluirMes: boolean): Column<any>[] => [
+        {
+            label: '#',
+            className: 'text-center w-12',
+            render: (_: any, index: number) => (
+                <span className="text-gray-400 font-mono text-xs">{index + 1}</span>
+            ),
+        },
         ...(hijoSel === 'todos' ? [{
             label: 'Alumno',
             render: (p: any) => <span className="text-xs text-gray-700 font-medium">{p.hijo_nombre}</span>,
@@ -73,7 +80,9 @@ export default function MisPagosPage() {
             label: 'Concepto',
             render: (p: any) => (
                 <div className="text-left">
-                    <p className="font-medium text-gray-800">{p.pag_nombre1 || 'Mensualidad'}</p>
+                    <p className="font-medium text-gray-800">
+                        {p.pag_nombre1 || p.concepto_nombre || 'Pago'}
+                    </p>
                     {p.observacion && (
                         <p className="text-[10px] text-indigo-600 mt-0.5 max-w-[200px] truncate" title={p.observacion}>
                             🏷 {p.observacion}
@@ -117,34 +126,18 @@ export default function MisPagosPage() {
         },
         {
             label: 'Comprobante',
+            className: 'text-center',
             render: (p: any) => {
-                // Verificar si tiene comprobante electrónico (boleta/factura)
+                // Si tiene comprobante electrónico
                 if (p.comprobante_id) {
                     return (
-                        <div className="flex flex-col items-center gap-1">
-                            <span className="text-[10px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap border bg-green-100 text-green-700 border-green-200">
-                                Emitido
-                            </span>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        const { data } = await api.post(`/comprobantes/${p.comprobante_id}/pdf-token`);
-                                        window.open(`/comprobantes/${p.comprobante_id}/pdf?token=${data.token}`, '_blank');
-                                    } catch (error) {
-                                        console.error('Error generando token:', error);
-                                        alert('Error al abrir el comprobante');
-                                    }
-                                }}
-                                className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                                title="Ver Comprobante"
-                            >
-                                <Download size={12} /> Ver PDF
-                            </button>
-                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                            Emitido
+                        </span>
                     );
                 }
 
-                // Si no tiene comprobante, mostrar voucher (recibo subido)
+                // Si tiene voucher (recibo subido)
                 const v = p.ultimo_voucher;
                 if (!v) return <span className="text-xs text-gray-400">-</span>;
                 
@@ -154,8 +147,9 @@ export default function MisPagosPage() {
                     rechazado: { label: 'Rechazado',   cls: 'bg-red-100 text-red-700 border-red-200' },
                 };
                 const c = cfg[v.estado] ?? { label: v.estado, cls: 'bg-gray-100 text-gray-600 border-gray-200' };
+                
                 return (
-                    <div className="flex flex-col items-center gap-0.5">
+                    <div className="flex flex-col items-center gap-1">
                         <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap border ${c.cls}`}>
                             {c.label}
                         </span>
@@ -164,19 +158,52 @@ export default function MisPagosPage() {
                                 {v.comentario}
                             </span>
                         )}
-                        {v.archivo_url && (
-                            <a
-                                href={v.archivo_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-1 flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                                title="Descargar Recibo"
-                            >
-                                <Download size={12} /> Ver Recibo
-                            </a>
-                        )}
                     </div>
                 );
+            },
+        },
+        {
+            label: 'Acciones',
+            className: 'text-center',
+            render: (p: any) => {
+                // Si tiene comprobante electrónico
+                if (p.comprobante_id) {
+                    return (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const { data } = await api.post(`/comprobantes/${p.comprobante_id}/pdf-token`);
+                                    window.open(`/comprobantes/${p.comprobante_id}/pdf?token=${data.token}`, '_blank');
+                                } catch (error) {
+                                    console.error('Error generando token:', error);
+                                    alert('Error al abrir el comprobante');
+                                }
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-bold"
+                            title="Ver Comprobante"
+                        >
+                            <Download size={14} /> Ver PDF
+                        </button>
+                    );
+                }
+
+                // Si tiene voucher con archivo
+                const v = p.ultimo_voucher;
+                if (v?.archivo_url) {
+                    return (
+                        <a
+                            href={v.archivo_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-xs font-bold"
+                            title="Descargar Recibo"
+                        >
+                            <Download size={14} /> Ver Recibo
+                        </a>
+                    );
+                }
+
+                return <span className="text-xs text-gray-400">-</span>;
             },
         },
     ];

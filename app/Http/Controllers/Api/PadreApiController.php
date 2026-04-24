@@ -192,14 +192,19 @@ class PadreApiController extends Controller
 
         // Payments — include last voucher status for each pago
         $pagos = Pago::where('estu_id', $hijoId)
-            ->with(['notificas' => fn ($q) => $q->orderBy('created_at', 'desc')])
+            ->with([
+                'notificas' => fn ($q) => $q->orderBy('created_at', 'desc'),
+                'concepto'
+            ])
             ->orderBy('pag_fecha', 'desc')
             ->get()
             ->map(function ($p) {
                 $ultimo = $p->notificas->first();
                 $arr = $p->toArray();
                 unset($arr['notificas']);
+                unset($arr['concepto']);
                 $arr['pag_fecha'] = $p->pag_fecha ? \Carbon\Carbon::parse($p->pag_fecha)->format('Y-m-d') : null;
+                $arr['concepto_nombre'] = $p->concepto?->nombre ?? null;
                 $arr['ultimo_voucher'] = $ultimo ? [
                     'estado'      => $ultimo->estado,
                     'comentario'  => $ultimo->comentario,
