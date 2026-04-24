@@ -49,6 +49,12 @@ class ComprobanteService implements ComprobanteServiceInterface
             $numero = $this->repo->siguienteNumero($serie);
             $total  = $pagos->sum(fn($p) => (float) $p->pag_monto);
 
+            // Calcular IGV (el total ya incluye el IGV del 18%)
+            // Op. Gravada = Total / 1.18
+            // IGV = Total - Op. Gravada
+            $opGravada = round($total / 1.18, 2);
+            $igv = round($total - $opGravada, 2);
+
             $comprobante = $this->repo->create([
                 'insti_id'          => $data['insti_id'],
                 'tipo_documento'    => $data['tipo_documento'],
@@ -61,8 +67,8 @@ class ComprobanteService implements ComprobanteServiceInterface
                 'cliente_num_doc'   => $data['cliente_num_doc'],
                 'cliente_nombre'    => $data['cliente_nombre'],
                 'cliente_direccion' => $data['cliente_direccion'] ?? null,
-                'op_gravada'        => $total,
-                'igv'               => 0,
+                'op_gravada'        => $opGravada,
+                'igv'               => $igv,
                 'total'             => $total,
                 'estado'            => 'borrador',
                 'endpoint'          => $instit->insti_sunat_endpoint ?? 'beta',
