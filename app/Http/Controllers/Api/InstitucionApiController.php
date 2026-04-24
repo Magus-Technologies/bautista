@@ -78,6 +78,32 @@ class InstitucionApiController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * GET /api/branding - Obtener logo y fondo para pantalla de login (público)
+     */
+    public function branding(): JsonResponse
+    {
+        $institucion = \App\Models\InstitucionEducativa::first();
+
+        if (!$institucion) {
+            return response()->json([
+                'logo' => null,
+                'background' => null,
+                'nombre' => 'Sistema de Gestión Educativa',
+            ]);
+        }
+
+        return response()->json([
+            'logo' => $institucion->insti_logo 
+                ? asset('storage/' . $institucion->insti_logo) 
+                : null,
+            'background' => $institucion->insti_fondo_login 
+                ? asset('storage/' . $institucion->insti_fondo_login) 
+                : null,
+            'nombre' => $institucion->insti_razon_social ?? 'Sistema de Gestión Educativa',
+        ]);
+    }
+
     private function subirLogo(StoreInstitucionRequest|UpdateInstitucionRequest $request, string $ruc): string
     {
         $file     = $request->file('logo');

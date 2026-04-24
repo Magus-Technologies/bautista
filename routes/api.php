@@ -51,6 +51,9 @@ Route::prefix('auth')->group(function () {
     Route::post('logout', [AuthApiController::class, 'logout']);
 });
 
+// ── Branding público (para app móvil) ─────────────────────────────────────
+Route::get('branding', [InstitucionApiController::class, 'branding']);
+
 // ── Rutas protegidas (requiere token Sanctum) ─────────────────────────────
 Route::middleware(['auth:sanctum'])->group(function () {
 
