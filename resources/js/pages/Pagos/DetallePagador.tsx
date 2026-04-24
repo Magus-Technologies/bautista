@@ -2,10 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Wallet, CreditCard, Clock, Calendar, FileText } from 'lucide-react';
+import { Plus, Wallet, CreditCard, Clock, Calendar, FileText, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PagoFormModal from './components/PagoFormModal';
 import ComprobanteModal from './components/ComprobanteModal';
+import EnviarComprobanteModal from './components/EnviarComprobanteModal';
 import axios from 'axios';
 import type { Pago } from './hooks/usePago';
 import AppLayout from '@/layouts/app-layout';
@@ -51,6 +52,10 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
 
     const [comprobanteOpen, setComprobanteOpen] = useState(false);
     const [pagosParaComprobante, setPagosParaComprobante] = useState<Pago[]>([]);
+    const [comprobanteInicial, setComprobanteInicial] = useState<any>(undefined);
+
+    const [enviarModalOpen, setEnviarModalOpen] = useState(false);
+    const [comprobanteIdParaEnviar, setComprobanteIdParaEnviar] = useState<number | null>(null);
 
     const pagos = useMemo(() => {
         const raw = pagosData as any;
@@ -92,7 +97,28 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
 
     const openComprobanteModal = (pago: Pago) => {
         setPagosParaComprobante([pago]);
+        setComprobanteInicial(undefined);
         setComprobanteOpen(true);
+    };
+
+    const openComprobanteExistente = async (pago: Pago) => {
+        if (!pago.comprobante_id) return;
+        try {
+            const { data } = await axios.get(`/api/comprobantes/${pago.comprobante_id}`);
+            setPagosParaComprobante([pago]);
+            setComprobanteInicial(data.comprobante);
+            setComprobanteOpen(true);
+        } catch {
+            // fallback: abrir modal vacío
+            setPagosParaComprobante([pago]);
+            setComprobanteInicial(undefined);
+            setComprobanteOpen(true);
+        }
+    };
+
+    const handleEnviarComprobante = (comprobanteId: number) => {
+        setComprobanteIdParaEnviar(comprobanteId);
+        setEnviarModalOpen(true);
     };
 
     const handleCreatePago = async (data: any) => {
@@ -208,20 +234,6 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                         {p.pag_fecha || '—'}
                     </div>
                 )
-            },
-            {
-                label: 'Comprobante',
-                className: 'text-center',
-                render: (p) => (
-                    <button
-                        onClick={() => openComprobanteModal(p)}
-                        title="Emitir boleta / factura"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                        <FileText className="size-3.5" />
-                        Emitir
-                    </button>
-                )
             }
         );
 
@@ -270,6 +282,36 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                                                 getKey={(p) => p.pag_id}
                                                 onEdit={handleEdit}
                                                 onDelete={handleDelete}
+                                                extraActions={(pago: Pago) => (
+                                                    <>
+                                                        {pago.comprobante_id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openComprobanteExistente(pago)}
+                                                                    title="Ver comprobante"
+                                                                    className="inline-flex items-center justify-center size-8 text-green-600 hover:text-green-700 transition-colors"
+                                                                >
+                                                                    <FileText className="size-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleEnviarComprobante(pago.comprobante_id!)}
+                                                                    title="Enviar comprobante"
+                                                                    className="inline-flex items-center justify-center size-8 text-blue-600 hover:text-blue-700 transition-colors"
+                                                                >
+                                                                    <Send className="size-4" />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => openComprobanteModal(pago)}
+                                                                title="Emitir boleta / factura"
+                                                                className="inline-flex items-center justify-center size-8 text-blue-600 hover:text-blue-700 transition-colors"
+                                                            >
+                                                                <FileText className="size-4" />
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                )}
                                             />
                                         </div>
                                     )
@@ -286,6 +328,36 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                                                 getKey={(p) => p.pag_id}
                                                 onEdit={handleEdit}
                                                 onDelete={handleDelete}
+                                                extraActions={(pago: Pago) => (
+                                                    <>
+                                                        {pago.comprobante_id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openComprobanteExistente(pago)}
+                                                                    title="Ver comprobante"
+                                                                    className="inline-flex items-center justify-center size-8 text-green-600 hover:text-green-700 transition-colors"
+                                                                >
+                                                                    <FileText className="size-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleEnviarComprobante(pago.comprobante_id!)}
+                                                                    title="Enviar comprobante"
+                                                                    className="inline-flex items-center justify-center size-8 text-blue-600 hover:text-blue-700 transition-colors"
+                                                                >
+                                                                    <Send className="size-4" />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => openComprobanteModal(pago)}
+                                                                title="Emitir boleta / factura"
+                                                                className="inline-flex items-center justify-center size-8 text-blue-600 hover:text-blue-700 transition-colors"
+                                                            >
+                                                                <FileText className="size-4" />
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                )}
                                             />
                                         </div>
                                     )
@@ -315,10 +387,19 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
 
             <ComprobanteModal
                 open={comprobanteOpen}
-                onClose={() => setComprobanteOpen(false)}
+                onClose={() => { setComprobanteOpen(false); setComprobanteInicial(undefined); }}
                 pagos={pagosParaComprobante}
                 pagador={pagador}
                 estudianteId={pagador.estudiante_id}
+                initialResult={comprobanteInicial}
+            />
+
+            <EnviarComprobanteModal
+                open={enviarModalOpen}
+                onClose={() => setEnviarModalOpen(false)}
+                comprobanteId={comprobanteIdParaEnviar}
+                defaultPhone={pagador.telefono_1}
+                defaultEmail=""
             />
         </AppLayout>
     );

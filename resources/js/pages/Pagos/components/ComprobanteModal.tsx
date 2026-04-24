@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, FileText, CheckCircle2, XCircle, Send } from 'lucide-react';
+import { Loader2, FileText, CheckCircle2, XCircle, Send, Download, Printer } from 'lucide-react';
 import axios from 'axios';
 import type { Pago } from '../hooks/usePago';
 
@@ -17,28 +17,47 @@ interface Pagador {
     numero_doc: string;
 }
 
+interface ComprobanteItem {
+    id: number;
+    descripcion: string;
+    unidad: string;
+    cantidad: number;
+    precio_unitario: string | number;
+    subtotal: string | number;
+}
+
 interface Comprobante {
     id: number;
     tipo_documento: string;
     serie: string;
     numero: number;
+    fecha_emision: string | null;
+    cliente_tipo_doc: string;
+    cliente_num_doc: string;
+    cliente_nombre: string;
+    cliente_direccion: string | null;
+    op_gravada: string | number;
+    igv: string | number;
     total: string | number;
     estado: string;
     nombre_archivo: string | null;
     hash: string | null;
     qr_info: string | null;
+    contenido_xml: string | null;
     sunat_response: string | null;
+    items?: ComprobanteItem[];
 }
 
 interface Props {
     open: boolean;
     onClose: () => void;
-    pagos: Pago[];             // pagos seleccionados para el comprobante
+    pagos: Pago[];
     pagador: Pagador;
     estudianteId: number | undefined;
+    initialResult?: Comprobante;   // para abrir directamente en vista de resultado
 }
 
-export default function ComprobanteModal({ open, onClose, pagos, pagador, estudianteId }: Props) {
+export default function ComprobanteModal({ open, onClose, pagos, pagador, estudianteId, initialResult }: Props) {
     const [tipo, setTipo] = useState<'boleta' | 'factura'>('boleta');
     const [formaPago, setFormaPago] = useState<'contado' | 'credito'>('contado');
     const [clienteNombre, setClienteNombre] = useState('');
@@ -56,12 +75,58 @@ export default function ComprobanteModal({ open, onClose, pagos, pagador, estudi
             setClienteNombre(`${pagador.nombres} ${pagador.apellidos}`);
             setClienteNumDoc(pagador.numero_doc ?? '');
             setClienteTipoDoc(pagador.numero_doc?.length === 11 ? '06' : '01');
-            setResult(null);
+            setResult(initialResult ?? null);
             setError(null);
         }
-    }, [open, pagador]);
+    }, [open, pagador, initialResult]);
 
     const total = pagos.reduce((acc, p) => acc + Number(p.pag_monto ?? 0), 0);
+
+    const openPdf = () => {
+        if (!result) return;
+        // Generar token temporal y abrir PDF en nueva pestaña
+        axios.post(`/api/comprobantes/${result.id}/pdf-token`)
+            .then(({ data }) => {
+                // Abrir PDF con token en nueva pestaña
+                window.open(`/comprobantes/${result.id}/pdf?token=${data.token}`, '_blank');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                setError('Error al generar el PDF');
+            });
+    };
+
+    const downloadXml = () => {
+        if (!result?.contenido_xml) return;
+        const blob = new Blob([result.contenido_xml], { type: 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${result.nombre_archivo ?? 'comprobante'}.xml`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadCdr = () => {
+        if (!result?.sunat_response || result.estado !== 'aceptado') return;
+        try {
+            const clean = result.sunat_response.replace(/[\s\r\n]/g, '');
+            const binary = atob(clean);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/zip' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `R-${result.nombre_archivo ?? 'cdr'}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            setError('No se pudo descargar el CDR.');
+        }
+    };
 
     const handleEmitir = async () => {
         if (!clienteNombre || !clienteNumDoc) {
@@ -269,6 +334,41 @@ export default function ComprobanteModal({ open, onClose, pagos, pagador, estudi
                                 {result.qr_info && <p><span className="font-medium">QR:</span> {result.qr_info}</p>}
                             </div>
                         )}
+
+                        {/* Botones de descarga */}
+                        <div className="flex gap-2 flex-wrap">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={openPdf}
+                                className="h-8 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
+                            >
+                                <Printer className="size-3.5" />
+                                Ver PDF
+                            </Button>
+                            {result.contenido_xml && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={downloadXml}
+                                    className="h-8 text-xs gap-1.5"
+                                >
+                                    <Download className="size-3.5" />
+                                    Descargar XML
+                                </Button>
+                            )}
+                            {result.estado === 'aceptado' && result.sunat_response && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={downloadCdr}
+                                    className="h-8 text-xs gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
+                                >
+                                    <Download className="size-3.5" />
+                                    Descargar CDR
+                                </Button>
+                            )}
+                        </div>
 
                         {result.sunat_response && result.estado === 'rechazado' && (
                             <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">

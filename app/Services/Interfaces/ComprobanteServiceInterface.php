@@ -28,6 +28,9 @@ interface ComprobanteServiceInterface
      */
     public function emitir(array $data): Comprobante;
 
+    /** Busca un comprobante por ID. */
+    public function findById(int $id): Comprobante;
+
     /** Envía un comprobante ya generado a SUNAT y actualiza el estado. */
     public function enviarASunat(int $comprobanteId): Comprobante;
 

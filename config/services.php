@@ -41,7 +41,7 @@ return [
     ],
 
     'sunat' => [
-        'api_url' => env('SUNAT_API_URL', 'https://magustechnologies.com/apisunat/api/v1'),
+        'api_url' => env('SUNAT_API_URL', 'https://magustechnologies.com/apisunat/api'),
     ],
 
 ];

@@ -18,6 +18,28 @@ Route::middleware(['auth.token'])->group(function () {
     Route::get('/institucion',         fn () => Inertia::render('Institucion/index'))->middleware('permission:institucion.datos.ver')->name('institucion.index');
     Route::get('/institucion/galeria',   fn () => Inertia::render('Institucion/Galeria/index'))->middleware('permission:institucion.galeria.ver')->name('institucion.galeria');
     Route::get('/institucion/noticias',  fn () => Inertia::render('Institucion/Noticias/index'))->middleware('permission:institucion.noticias.ver')->name('institucion.noticias');
+    Route::get('/institucion/comprobantes', fn () => Inertia::render('Institucion/Comprobantes/index'))->middleware('permission:institucion.datos.ver')->name('institucion.comprobantes');
+    
+    // Ruta pública para PDF con token temporal
+    Route::get('/comprobantes/{id}/pdf', function ($id) {
+        $token = request('token');
+        
+        if (!$token) {
+            abort(403, 'Token requerido');
+        }
+        
+        $cachedId = \Illuminate\Support\Facades\Cache::get("pdf_token_{$token}");
+        
+        if (!$cachedId || $cachedId != $id) {
+            abort(403, 'Token inválido o expirado');
+        }
+        
+        // Eliminar token después de usarlo
+        \Illuminate\Support\Facades\Cache::forget("pdf_token_{$token}");
+        
+        // Llamar al controlador
+        return app(\App\Http\Controllers\Api\ComprobanteApiController::class)->pdf($id);
+    })->name('comprobantes.pdf');
     Route::get('/institucion/noticias/portada', [\App\Http\Controllers\Admin\NoticiaController::class, 'portada'])->middleware('permission:institucion.noticias.ver|institucion.noticias.portada')->name('institucion.noticias.portada');
     Route::get('/institucion/noticias/diario/{id}', [\App\Http\Controllers\Admin\NoticiaController::class, 'showDiario'])->middleware('permission:institucion.noticias.ver|institucion.noticias.portada')->name('institucion.noticias.diario');
     Route::post('/institucion/noticias/{id}/comentarios', [\App\Http\Controllers\Admin\NoticiaController::class, 'storeComentario'])->middleware('permission:institucion.noticias.comentar')->name('institucion.noticias.comentarios.store');

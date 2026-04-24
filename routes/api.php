@@ -176,9 +176,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/',                                      [\App\Http\Controllers\Api\ComprobanteApiController::class, 'index']);
         Route::post('/',                                     [\App\Http\Controllers\Api\ComprobanteApiController::class, 'store']);
         Route::post('/certificado',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'subirCertificado']);
-        Route::post('/{id}/enviar',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'enviar']);
+        Route::post('/pdf-dual',                             [\App\Http\Controllers\Api\ComprobanteApiController::class, 'pdfDual']);
         Route::get('/contacto/{contactoId}',                 [\App\Http\Controllers\Api\ComprobanteApiController::class, 'porContacto']);
+        Route::get('/{id}',                                  [\App\Http\Controllers\Api\ComprobanteApiController::class, 'show']);
+        Route::post('/{id}/pdf-token',                       [\App\Http\Controllers\Api\ComprobanteApiController::class, 'generatePdfToken']);
+        Route::get('/{id}/pdf',                              [\App\Http\Controllers\Api\ComprobanteApiController::class, 'pdf']);
+        Route::post('/{id}/enviar',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'enviar']);
     });
+
+    // Configuración de comprobantes
+    Route::get('configuracion-comprobante',                  [\App\Http\Controllers\Api\ConfiguracionComprobanteApiController::class, 'show']);
+    Route::put('configuracion-comprobante',                  [\App\Http\Controllers\Api\ConfiguracionComprobanteApiController::class, 'update']);
 
     // Conceptos de pago configurables
     Route::prefix('conceptos-pago')->group(function () {

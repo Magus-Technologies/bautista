@@ -38,6 +38,7 @@ export type Pago = {
     pag_notifica:    'SI' | 'NO';
     pag_fecha:       string | null;
     estatus:         0 | 1;
+    comprobante_id:  number | null;
     observacion:     string | null;
 };
 

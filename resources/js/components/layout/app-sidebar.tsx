@@ -72,6 +72,7 @@ const navigation: NavItem[] = [
         { title: 'Datos Básicos', href: '/institucion', permission: 'institucion.datos.ver' },
         { title: 'Galería',       href: '/institucion/galeria', permission: 'institucion.galeria.ver' },
         { title: 'Noticias',      href: '/institucion/noticias', permission: 'institucion.noticias.ver' },
+        { title: 'Comprobantes',  href: '/institucion/comprobantes', permission: 'institucion.datos.ver' },
     ]},
     { type: 'link', title: 'Comunicados',     icon: Newspaper,       href: '/mensajes', permission: 'admin.comunicados.ver' },
     { type: 'link', title: 'Pagos',           icon: CreditCard,      href: '/pagos', permission: 'admin.pagos.ver' },

@@ -28,6 +28,7 @@ class PagoResource extends JsonResource
             'pag_notifica'    => $this->pag_notifica,
             'pag_fecha'       => $this->pag_fecha?->toDateString(),
             'estatus'         => $this->estatus,
+            'comprobante_id'  => $this->comprobante_id,
             'observacion'     => $this->observacion,
             'ultimo_voucher'  => $this->whenLoaded('notificas', function () {
                 $v = $this->notificas->sortByDesc('created_at')->first();

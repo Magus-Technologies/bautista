@@ -23,7 +23,7 @@ class ComprobanteService implements ComprobanteServiceInterface
     public function __construct(
         private readonly ComprobanteRepositoryInterface $repo,
     ) {
-        $this->apiUrl = rtrim(config('services.sunat.api_url', 'https://magustechnologies.com/apisunat/api/v1'), '/');
+        $this->apiUrl = rtrim(config('services.sunat.api_url', 'https://magustechnologies.com/apisunat/api'), '/');
     }
 
     // ── Emisión ────────────────────────────────────────────────────────────
@@ -89,8 +89,18 @@ class ComprobanteService implements ComprobanteServiceInterface
             // Llamar a la API Magus para generar el XML firmado
             $comprobante = $this->llamarApiGenerar($comprobante, $instit);
 
+            // Marcar pagos como PAGADO si el comprobante fue generado correctamente
+            if ($comprobante->estado === 'generado') {
+                Pago::whereIn('pag_id', $pagos->pluck('pag_id'))->update(['estatus' => 1]);
+            }
+
             return $comprobante;
         });
+    }
+
+    public function findById(int $id): Comprobante
+    {
+        return $this->repo->findById($id);
     }
 
     // ── Envío a SUNAT ──────────────────────────────────────────────────────
@@ -196,31 +206,39 @@ class ComprobanteService implements ComprobanteServiceInterface
             'precio'       => (float) $item->precio_unitario,
         ])->values()->toArray();
 
+        $fechaEmision = $comprobante->fecha_emision->toDateString();
+
         $payload = [
-            'endpoint'     => $comprobante->endpoint,
-            'documento'    => $comprobante->tipo_documento,
-            'empresa'      => [
-                'ruc'          => (int) $instit->insti_ruc,
-                'usuario'      => $instit->insti_sunat_usuario,
-                'clave'        => $instit->insti_sunat_clave,
-                'razon_social' => $instit->insti_razon_social,
-                'direccion'    => $instit->insti_direccion ?? '',
+            'endpoint'          => $comprobante->endpoint,
+            'documento'         => $comprobante->tipo_documento,
+            'empresa'           => [
+                'ruc'           => (int) $instit->insti_ruc,
+                'usuario'       => $instit->insti_sunat_usuario,
+                'clave'         => $instit->insti_sunat_clave,
+                'razon_social'  => $instit->insti_razon_social,
+                'direccion'     => $instit->insti_direccion ?? 'SIN DIRECCION',
+                'ubigeo'        => '150101',
+                'distrito'      => 'LIMA',
+                'provincia'     => 'LIMA',
+                'departamento'  => 'LIMA',
             ],
-            'cliente'      => [
-                'num_doc'    => (int) $comprobante->cliente_num_doc,
-                'rzn_social' => $comprobante->cliente_nombre,
-                'direccion'  => $comprobante->cliente_direccion ?? '',
+            'cliente'           => [
+                'num_doc'       => (int) $comprobante->cliente_num_doc,
+                'rzn_social'    => $comprobante->cliente_nombre,
+                'direccion'     => $comprobante->cliente_direccion ?? '',
             ],
-            'serie'        => $comprobante->serie,
-            'numero'       => (string) $comprobante->numero,
-            'fecha_emision'=> $comprobante->fecha_emision->toDateString(),
-            'moneda'       => $comprobante->moneda,
-            'forma_pago'   => $comprobante->forma_pago,
-            'detalles'     => $items,
+            'serie'             => $comprobante->serie,
+            'numero'            => (string) $comprobante->numero,
+            'fecha_emision'     => $fechaEmision,
+            'fecha_vencimiento' => $fechaEmision,
+            'moneda'            => $comprobante->moneda,
+            'forma_pago'        => $comprobante->forma_pago,
+            'total'             => (float) $comprobante->total,
+            'detalles'          => $items,
         ];
 
         try {
-            $response = Http::timeout(30)->post("{$this->apiUrl}/generar/comprobante", $payload);
+            $response = Http::timeout(30)->post("{$this->apiUrl}/generar/comprobante/electronico", $payload);
             $body     = $response->json();
 
             if ($response->successful() && ($body['estado'] ?? false)) {

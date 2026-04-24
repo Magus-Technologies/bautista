@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Wallet, BarChart2, Users, FileBarChart2 } from 'lucide-react';
+import { Wallet, BarChart2, Users, FileBarChart2, FileText } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/shared/PageHeader';
 import PageTabs from '@/components/shared/PageTabs';
@@ -7,6 +7,7 @@ import type { BreadcrumbItem } from '@/types';
 import DashboardView from './views/DashboardView';
 import PagadoresView from './views/PagadoresView';
 import ReporteView from './views/ReporteView';
+import ComprobantesView from './views/ComprobantesView';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -31,6 +32,7 @@ export default function PagosPage() {
                     tabs={[
                         { value: 'dashboard', label: 'Dashboard', icon: BarChart2,    content: <DashboardView /> },
                         { value: 'pagadores', label: 'Pagadores', icon: Users,        content: <PagadoresView /> },
+                        { value: 'comprobantes', label: 'Comprobantes', icon: FileText, content: <ComprobantesView /> },
                         { value: 'reporte',   label: 'Reporte',   icon: FileBarChart2, content: <ReporteView /> },
                     ]}
                 />
