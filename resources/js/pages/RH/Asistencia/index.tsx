@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { Clock, Download } from 'lucide-react';
-import { useState } from 'react';
+import { Clock, Download, Filter, Search, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import ResourceTable from '@/components/shared/ResourceTable';
 import type { Column } from '@/components/shared/ResourceTable';
@@ -11,6 +11,12 @@ import type { BreadcrumbItem } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AsistenciaManualModal } from './components/AsistenciaManualModal';
+import axios from 'axios';
 
 type Asistencia = {
     asistencia_personal_id: number;
@@ -19,6 +25,7 @@ type Asistencia = {
     hora_entrada: string | null;
     hora_salida: string | null;
     estado: 'presente' | 'ausente' | 'tardanza' | 'permiso' | 'vacaciones' | 'licencia';
+    estado_label: string;
     minutos_tardanza: number;
     descuento_aplicado: number;
     observaciones: string | null;
@@ -35,30 +42,57 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Asistencia', href: '/rh/asistencia' },
 ];
 
-const estadoBadge = (estado: string) => {
-    const variants: Record<string, { variant: 'default' | 'success' | 'warning' | 'destructive'; label: string }> = {
-        presente: { variant: 'success', label: 'Presente' },
-        ausente: { variant: 'destructive', label: 'Ausente' },
-        tardanza: { variant: 'warning', label: 'Tardanza' },
-        permiso: { variant: 'default', label: 'Permiso' },
-        vacaciones: { variant: 'default', label: 'Vacaciones' },
-        licencia: { variant: 'default', label: 'Licencia' },
-    };
-    const config = variants[estado] || { variant: 'default', label: estado };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-};
-
 export default function AsistenciaRHPage() {
-    const res = useResource<Asistencia>('/rh/asistencia');
-    const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [filters, setFilters] = useState({
+        user_id: '',
+        fecha_desde: format(new Date(), 'yyyy-MM-01'),
+        fecha_hasta: format(new Date(), 'yyyy-MM-dd'),
+        estado: 'todos'
+    });
+    
+    const res = useResource<Asistencia>('/rh/asistencia', {
+        params: {
+            ...filters,
+            estado: filters.estado === 'todos' ? null : filters.estado
+        }
+    });
+
+    const [personal, setPersonal] = useState<any[]>([]);
+    const [manualModalOpen, setManualModalOpen] = useState(false);
+
+    useEffect(() => {
+        loadPersonal();
+    }, []);
+
+    const loadPersonal = async () => {
+        try {
+            const response = await axios.get('/api/rh/contratos/activos');
+            setPersonal(response.data.data.map((c: any) => c.user));
+        } catch (error) {
+            console.error('Error al cargar personal:', error);
+        }
+    };
 
     const columns: Column<Asistencia>[] = [
         { label: '#', render: (_a, i) => ((res.rows?.current_page || 1) - 1) * (res.rows?.per_page || 15) + (i || 0) + 1 },
         { label: 'Trabajador', render: (a) => a.user?.nombre_completo || '—' },
-        { label: 'Fecha', render: (a) => format(new Date(a.fecha), 'dd/MM/yyyy', { locale: es }) },
+        { label: 'Fecha', render: (a) => format(new Date(a.fecha + 'T00:00:00'), 'dd/MM/yyyy', { locale: es }) },
         { label: 'Entrada', render: (a) => a.hora_entrada?.substring(0, 5) || '—' },
         { label: 'Salida', render: (a) => a.hora_salida?.substring(0, 5) || '—' },
-        { label: 'Estado', render: (a) => estadoBadge(a.estado) },
+        { 
+            label: 'Estado', 
+            render: (a) => {
+                const variants: any = { 
+                    presente: 'success', 
+                    ausente: 'destructive', 
+                    tardanza: 'warning',
+                    permiso: 'default',
+                    vacaciones: 'secondary',
+                    licencia: 'secondary'
+                };
+                return <Badge variant={variants[a.estado] || 'outline'}>{a.estado.toUpperCase()}</Badge>;
+            }
+        },
         { 
             label: 'Tardanza', 
             render: (a) => a.minutos_tardanza > 0 ? (
@@ -74,8 +108,8 @@ export default function AsistenciaRHPage() {
         { 
             label: 'Tipo', 
             render: (a) => (
-                <Badge variant={a.tipo_registro === 'automatico' ? 'default' : 'secondary'}>
-                    {a.tipo_registro === 'automatico' ? 'Auto' : 'Manual'}
+                <Badge variant="outline" className={a.tipo_registro === 'manual' ? 'bg-blue-50 text-blue-700' : ''}>
+                    {a.tipo_registro.toUpperCase()}
                 </Badge>
             )
         },
@@ -94,12 +128,57 @@ export default function AsistenciaRHPage() {
                         iconColor="bg-blue-600"
                     />
                     <div className="flex gap-2">
+                        <Button onClick={() => setManualModalOpen(true)} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <Plus className="h-4 w-4" />
+                            Registro Manual
+                        </Button>
                         <Button variant="outline" className="gap-2">
                             <Download className="h-4 w-4" />
                             Exportar
                         </Button>
                     </div>
                 </div>
+
+                <Card>
+                    <CardContent className="p-4 flex flex-wrap gap-4 items-end">
+                        <div className="space-y-1.5 flex-1 min-w-[200px]">
+                            <Label>Trabajador</Label>
+                            <Select value={filters.user_id} onValueChange={(v) => setFilters({ ...filters, user_id: v })}>
+                                <SelectTrigger><SelectValue placeholder="Todos los trabajadores" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos los trabajadores</SelectItem>
+                                    {personal.map(p => (
+                                        <SelectItem key={p.id} value={p.id.toString()}>{p.nombre_completo}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5 w-40">
+                            <Label>Desde</Label>
+                            <Input type="date" value={filters.fecha_desde} onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5 w-40">
+                            <Label>Hasta</Label>
+                            <Input type="date" value={filters.fecha_hasta} onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5 w-40">
+                            <Label>Estado</Label>
+                            <Select value={filters.estado} onValueChange={(v) => setFilters({ ...filters, estado: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos</SelectItem>
+                                    <SelectItem value="presente">Presente</SelectItem>
+                                    <SelectItem value="tardanza">Tardanza</SelectItem>
+                                    <SelectItem value="ausente">Ausente</SelectItem>
+                                    <SelectItem value="permiso">Permiso</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button onClick={() => res.reload()} variant="outline" className="gap-2">
+                            <Search className="h-4 w-4" /> Buscar
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 {res.rows && (
                     <ResourceTable
@@ -109,10 +188,13 @@ export default function AsistenciaRHPage() {
                         onPageChange={res.setPage}
                     />
                 )}
-                {res.loading && (
-                    <div className="py-8 text-center text-sm text-gray-400 animate-pulse">Cargando...</div>
-                )}
             </div>
+
+            <AsistenciaManualModal 
+                open={manualModalOpen} 
+                onClose={() => setManualModalOpen(false)} 
+                onSuccess={() => { setManualModalOpen(false); res.reload(); }} 
+            />
         </AppLayout>
     );
 }

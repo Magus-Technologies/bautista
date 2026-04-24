@@ -110,6 +110,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PagoNotificaRepositoryInterface::class, PagoNotificaRepository::class);
         $this->app->bind(PagoNotificaServiceInterface::class, PagoNotificaService::class);
 
+        // Comprobantes electrónicos (boletas / facturas SUNAT)
+        $this->app->bind(
+            \App\Repositories\Interfaces\ComprobanteRepositoryInterface::class,
+            \App\Repositories\Implements\ComprobanteRepository::class,
+        );
+        $this->app->bind(
+            \App\Services\Interfaces\ComprobanteServiceInterface::class,
+            \App\Services\Implements\ComprobanteService::class,
+        );
+
         // Institución
         $this->app->bind(InstitucionRepositoryInterface::class, InstitucionRepository::class);
         $this->app->bind(InstitucionServiceInterface::class, InstitucionService::class);

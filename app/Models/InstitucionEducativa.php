@@ -21,6 +21,15 @@ class InstitucionEducativa extends Model
         'insti_ndni',
         'insti_logo',
         'insti_estatus',
+        'insti_sunat_usuario',
+        'insti_sunat_clave',
+        'insti_sunat_endpoint',
+        'insti_certificado_path',
+        'insti_certificado_enviado',
+    ];
+
+    protected $casts = [
+        'insti_certificado_enviado' => 'boolean',
     ];
 
     public function usuarios(): HasMany

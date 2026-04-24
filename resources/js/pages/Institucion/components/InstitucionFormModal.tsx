@@ -1,4 +1,4 @@
-import { School, Phone, User, Image as ImageIcon } from 'lucide-react';
+import { School, Image as ImageIcon, ShieldCheck, CheckCircle2, Upload } from 'lucide-react';
 import FormField from '@/components/shared/FormField';
 import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default function InstitucionFormModal({ open, onClose, editing, onSave, apiErrors, clearErrors }: Props) {
-    const { form, set, logoFile, setLogoFile, fileInputRef, processing, handleSubmit } =
+    const { form, set, logoFile, setLogoFile, pemFile, setPemFile, pemInputRef, fileInputRef, processing, handleSubmit } =
         useInstitucionForm({ editing, open, onSave, onClose, clearErrors });
 
     const err = (key: keyof InstitucionFormData | 'logo') => apiErrors[key]?.[0];
@@ -123,6 +123,73 @@ export default function InstitucionFormModal({ open, onClose, editing, onSave, a
                                 error={err('insti_ndni')}
                                 placeholder="Ej: 12345678"
                             />
+                        </div>
+                    </div>
+
+                    {/* Sección: SUNAT / Facturación Electrónica */}
+                    <div className="space-y-4">
+                        <TitleForm className="border-b border-neutral-100">
+                            <span className="flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                Facturación Electrónica (SUNAT)
+                            </span>
+                        </TitleForm>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                label="Usuario SOL"
+                                value={form.insti_sunat_usuario}
+                                onChange={(v) => set('insti_sunat_usuario', v)}
+                                error={apiErrors['insti_sunat_usuario']?.[0]}
+                                placeholder="Ej: MODDATOS"
+                            />
+                            <FormField
+                                label="Clave SOL"
+                                value={form.insti_sunat_clave}
+                                onChange={(v) => set('insti_sunat_clave', v)}
+                                error={apiErrors['insti_sunat_clave']?.[0]}
+                                placeholder="Ej: moddatos"
+                                type="password"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-neutral-700">Entorno SUNAT</label>
+                            <select
+                                value={form.insti_sunat_endpoint}
+                                onChange={(e) => set('insti_sunat_endpoint', e.target.value)}
+                                className="w-full h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="beta">Beta (Pruebas)</option>
+                                <option value="production">Production (Real)</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-neutral-700">
+                                Certificado Digital (.pem)
+                            </label>
+                            <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                                <Upload className="w-5 h-5 text-neutral-400 shrink-0" />
+                                <div className="flex-1">
+                                    <input
+                                        ref={pemInputRef}
+                                        type="file"
+                                        accept=".pem,.txt"
+                                        className="block w-full text-sm text-neutral-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                        onChange={(e) => setPemFile(e.target.files?.[0] ?? null)}
+                                    />
+                                    {pemFile && (
+                                        <p className="text-xs text-blue-600 mt-1 font-medium">{pemFile.name}</p>
+                                    )}
+                                </div>
+                                {editing?.insti_certificado_enviado && !pemFile && (
+                                    <span className="flex items-center gap-1 text-xs text-green-600 font-semibold shrink-0">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        Enviado
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-neutral-400">
+                                Solo si vas a cambiar el certificado. Se enviará automáticamente a la API SUNAT al guardar.
+                            </p>
                         </div>
                     </div>
 

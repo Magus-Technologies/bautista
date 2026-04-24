@@ -171,6 +171,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::patch('/vouchers/{notificaId}/estado',      [PagoApiController::class, 'validarVoucher']);
     });
 
+    // Comprobantes electrónicos (boletas / facturas SUNAT)
+    Route::prefix('comprobantes')->group(function () {
+        Route::get('/',                                      [\App\Http\Controllers\Api\ComprobanteApiController::class, 'index']);
+        Route::post('/',                                     [\App\Http\Controllers\Api\ComprobanteApiController::class, 'store']);
+        Route::post('/certificado',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'subirCertificado']);
+        Route::post('/{id}/enviar',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'enviar']);
+        Route::get('/contacto/{contactoId}',                 [\App\Http\Controllers\Api\ComprobanteApiController::class, 'porContacto']);
+    });
+
     // Conceptos de pago configurables
     Route::prefix('conceptos-pago')->group(function () {
         Route::get('/',                       [ConceptoPagoApiController::class, 'index']);

@@ -40,4 +40,8 @@ return [
         'url'   => env('APISPERU_DNI_RUC_URL', 'https://dniruc.apisperu.com/api/v1'),
     ],
 
+    'sunat' => [
+        'api_url' => env('SUNAT_API_URL', 'https://magustechnologies.com/apisunat/api/v1'),
+    ],
+
 ];

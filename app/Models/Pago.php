@@ -14,7 +14,8 @@ class Pago extends Model
         'insti_id',
         'estu_id',
         'contacto_id',
-        'concepto_id',   // nuevo — FK a concepto_pago
+        'concepto_id',
+        'comprobante_id',
         'pag_anual',
         'pag_mes',       // nullable para conceptos único/anual
         'pag_monto',
@@ -61,5 +62,10 @@ class Pago extends Model
     public function notificas(): HasMany
     {
         return $this->hasMany(PagoNotifica::class, 'pag_id', 'pag_id');
+    }
+
+    public function comprobante(): BelongsTo
+    {
+        return $this->belongsTo(Comprobante::class, 'comprobante_id');
     }
 }

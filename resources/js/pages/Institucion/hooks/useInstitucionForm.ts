@@ -11,29 +11,34 @@ type Props = {
 };
 
 export function useInstitucionForm({ editing, open, onSave, onClose, clearErrors }: Props) {
-    const [form, setForm]           = useState<InstitucionFormData>(defaultForm);
-    const [logoFile, setLogoFile]   = useState<File | null>(null);
-    const [processing, setProc]     = useState(false);
-    const fileInputRef              = useRef<HTMLInputElement>(null);
+    const [form, setForm]               = useState<InstitucionFormData>(defaultForm);
+    const [logoFile, setLogoFile]       = useState<File | null>(null);
+    const [pemFile, setPemFile]         = useState<File | null>(null);
+    const [processing, setProc]         = useState(false);
+    const fileInputRef                  = useRef<HTMLInputElement>(null);
+    const pemInputRef                   = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         clearErrors();
         setLogoFile(null);
+        setPemFile(null);
 
-        if (fileInputRef.current) {
-fileInputRef.current.value = '';
-}
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (pemInputRef.current)  pemInputRef.current.value  = '';
 
         setForm(editing
             ? {
-                insti_ruc:          editing.insti_ruc          ?? '',
-                insti_razon_social: editing.insti_razon_social ?? '',
-                insti_direccion:    editing.insti_direccion    ?? '',
-                insti_telefono1:    editing.insti_telefono1    ?? '',
-                insti_telefono2:    editing.insti_telefono2    ?? '',
-                insti_email:        editing.insti_email        ?? '',
-                insti_director:     editing.insti_director     ?? '',
-                insti_ndni:         editing.insti_ndni         ?? '',
+                insti_ruc:            editing.insti_ruc            ?? '',
+                insti_razon_social:   editing.insti_razon_social   ?? '',
+                insti_direccion:      editing.insti_direccion      ?? '',
+                insti_telefono1:      editing.insti_telefono1      ?? '',
+                insti_telefono2:      editing.insti_telefono2      ?? '',
+                insti_email:          editing.insti_email          ?? '',
+                insti_director:       editing.insti_director       ?? '',
+                insti_ndni:           editing.insti_ndni           ?? '',
+                insti_sunat_usuario:  editing.insti_sunat_usuario  ?? '',
+                insti_sunat_clave:    editing.insti_sunat_clave    ?? '',
+                insti_sunat_endpoint: editing.insti_sunat_endpoint ?? 'beta',
             }
             : defaultForm,
         );
@@ -52,9 +57,8 @@ fileInputRef.current.value = '';
                 fd.append(k, form[k]);
             });
 
-            if (logoFile) {
-fd.append('logo', logoFile);
-}
+            if (logoFile) fd.append('logo', logoFile);
+            if (pemFile)  fd.append('certificado', pemFile);
 
             await onSave(fd);
             onClose();
@@ -65,5 +69,5 @@ fd.append('logo', logoFile);
         }
     };
 
-    return { form, set, logoFile, setLogoFile, fileInputRef, processing, handleSubmit };
+    return { form, set, logoFile, setLogoFile, pemFile, setPemFile, pemInputRef, fileInputRef, processing, handleSubmit };
 }

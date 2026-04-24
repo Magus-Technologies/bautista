@@ -17,7 +17,8 @@ class AsistenciaService implements AsistenciaServiceInterface
     public function __construct(
         private readonly AsistenciaRepositoryInterface $repository,
         private readonly \App\Services\Interfaces\RhAsistenciaPersonalServiceInterface $rhService
-    ) {}
+    ) {
+    }
 
     public function calendarioPersona(int $instiId, int $personaId, string $tipo, int $anio, int $mes): array
     {
@@ -29,11 +30,11 @@ class AsistenciaService implements AsistenciaServiceInterface
             $key = $r->fecha->format('Y-m-d');
             $calendario[$key][] = [
                 'asistencia_id' => $r->asistencia_id,
-                'estado'        => $r->estado,
-                'turno'         => $r->turno,
-                'hora_entrada'  => $r->hora_entrada,
-                'hora_salida'   => $r->hora_salida,
-                'observacion'   => $r->observacion,
+                'estado' => $r->estado,
+                'turno' => $r->turno,
+                'hora_entrada' => $r->hora_entrada,
+                'hora_salida' => $r->hora_salida,
+                'observacion' => $r->observacion,
             ];
         }
 
@@ -47,20 +48,20 @@ class AsistenciaService implements AsistenciaServiceInterface
         // Agrupar por persona
         $reporte = [];
         foreach ($registros as $r) {
-            $id     = $r->id_persona;
+            $id = $r->id_persona;
             $perfil = $tipo === 'E'
                 ? $r->estudiante?->perfil
                 : $r->docente?->perfil;
 
             if (!isset($reporte[$id])) {
                 $reporte[$id] = [
-                    'id_persona'     => $id,
+                    'id_persona' => $id,
                     'nombre_completo' => $perfil
                         ? trim("{$perfil->primer_nombre} {$perfil->segundo_nombre} {$perfil->apellido_paterno} {$perfil->apellido_materno}")
                         : "ID {$id}",
-                    'asistencias'    => [],
-                    'total_asistio'  => 0,
-                    'total_falto'    => 0,
+                    'asistencias' => [],
+                    'total_asistio' => 0,
+                    'total_falto' => 0,
                     'total_tardanza' => 0,
                 ];
             }
@@ -69,9 +70,9 @@ class AsistenciaService implements AsistenciaServiceInterface
             $reporte[$id]['asistencias'][$fecha] = $r->estado;
 
             match ($r->estado) {
-                '1'     => $reporte[$id]['total_asistio']++,
-                '0'     => $reporte[$id]['total_falto']++,
-                'T'     => $reporte[$id]['total_tardanza']++,
+                '1' => $reporte[$id]['total_asistio']++,
+                '0' => $reporte[$id]['total_falto']++,
+                'T' => $reporte[$id]['total_tardanza']++,
                 default => null,
             };
         }
@@ -92,7 +93,7 @@ class AsistenciaService implements AsistenciaServiceInterface
         if (str_contains($qrData, ',')) {
             $parts = explode(',', $qrData);
             if (count($parts) === 2) {
-                $rawId = (int)$parts[0];
+                $rawId = (int) $parts[0];
                 $legacyType = $parts[1]; // 1 for student usually
 
                 if ($legacyType == 1) {
@@ -109,9 +110,9 @@ class AsistenciaService implements AsistenciaServiceInterface
             }
         } else {
             // New unified format: just user_id
-            $userId = (int)$qrData;
+            $userId = (int) $qrData;
             $user = User::with(['perfil'])->find($userId);
-            
+
             if ($user) {
                 $personaEstu = Estudiante::where('user_id', $user->id)->first();
                 if ($personaEstu) {
@@ -134,16 +135,22 @@ class AsistenciaService implements AsistenciaServiceInterface
             throw new \Exception("Usuario o registro no encontrado para este código.");
         }
 
-        $fecha    = now()->toDateString();
-        $hora     = now()->toTimeString();
-        $instiId  = $user->insti_id ?? 1;
+        $fecha = now()->toDateString();
+        $hora = now()->toTimeString();
+        $instiId = $user->insti_id ?? 1;
 
-        // Determinar turno y estado (tardanza o asistencia)
-        if ($tipo === 'D') {
-            $docente = Docente::find($idPersona);
-            $turno   = $docente?->turno ?? (now()->hour < 13 ? 'M' : 'T');
-        } else {
-            $turno = now()->hour < 13 ? 'M' : 'T';
+        $turno = now()->hour < 13 ? 'M' : 'T';
+
+        // Get schedule from user relation (unified logic)
+        $horario = $user->horarioAsistencia;
+
+        $estado = '1';
+        if ($horario) {
+            $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+            $horaActual = Carbon::parse($hora);
+            if ($horaActual->greaterThan($horaLimite)) {
+                $estado = 'T';
+            }
         }
 
         $payload = [
@@ -155,28 +162,28 @@ class AsistenciaService implements AsistenciaServiceInterface
         ];
 
         if ($tipoMarcado === 'entrada') {
-            $horario = HorarioAsistencia::where('insti_id', $instiId)
-                ->where('tipo_usuario', $tipo === 'D' ? 'D' : 'E')
-                ->where('turno', $turno)
-                ->first();
-
-            $estado = '1';
-            if ($horario) {
-                $horaLimite = Carbon::parse($horario->hora_ingreso);
-                $horaActual = Carbon::parse($hora);
-                if ($horaActual->greaterThan($horaLimite)) {
-                    $estado = 'T';
-                }
-            }
-
             $payload['hora_entrada'] = $hora;
             $payload['estado']       = $estado;
         } else {
-            // Salida: solo actualiza hora_salida, nunca sobreescribe el estado
             $payload['hora_salida'] = $hora;
         }
 
         $asistencia = $this->repository->marcar($payload);
+
+        // --- AUTOMATIC SYNC WITH RH IF WORKER ---
+        if ($user->es_trabajador && $tipoMarcado === 'entrada') {
+            try {
+                $this->rhService->registrarEntrada($user->id, $instiId);
+            } catch (\Exception $e) {
+                // Already marked or other HR logic errors handled here
+            }
+        } elseif ($user->es_trabajador && $tipoMarcado === 'salida') {
+            try {
+                $this->rhService->registrarSalida($user->id);
+            } catch (\Exception $e) {
+                // Handle
+            }
+        }
 
         return [
             'message' => ($tipoMarcado === 'entrada' ? 'Entrada' : 'Salida') . ' registrada correctamente',
@@ -207,64 +214,75 @@ class AsistenciaService implements AsistenciaServiceInterface
         // Determinar tipo (E = Estudiante, D = Docente, P = Personal)
         $personaEstu = Estudiante::where('user_id', $user->id)->first();
         if ($personaEstu) {
-            $tipo      = 'E';
+            $tipo = 'E';
             $idPersona = $personaEstu->estu_id;
         } else {
             $personaDoc = Docente::where('id_usuario', $user->id)->first();
             if ($personaDoc) {
-                $tipo      = 'D';
+                $tipo = 'D';
                 $idPersona = $personaDoc->docente_id;
             } else {
-                $tipo      = 'P';
+                $tipo = 'P';
                 $idPersona = $user->id;
             }
         }
 
-        $fecha   = now()->toDateString();
-        $hora    = now()->toTimeString();
+        $fecha = now()->toDateString();
+        $hora = now()->toTimeString();
         $instiId = $user->insti_id ?? 1;
 
-        $turno = ($tipo === 'D')
-            ? (Docente::find($idPersona)?->turno ?? (now()->hour < 13 ? 'M' : 'T'))
-            : (now()->hour < 13 ? 'M' : 'T');
+        $turno = now()->hour < 13 ? 'M' : 'T';
+
+        // Get schedule from user relation (unified logic)
+        $horario = $user->horarioAsistencia;
+
+        $estado = '1';
+        if ($horario) {
+            $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+            if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                $estado = 'T';
+            }
+        }
 
         $payload = [
-            'insti_id'   => $instiId,
+            'insti_id' => $instiId,
             'id_persona' => $idPersona,
-            'tipo'       => $tipo,
-            'fecha'      => $fecha,
-            'turno'      => $turno,
+            'tipo' => $tipo,
+            'fecha' => $fecha,
+            'turno' => $turno,
         ];
 
         if ($tipoMarcado === 'entrada') {
-            $horario = HorarioAsistencia::where('insti_id', $instiId)
-                ->where('tipo_usuario', $tipo === 'D' ? 'D' : 'E')
-                ->where('turno', $turno)
-                ->first();
-
-            $estado = '1';
-            if ($horario) {
-                $horaLimite = Carbon::parse($horario->hora_ingreso);
-                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
-                    $estado = 'T';
-                }
-            }
-
             $payload['hora_entrada'] = $hora;
-            $payload['estado']       = $estado;
+            $payload['estado'] = $estado;
         } else {
             $payload['hora_salida'] = $hora;
         }
 
         $asistencia = $this->repository->marcar($payload);
 
+        // --- AUTOMATIC SYNC WITH RH IF WORKER ---
+        if ($user->es_trabajador && $tipoMarcado === 'entrada') {
+            try {
+                $this->rhService->registrarEntrada($user->id, $instiId);
+            } catch (\Exception $e) {
+                // Already marked
+            }
+        } elseif ($user->es_trabajador && $tipoMarcado === 'salida') {
+            try {
+                $this->rhService->registrarSalida($user->id);
+            } catch (\Exception $e) {
+                // Handle
+            }
+        }
+
         return [
             'message' => ($tipoMarcado === 'entrada' ? 'Entrada' : 'Salida') . ' registrada correctamente',
-            'user'    => $user->perfil,
-            'hora'    => $hora,
-            'turno'   => $asistencia->turno_label,
-            'tipo'    => $tipo,
-            'nombre'  => trim("{$user->perfil?->primer_nombre} {$user->perfil?->apellido_paterno}"),
+            'user' => $user->perfil,
+            'hora' => $hora,
+            'turno' => $asistencia->turno_label,
+            'tipo' => $tipo,
+            'nombre' => trim("{$user->perfil?->primer_nombre} {$user->perfil?->apellido_paterno}"),
         ];
     }
 
@@ -275,7 +293,7 @@ class AsistenciaService implements AsistenciaServiceInterface
     {
         $logs = $this->repository->getHistorialGlobal($limit);
 
-        return $logs->map(function($log) {
+        return $logs->map(function ($log) {
             $persona = null;
             if ($log->tipo === 'E') {
                 $persona = Estudiante::with('perfil')->find($log->id_persona);
@@ -311,17 +329,19 @@ class AsistenciaService implements AsistenciaServiceInterface
             $logs = $this->repository->getPorPersonaRango($id, $tipo, $fechaInicio, $fechaFin);
             $label = date('d/m/Y', strtotime($fechaInicio)) . ' - ' . date('d/m/Y', strtotime($fechaFin));
         } else {
-            $logs = $this->repository->getPorPersonaMes(1, $id, $tipo, (int)$anio, (int)$mes);
+            $logs = $this->repository->getPorPersonaMes(1, $id, $tipo, (int) $anio, (int) $mes);
             $label = "Mes {$mes}/{$anio}";
         }
 
         $nombre = 'Usuario';
         if ($tipo === 'E') {
             $p = Estudiante::with('perfil')->find($id);
-            if ($p) $nombre = "{$p->perfil->primer_nombre} {$p->perfil->apellido_paterno}";
+            if ($p)
+                $nombre = "{$p->perfil->primer_nombre} {$p->perfil->apellido_paterno}";
         } else {
             $p = Docente::with('perfil')->find($id);
-            if ($p) $nombre = "{$p->perfil->primer_nombre} {$p->perfil->apellido_paterno}";
+            if ($p)
+                $nombre = "{$p->perfil->primer_nombre} {$p->perfil->apellido_paterno}";
         }
 
         return [

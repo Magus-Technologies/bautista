@@ -2,11 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Plus, Wallet, CreditCard, Clock, Calendar } from 'lucide-react';
+import { Plus, Wallet, CreditCard, Clock, Calendar, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PagoFormModal from './components/PagoFormModal';
+import ComprobanteModal from './components/ComprobanteModal';
 import axios from 'axios';
-import api from '@/lib/api';
 import type { Pago } from './hooks/usePago';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/shared/PageHeader';
@@ -49,24 +49,36 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
     const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
     const [apiErrors, setApiErrors] = useState<Record<string, string[]>>({});
 
-    // Extraer pagos de forma extremadamente robusta
+    const [comprobanteOpen, setComprobanteOpen] = useState(false);
+    const [pagosParaComprobante, setPagosParaComprobante] = useState<Pago[]>([]);
+
     const pagos = useMemo(() => {
         const raw = pagosData as any;
         if (!raw) return [];
         if (Array.isArray(raw)) return raw;
         if (raw.data && Array.isArray(raw.data)) return raw.data;
-        // Si por alguna razón llega envuelto doble (a veces pasa con transformaciones de API)
         if (raw.data?.data && Array.isArray(raw.data.data)) return raw.data.data;
         return [];
     }, [pagosData]);
 
-    const pagosPorConcepto = useMemo(() => {
-        const map: Record<number, Pago[]> = {};
-        conceptos.forEach(c => {
-            map[c.concepto_id] = pagos.filter((p: Pago) => Number(p.concepto_id) === Number(c.concepto_id));
-        });
+    const conceptoPeriodicidadMap = useMemo(() => {
+        const map: Record<number, string> = {};
+        conceptos.forEach(c => { map[c.concepto_id] = c.periodicidad; });
         return map;
-    }, [pagos, conceptos]);
+    }, [conceptos]);
+
+    const pagosMensuales = useMemo(() =>
+        pagos.filter((p: Pago) => conceptoPeriodicidadMap[Number(p.concepto_id)] === 'mensual'),
+        [pagos, conceptoPeriodicidadMap]
+    );
+
+    const pagosUnicos = useMemo(() =>
+        pagos.filter((p: Pago) => {
+            const per = conceptoPeriodicidadMap[Number(p.concepto_id)];
+            return per === 'unico' || per === 'anual';
+        }),
+        [pagos, conceptoPeriodicidadMap]
+    );
 
     const handleEdit = (pago: Pago) => {
         setSelectedPago(pago);
@@ -76,6 +88,11 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
     const openCreateModal = () => {
         setSelectedPago(null);
         setModalOpen(true);
+    };
+
+    const openComprobanteModal = (pago: Pago) => {
+        setPagosParaComprobante([pago]);
+        setComprobanteOpen(true);
     };
 
     const handleCreatePago = async (data: any) => {
@@ -115,7 +132,6 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
         }
     };
 
-    // Helper para adaptar array simple al componente ResourceTable
     const wrapAsPaginated = (data: Pago[]): Paginated<Pago> => ({
         data,
         current_page: 1,
@@ -145,7 +161,6 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
             }
         ];
 
-        // Solo mostrar columna Mes si es mensual
         if (periodicidad === 'mensual') {
             baseColumns.push({
                 label: 'Mes',
@@ -174,7 +189,7 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
             {
                 label: 'Estado',
                 render: (p) => (
-                    <Badge 
+                    <Badge
                         className={`
                             ${p.estatus === 1 ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200'}
                             font-bold px-3 py-0.5
@@ -192,6 +207,20 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                         <Clock className="size-3" />
                         {p.pag_fecha || '—'}
                     </div>
+                )
+            },
+            {
+                label: 'Comprobante',
+                className: 'text-center',
+                render: (p) => (
+                    <button
+                        onClick={() => openComprobanteModal(p)}
+                        title="Emitir boleta / factura"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                        <FileText className="size-3.5" />
+                        Emitir
+                    </button>
                 )
             }
         );
@@ -213,7 +242,7 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                         iconColor="bg-blue-600"
                     />
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Button 
+                        <Button
                             onClick={openCreateModal}
                             className="w-full sm:w-auto h-9 bg-[#00a65a] hover:bg-[#008d4c] text-white text-xs font-bold gap-2"
                         >
@@ -223,41 +252,50 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                     </div>
                 </div>
 
-                {/* Tabs por Concepto */}
+                {/* Tabs por Periodicidad */}
                 <Card className="border-none shadow-none bg-transparent">
                     <CardContent className="p-0">
                         <PageTabs
-                            defaultValue={conceptos.length > 0 ? String(conceptos[0].concepto_id) : ''}
-                            tabs={conceptos.map(concepto => ({
-                                value: String(concepto.concepto_id),
-                                label: `${concepto.nombre} (${pagosPorConcepto[concepto.concepto_id]?.length || 0})`,
-                                icon: CreditCard,
-                                content: (
-                                    <div className="space-y-4">
-                                        {concepto.unico && pagosPorConcepto[concepto.concepto_id]?.length > 0 && (
-                                            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-center gap-3 text-amber-800">
-                                                <span className="text-xl">⚠️</span>
-                                                <p className="text-sm font-medium">Este concepto es único. No se pueden agregar más pagos para este año.</p>
-                                            </div>
-                                        )}
+                            defaultValue="mensual"
+                            tabs={[
+                                {
+                                    value: 'mensual',
+                                    label: `Mensualidades (${pagosMensuales.length})`,
+                                    icon: Calendar,
+                                    content: (
                                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                            <ResourceTable 
-                                                rows={wrapAsPaginated(pagosPorConcepto[concepto.concepto_id] || [])}
-                                                columns={getColumns(concepto.periodicidad)}
+                                            <ResourceTable
+                                                rows={wrapAsPaginated(pagosMensuales)}
+                                                columns={getColumns('mensual')}
                                                 getKey={(p) => p.pag_id}
                                                 onEdit={handleEdit}
                                                 onDelete={handleDelete}
                                             />
                                         </div>
-                                    </div>
-                                )
-                            }))}
+                                    )
+                                },
+                                {
+                                    value: 'unico',
+                                    label: `Pago Único (${pagosUnicos.length})`,
+                                    icon: CreditCard,
+                                    content: (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                            <ResourceTable
+                                                rows={wrapAsPaginated(pagosUnicos)}
+                                                columns={getColumns('unico')}
+                                                getKey={(p) => p.pag_id}
+                                                onEdit={handleEdit}
+                                                onDelete={handleDelete}
+                                            />
+                                        </div>
+                                    )
+                                }
+                            ]}
                         />
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Modal */}
             {pagador.estudiante_id && (
                 <PagoFormModal
                     open={modalOpen}
@@ -274,6 +312,14 @@ export default function DetallePagador({ pagador, pagos: pagosData, conceptos }:
                     clearErrors={() => setApiErrors({})}
                 />
             )}
+
+            <ComprobanteModal
+                open={comprobanteOpen}
+                onClose={() => setComprobanteOpen(false)}
+                pagos={pagosParaComprobante}
+                pagador={pagador}
+                estudianteId={pagador.estudiante_id}
+            />
         </AppLayout>
     );
 }

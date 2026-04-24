@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInstitucionRequest;
 use App\Http\Requests\UpdateInstitucionRequest;
 use App\Http\Resources\InstitucionResource;
+use App\Services\Interfaces\ComprobanteServiceInterface;
 use App\Services\Interfaces\InstitucionServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class InstitucionApiController extends Controller
 {
     public function __construct(
         private readonly InstitucionServiceInterface $service,
+        private readonly ComprobanteServiceInterface $comprobanteService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -48,7 +50,7 @@ class InstitucionApiController extends Controller
 
     public function update(UpdateInstitucionRequest $request, int $id): InstitucionResource
     {
-        $data = $request->safe()->except('logo');
+        $data = $request->safe()->except(['logo', 'certificado']);
 
         if ($request->hasFile('logo')) {
             $institucion = $this->service->obtener($id);
@@ -58,7 +60,15 @@ class InstitucionApiController extends Controller
             $data['insti_logo'] = $this->subirLogo($request, $data['insti_ruc'] ?? 'logo');
         }
 
-        return new InstitucionResource($this->service->actualizar($id, $data));
+        $institucion = $this->service->actualizar($id, $data);
+
+        // Si se subió un .pem, enviarlo a la API Magus
+        if ($request->hasFile('certificado')) {
+            $this->comprobanteService->subirCertificado($id, $request->file('certificado'));
+            $institucion = $this->service->obtener($id);
+        }
+
+        return new InstitucionResource($institucion);
     }
 
     public function destroy(int $id): JsonResponse

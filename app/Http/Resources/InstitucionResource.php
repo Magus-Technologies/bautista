@@ -20,10 +20,14 @@ class InstitucionResource extends JsonResource
             'insti_email'        => $this->insti_email,
             'insti_director'     => $this->insti_director,
             'insti_ndni'         => $this->insti_ndni,
-            'insti_logo'         => $this->insti_logo
+            'insti_logo'                  => $this->insti_logo
                 ? Storage::disk('public')->url($this->insti_logo)
                 : null,
-            'insti_estatus'      => $this->insti_estatus,
+            'insti_estatus'               => $this->insti_estatus,
+            'insti_sunat_usuario'         => $this->insti_sunat_usuario,
+            'insti_sunat_clave'           => $this->insti_sunat_clave,
+            'insti_sunat_endpoint'        => $this->insti_sunat_endpoint ?? 'beta',
+            'insti_certificado_enviado'   => (bool) $this->insti_certificado_enviado,
         ];
     }
 }
