@@ -234,7 +234,7 @@ class ComprobanteService implements ComprobanteServiceInterface
                 'direccion'     => $comprobante->cliente_direccion ?? '',
             ],
             'serie'             => $comprobante->serie,
-            'numero'            => (string) $comprobante->numero,
+            'numero'            => str_pad($comprobante->numero, 8, '0', STR_PAD_LEFT), // Formato: 00000001
             'fecha_emision'     => $fechaEmision,
             'fecha_vencimiento' => $fechaEmision,
             'moneda'            => $comprobante->moneda,
@@ -517,7 +517,7 @@ class ComprobanteService implements ComprobanteServiceInterface
                 'direccion'     => $nota->cliente_direccion ?? '',
             ],
             'serie'             => $nota->serie,
-            'numero'            => (string) $nota->numero,
+            'numero'            => str_pad($nota->numero, 8, '0', STR_PAD_LEFT), // Formato: 00000001
             'fecha_emision'     => $fechaEmision,
             'fecha_vencimiento' => $fechaEmision,
             'moneda'            => $nota->moneda,
@@ -531,7 +531,7 @@ class ComprobanteService implements ComprobanteServiceInterface
             'documento_referencia' => [
                 'tipo'          => $nota->documento_referencia_tipo,
                 'serie'         => $nota->documento_referencia_serie,
-                'numero'        => (string) $nota->documento_referencia_numero,
+                'numero'        => str_pad($nota->documento_referencia_numero, 8, '0', STR_PAD_LEFT), // Formato: 00000001
                 'fecha_emision' => $nota->documento_referencia_fecha->toDateString(),
             ],
         ];

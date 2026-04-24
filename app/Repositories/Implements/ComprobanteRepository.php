@@ -50,18 +50,18 @@ class ComprobanteRepository implements ComprobanteRepositoryInterface
 
     public function obtenerSerie(int $instiId, string $tipoDocumento, ?string $tipoBase = null): ComprobanteSerie
     {
-        // Determinar el prefijo de la serie
+        // Determinar el prefijo de la serie (4 caracteres según SUNAT)
         $prefijo = match($tipoDocumento) {
-            'factura' => 'F',
-            'boleta' => 'B',
-            'nota_credito' => $tipoBase === 'factura' ? 'FC' : 'BC',
-            'nota_debito' => $tipoBase === 'factura' ? 'FD' : 'BD',
-            default => 'B',
+            'factura' => 'F001',
+            'boleta' => 'B001',
+            'nota_credito' => $tipoBase === 'factura' ? 'FC01' : 'BC01',
+            'nota_debito' => $tipoBase === 'factura' ? 'FD01' : 'BD01',
+            default => 'B001',
         };
 
         return ComprobanteSerie::firstOrCreate(
             ['insti_id' => $instiId, 'tipo_documento' => $tipoDocumento],
-            ['serie' => $prefijo . '01', 'ultimo_numero' => 0, 'activo' => true]
+            ['serie' => $prefijo, 'ultimo_numero' => 0, 'activo' => true]
         );
     }
 

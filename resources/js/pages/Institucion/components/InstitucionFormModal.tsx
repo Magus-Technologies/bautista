@@ -1,8 +1,10 @@
 import { School, Image as ImageIcon, ShieldCheck, CheckCircle2, Upload } from 'lucide-react';
 import FormField from '@/components/shared/FormField';
+import PasswordInput from '@/components/shared/password-input';
 import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import type { Institucion, InstitucionFormData } from '../hooks/useInstitucion';
 import { useInstitucionForm } from '../hooks/useInstitucionForm';
 
@@ -142,14 +144,23 @@ export default function InstitucionFormModal({ open, onClose, editing, onSave, a
                                 error={apiErrors['insti_sunat_usuario']?.[0]}
                                 placeholder="Ej: MODDATOS"
                             />
-                            <FormField
-                                label="Clave SOL"
-                                value={form.insti_sunat_clave}
-                                onChange={(v) => set('insti_sunat_clave', v)}
-                                error={apiErrors['insti_sunat_clave']?.[0]}
-                                placeholder="Ej: moddatos"
-                                type="password"
-                            />
+                            <div className="space-y-1">
+                                <Label htmlFor="clave_sol" className="text-sm font-medium text-neutral-700">
+                                    Clave SOL
+                                </Label>
+                                <PasswordInput
+                                    id="clave_sol"
+                                    value={form.insti_sunat_clave}
+                                    onChange={(e) => set('insti_sunat_clave', e.target.value)}
+                                    placeholder="Ej: moddatos"
+                                    className="h-9"
+                                />
+                                {apiErrors['insti_sunat_clave']?.[0] && (
+                                    <p className="text-xs text-rose-600 font-medium">
+                                        {apiErrors['insti_sunat_clave'][0]}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-neutral-700">Entorno SUNAT</label>
