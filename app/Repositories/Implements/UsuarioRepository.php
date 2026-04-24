@@ -11,10 +11,11 @@ use Illuminate\Support\Facades\Hash;
 
 class UsuarioRepository implements UsuarioRepositoryInterface
 {
-    public function paginate(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator
+    public function paginate(int $instiId, string $search = '', bool $esTrabajador = false, int $perPage = 20): LengthAwarePaginator
     {
         return User::with(['perfil', 'rol'])
             ->where('insti_id', $instiId)
+            ->when($esTrabajador, fn($q) => $q->where('es_trabajador', true))
             ->when($search, function ($q) use ($search) {
                 $q->where('username', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
@@ -47,6 +48,7 @@ class UsuarioRepository implements UsuarioRepositoryInterface
             'email'    => $data['email'] ?? null,
             'password' => Hash::make($data['username']),
             'estado'   => '1',
+            'es_trabajador' => $data['es_trabajador'] ?? false,
         ]);
 
         if (isset($data['rol'])) {
@@ -78,6 +80,7 @@ class UsuarioRepository implements UsuarioRepositoryInterface
             'name'     => ($data['primer_nombre'] ?? '') . ' ' . ($data['apellido_paterno'] ?? ''),
             'email'    => $data['email'] ?? null,
             'estado'   => $data['estado'] ?? $user->estado,
+            'es_trabajador' => $data['es_trabajador'] ?? $user->es_trabajador,
         ]);
 
         if ($user->perfil) {

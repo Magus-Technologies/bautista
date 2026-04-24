@@ -19,11 +19,16 @@ class HorarioAsistenciaApiController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = HorarioAsistencia::with(['nivel', 'institucion']);
+        $query = HorarioAsistencia::with(['nivel', 'institucion', 'rol']);
 
-        // Filtrar por tipo de usuario (E=Estudiante, D=Docente)
-        if ($request->has('tipo_usuario') && in_array($request->tipo_usuario, ['E', 'D'])) {
-            $query->where('tipo_usuario', $request->tipo_usuario);
+        // Filtrar por tipo de usuario
+        // Si es 'T' (Trabajador), incluir tanto 'T' como 'D' (Docentes)
+        if ($request->has('tipo_usuario')) {
+            if ($request->tipo_usuario === 'T') {
+                $query->whereIn('tipo_usuario', ['T', 'D']);
+            } elseif (in_array($request->tipo_usuario, ['E', 'D'])) {
+                $query->where('tipo_usuario', $request->tipo_usuario);
+            }
         }
 
         // Búsqueda
@@ -58,7 +63,7 @@ class HorarioAsistenciaApiController extends Controller
         
         return response()->json([
             'message' => 'Horario de asistencia creado exitosamente',
-            'horario' => new HorarioAsistenciaResource($horario->load(['nivel', 'institucion']))
+            'horario' => new HorarioAsistenciaResource($horario->load(['nivel', 'institucion', 'rol']))
         ], 201);
     }
 
@@ -68,7 +73,7 @@ class HorarioAsistenciaApiController extends Controller
      */
     public function show(int $id)
     {
-        $horario = HorarioAsistencia::with(['nivel', 'institucion'])->find($id);
+        $horario = HorarioAsistencia::with(['nivel', 'institucion', 'rol'])->find($id);
         
         if (!$horario) {
             throw new HorarioNotFoundException("Horario de asistencia con ID {$id} no encontrado");
@@ -94,7 +99,7 @@ class HorarioAsistenciaApiController extends Controller
         
         return response()->json([
             'message' => 'Horario de asistencia actualizado exitosamente',
-            'horario' => new HorarioAsistenciaResource($horario->load(['nivel', 'institucion']))
+            'horario' => new HorarioAsistenciaResource($horario->load(['nivel', 'institucion', 'rol']))
         ]);
     }
 

@@ -20,6 +20,17 @@ class AccessControlApiController extends Controller
     }
 
     /**
+     * Listar solo los roles marcados como trabajadores.
+     */
+    public function getRolesTrabajadores(): JsonResponse
+    {
+        $roles = Role::where('es_trabajador', true)
+            ->select('id', 'name', 'es_trabajador')
+            ->get();
+        return response()->json($roles);
+    }
+
+    /**
      * Listar todos los permisos disponibles agrupados por categoría (prefijo).
      */
     public function indexPermissions(): JsonResponse
@@ -34,12 +45,17 @@ class AccessControlApiController extends Controller
     public function storeRole(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'        => ['required', 'string', 'unique:roles,name'],
-            'permissions' => ['nullable', 'array'],
+            'name'          => ['required', 'string', 'unique:roles,name'],
+            'es_trabajador' => ['nullable', 'boolean'],
+            'permissions'   => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name']
         ]);
 
-        $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
+        $role = Role::create([
+            'name'          => $data['name'],
+            'guard_name'    => 'web',
+            'es_trabajador' => $data['es_trabajador'] ?? false
+        ]);
 
         if (!empty($data['permissions'])) {
             $role->syncPermissions($data['permissions']);
@@ -55,15 +71,17 @@ class AccessControlApiController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // No permitir editar el nombre de los roles base del sistema si es necesario, 
-        // pero por ahora permitiremos edición general.
         $data = $request->validate([
-            'name'        => ['required', 'string', 'unique:roles,name,' . $id],
-            'permissions' => ['nullable', 'array'],
+            'name'          => ['required', 'string', 'unique:roles,name,' . $id],
+            'es_trabajador' => ['nullable', 'boolean'],
+            'permissions'   => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name']
         ]);
 
-        $role->update(['name' => $data['name']]);
+        $role->update([
+            'name'          => $data['name'],
+            'es_trabajador' => $data['es_trabajador'] ?? false
+        ]);
 
         if (isset($data['permissions'])) {
             $role->syncPermissions($data['permissions']);

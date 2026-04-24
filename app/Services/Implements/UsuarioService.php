@@ -13,9 +13,9 @@ class UsuarioService implements UsuarioServiceInterface
         private readonly UsuarioRepositoryInterface $repository,
     ) {}
 
-    public function listar(int $instiId, string $search = '', int $perPage = 20): LengthAwarePaginator
+    public function listar(int $instiId, string $search = '', bool $esTrabajador = false, int $perPage = 20): LengthAwarePaginator
     {
-        return $this->repository->paginate($instiId, $search, $perPage);
+        return $this->repository->paginate($instiId, $search, $esTrabajador, $perPage);
     }
 
     public function obtener(int $id): User

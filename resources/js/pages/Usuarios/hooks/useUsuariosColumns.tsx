@@ -1,10 +1,24 @@
 import type { Column } from '@/components/shared/ResourceTable';
 import type { Usuario } from './useUsuarios';
 import { nombreCompleto, rolLabel } from './useUsuarios';
+import { Briefcase } from 'lucide-react';
 
 export const usuariosColumns: Column<Usuario>[] = [
     { label: '#', render: (u) => <span className="text-gray-500 text-xs font-mono">{u.id}</span> },
-    { label: 'Nombre Completo', render: (u) => nombreCompleto(u) },
+    { 
+        label: 'Nombre Completo', 
+        render: (u) => (
+            <div className="flex items-center gap-2">
+                <span>{nombreCompleto(u)}</span>
+                {u.es_trabajador && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-700" title="Personal / Trabajador">
+                        <Briefcase className="size-3" />
+                        RH
+                    </span>
+                )}
+            </div>
+        )
+    },
     { label: 'Usuario / DNI',   render: (u) => u.username },
     { label: 'Correo',          render: (u) => u.email ?? '—' },
     {

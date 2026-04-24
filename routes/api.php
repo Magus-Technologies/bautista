@@ -350,6 +350,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Roles y Permisos (Control de Acceso) - Privado Admin
     Route::prefix('seguridad')->group(function () {
         Route::get('roles',              [AccessControlApiController::class, 'indexRoles'])->middleware('permission:seguridad.roles.ver');
+        Route::get('roles/trabajadores', [AccessControlApiController::class, 'getRolesTrabajadores']);
         Route::post('roles',             [AccessControlApiController::class, 'storeRole'])->middleware('permission:seguridad.roles.crear');
         Route::put('roles/{id}',         [AccessControlApiController::class, 'updateRole'])->middleware('permission:seguridad.roles.editar');
         Route::delete('roles/{id}',      [AccessControlApiController::class, 'destroyRole'])->middleware('permission:seguridad.roles.eliminar');
@@ -399,6 +400,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Bloques Horarios (Configuración)
     Route::apiResource('horario-bloques', \App\Http\Controllers\Api\HorarioBloqueApiController::class)->except(['show'])->names('api.horario-bloques');
+
+    // ── RECURSOS HUMANOS (RH) ────────────────────────────────────────────────
+    Route::prefix('rh')->group(function () {
+        // Contratos
+        Route::get('contratos/activos',                 [\App\Http\Controllers\Api\RhContratoApiController::class, 'activos']);
+        Route::post('contratos/{id}/finalizar',         [\App\Http\Controllers\Api\RhContratoApiController::class, 'finalizar']);
+        Route::post('contratos/{id}/suspender',         [\App\Http\Controllers\Api\RhContratoApiController::class, 'suspender']);
+        Route::post('contratos/{id}/reactivar',         [\App\Http\Controllers\Api\RhContratoApiController::class, 'reactivar']);
+        Route::apiResource('contratos', \App\Http\Controllers\Api\RhContratoApiController::class)->names('api.rh.contratos');
+
+        // Asistencia Personal
+        Route::post('asistencia/entrada',               [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'registrarEntrada']);
+        Route::post('asistencia/salida',                [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'registrarSalida']);
+        Route::post('asistencia/manual',                [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'registrarManual']);
+        Route::get('asistencia/reporte-periodo',        [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'reportePeriodo']);
+        Route::apiResource('asistencia', \App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class)->names('api.rh.asistencia');
+        // Nómina
+        Route::get('nomina',                            [\App\Http\Controllers\Api\RhNominaApiController::class, 'index']);
+        Route::post('nomina/generar',                   [\App\Http\Controllers\Api\RhNominaApiController::class, 'generar']);
+        Route::post('nomina/{id}/aprobar',              [\App\Http\Controllers\Api\RhNominaApiController::class, 'aprobar']);
+        Route::post('nomina/{id}/pagar',                [\App\Http\Controllers\Api\RhNominaApiController::class, 'pagar']);
+        Route::delete('nomina/{id}',                    [\App\Http\Controllers\Api\RhNominaApiController::class, 'destroy']);
+    });
 
     // Perfil del usuario autenticado
     Route::patch('me/perfil',   [\App\Http\Controllers\Api\PerfilApiController::class, 'updateDatos']);

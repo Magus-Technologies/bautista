@@ -6,10 +6,10 @@ import FormSection from '@/components/shared/FormSection';
 import TitleForm from '@/components/TitleForm';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Usuario, UsuarioFormData } from '../hooks/useUsuarios';
 import { defaultForm, TIPOS_DOC } from '../hooks/useUsuarios';
+import { Briefcase } from 'lucide-react';
 
 type Props = {
     open:        boolean;
@@ -32,9 +32,7 @@ export default function UsuarioFormModal({ open, onClose, editing, onSave, apiEr
     }, [open]);
 
     useEffect(() => {
-        if (!open) {
-return;
-}
+        if (!open) return;
 
         clearErrors();
 
@@ -60,7 +58,7 @@ return;
         }
     }, [open, editing]);
 
-    const set = (key: keyof UsuarioFormData, value: string) =>
+    const set = (key: keyof UsuarioFormData, value: any) =>
         setForm((prev) => ({ ...prev, [key]: value }));
 
     const err = (key: keyof UsuarioFormData) => apiErrors[key]?.[0];
@@ -81,9 +79,11 @@ return;
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <TitleForm>
-                        {editing ? 'Editar Usuario' : 'Nuevo Usuario'}
-                    </TitleForm>
+                    <DialogTitle asChild>
+                        <TitleForm>
+                            {editing ? 'Editar Usuario' : 'Nuevo Usuario'}
+                        </TitleForm>
+                    </DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -119,8 +119,21 @@ return;
                             </Select>
                             {err('rol') && <p className="text-xs text-red-500">{err('rol')}</p>}
                         </div>
+
+                        {(form.rol === 'docente' || form.rol === 'rh') && (
+                            <div className="col-span-2 mt-2 p-3 bg-blue-50/50 border border-blue-200 rounded-lg flex items-start gap-3">
+                                <Briefcase className="size-5 text-blue-600 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-sm font-semibold text-blue-900">Personal / Trabajador</p>
+                                    <p className="text-xs text-blue-700">
+                                        Este usuario aparecerá automáticamente en el módulo de Recursos Humanos porque tiene rol de {form.rol === 'docente' ? 'Docente' : 'RH'}.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {editing && (
-                            <div className="space-y-1">
+                            <div className="space-y-1 mt-4">
                                 <ReqLabel>Estado</ReqLabel>
                                 <Select value={form.estado} onValueChange={(v) => set('estado', v)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>

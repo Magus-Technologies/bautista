@@ -3,15 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
     Shield, Save, Plus, Trash2, Key, Eye, PlusCircle, 
     Pencil, ChevronDown, ChevronRight, Lock, Layout, 
     FileText, Image as ImageIcon, MessageSquare, ListCheck,
-    Building2, Newspaper, Search, RotateCcw
+    Building2, Newspaper, Search, RotateCcw, Edit, Briefcase
 } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import api from '@/lib/api';
 import ConfirmModal from '@/components/shared/ConfirmModal';
+import FormField from '@/components/shared/FormField';
+import TitleForm from '@/components/TitleForm';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 type Permission = {
@@ -22,6 +27,7 @@ type Permission = {
 type Role = {
     id: number;
     name: string;
+    es_trabajador?: boolean;
     permissions: Permission[];
 };
 
@@ -39,19 +45,25 @@ export default function AccessControlManager() {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     
-    const [isCreating, setIsCreating] = useState(false);
+    // Modales
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [newRoleName, setNewRoleName] = useState('');
+    const [newRoleEsTrabajador, setNewRoleEsTrabajador] = useState(false);
+    const [editingRoleName, setEditingRoleName] = useState('');
+    const [editingRoleEsTrabajador, setEditingRoleEsTrabajador] = useState(false);
 
     const [selectedRole, setSelectedRole] = useState<Role | null>(null);
     const [editedPermissions, setEditedPermissions] = useState<string[]>([]);
-    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['institucion', 'matriculas']));
+    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['dashboard', 'perfil']));
     const [searchQuery, setSearchQuery] = useState('');
     
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
     
     // Roles del sistema que pueden ser restablecidos
-    const systemRoles = ['administrador', 'usuario', 'docente', 'estudiante', 'padre_familia'];
+    const systemRoles = ['administrador', 'usuario', 'docente', 'estudiante', 'padre_familia', 'madre_familia', 'apoderado', 'rh'];
 
     useEffect(() => {
         loadData();
@@ -221,9 +233,13 @@ export default function AccessControlManager() {
         if (!newRoleName.trim()) return;
         setProcessing(true);
         try {
-            await api.post('/seguridad/roles', { name: newRoleName.toLowerCase().replace(' ', '_') });
+            await api.post('/seguridad/roles', { 
+                name: newRoleName.toLowerCase().replace(/\s+/g, '_'),
+                es_trabajador: newRoleEsTrabajador
+            });
             setNewRoleName('');
-            setIsCreating(false);
+            setNewRoleEsTrabajador(false);
+            setShowCreateModal(false);
             await loadData();
         } catch (e) {
             console.error(e);
@@ -231,6 +247,54 @@ export default function AccessControlManager() {
         } finally {
             setProcessing(false);
         }
+    };
+
+    const handleEditRole = async () => {
+        if (!selectedRole || !editingRoleName.trim()) return;
+        setProcessing(true);
+        try {
+            await api.put(`/seguridad/roles/${selectedRole.id}`, { 
+                name: editingRoleName.toLowerCase().replace(/\s+/g, '_'),
+                es_trabajador: editingRoleEsTrabajador
+            });
+            setEditingRoleName('');
+            setEditingRoleEsTrabajador(false);
+            setShowEditModal(false);
+            await loadData();
+        } catch (e) {
+            console.error(e);
+            alert('Error al editar rol');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleDeleteRole = async () => {
+        if (!selectedRole) return;
+        setProcessing(true);
+        try {
+            await api.delete(`/seguridad/roles/${selectedRole.id}`);
+            setSelectedRole(null);
+            setShowDeleteModal(false);
+            await loadData();
+        } catch (e: any) {
+            console.error(e);
+            alert(e.response?.data?.message || 'Error al eliminar rol');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const openEditModal = () => {
+        if (!selectedRole) return;
+        setEditingRoleName(selectedRole.name);
+        setEditingRoleEsTrabajador(selectedRole.es_trabajador ?? false);
+        setShowEditModal(true);
+    };
+
+    const openDeleteModal = () => {
+        if (!selectedRole) return;
+        setShowDeleteModal(true);
     };
 
     const getIcon = (name: string, isGroup: boolean) => {
@@ -256,45 +320,39 @@ export default function AccessControlManager() {
         const isExpanded = isSearching || expandedNodes.has(node.fullName);
         const isChecked = editedPermissions.includes(node.fullName);
         const hasChildren = node.children.length > 0;
-        const isAction = !hasChildren && level > 0;
 
         return (
             <div className="flex flex-col">
                 <div className={cn(
-                    "group flex items-center justify-between py-3 px-4 rounded-2xl transition-all duration-200 mb-1",
-                    isChecked ? "bg-indigo-50/40 border border-indigo-100/50" : "bg-transparent border border-transparent hover:bg-gray-50/80"
+                    "flex items-center justify-between py-2.5 px-3 rounded-lg transition-all",
+                    isChecked ? "bg-indigo-50 border border-indigo-100" : "hover:bg-gray-50 border border-transparent"
                 )}>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                         {/* Checkbox */}
                         <Checkbox 
                             id={`node-${node.fullName}`}
                             checked={isChecked}
                             onCheckedChange={(checked) => togglePermission(node.fullName, !!checked)}
-                            className="size-5 rounded-lg border-2 border-gray-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                            className="size-4"
                         />
 
                         {/* Icono y Texto */}
                         <div 
-                            className="flex items-center gap-3 cursor-pointer select-none"
+                            className="flex items-center gap-2 cursor-pointer select-none flex-1"
                             onClick={() => hasChildren ? toggleExpand(node.fullName) : togglePermission(node.fullName, !isChecked)}
                         >
                             <div className={cn(
-                                "p-2 rounded-xl transition-colors",
+                                "p-1.5 rounded-md",
                                 isChecked ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-400"
                             )}>
                                 {getIcon(node.name, hasChildren)}
                             </div>
-                            <div>
-                                <h4 className={cn(
-                                    "text-[11px] font-black uppercase tracking-widest",
-                                    isChecked ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"
-                                )}>
-                                    {node.name.replace('_', ' ')}
-                                </h4>
-                                {hasChildren && (
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Módulo / Sección</p>
-                                )}
-                            </div>
+                            <span className={cn(
+                                "text-sm font-medium",
+                                isChecked ? "text-gray-900" : "text-gray-600"
+                            )}>
+                                {node.name.replace('_', ' ')}
+                            </span>
                         </div>
                     </div>
 
@@ -305,8 +363,8 @@ export default function AccessControlManager() {
                             size="icon" 
                             onClick={() => toggleExpand(node.fullName)}
                             className={cn(
-                                "size-8 rounded-xl transition-all",
-                                isExpanded ? "bg-indigo-50 text-indigo-600 rotate-90" : "text-gray-400"
+                                "size-7 transition-transform",
+                                isExpanded && "rotate-90"
                             )}
                         >
                             <ChevronRight className="size-4" />
@@ -316,7 +374,7 @@ export default function AccessControlManager() {
 
                 {/* Hijos */}
                 {hasChildren && isExpanded && (
-                    <div className="ml-8 pl-4 border-l-2 border-dashed border-gray-100 mt-1 mb-4 flex flex-col gap-1">
+                    <div className="ml-6 pl-3 border-l-2 border-gray-200 mt-1 mb-2 space-y-1">
                         {node.children.map(child => (
                             <PermissionNodeComponent key={child.fullName} node={child} level={level + 1} />
                         ))}
@@ -352,154 +410,161 @@ export default function AccessControlManager() {
                 variant="danger"
             />
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Sidebar de Roles */}
-                <div className="lg:col-span-4 space-y-6">
-                    <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
-                        <CardHeader className="bg-gray-50/50 pb-6 border-b border-gray-100">
+                <div className="lg:col-span-4 space-y-4">
+                    <Card>
+                        <CardHeader className="pb-4">
                             <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-gray-900">
-                                        <Shield className="size-4 text-indigo-600" /> Niveles de Acceso
+                                <div>
+                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                        <Shield className="size-5 text-indigo-600" /> Roles
                                     </CardTitle>
-                                    <CardDescription className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter font-mono">
-                                        Roles definidos en sistema
+                                    <CardDescription className="text-xs mt-1">
+                                        {roles.length} roles configurados
                                     </CardDescription>
                                 </div>
                                 {can('seguridad.roles.crear') && (
                                     <Button 
                                         variant="outline" 
-                                        size="icon" 
-                                        className={cn(
-                                            "size-10 rounded-2xl transition-all duration-300",
-                                            isCreating ? "rotate-45 bg-red-50 text-red-500 border-red-100" : "hover:bg-indigo-50 hover:text-indigo-600 border-gray-200"
-                                        )}
-                                        onClick={() => setIsCreating(!isCreating)}
+                                        size="sm"
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="gap-2"
                                     >
-                                        <Plus className="size-5" />
+                                        <Plus className="size-4" /> Nuevo
                                     </Button>
                                 )}
                             </div>
-                            {isCreating && (
-                                <div className="mt-6 flex gap-2 animate-in slide-in-from-top-2 duration-300">
-                                    <input 
-                                        autoFocus
-                                        className="flex-1 text-xs font-bold border-2 border-gray-100 rounded-2xl px-4 py-3 outline-none focus:border-indigo-500 transition-all bg-white" 
-                                        placeholder="NOMBRE DEL ROL..." 
-                                        value={newRoleName}
-                                        onChange={(e) => setNewRoleName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateRole()}
-                                    />
-                                    <Button size="icon" onClick={handleCreateRole} disabled={processing} className="bg-indigo-600 h-11 w-11 rounded-2xl shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 transition-all">
-                                        <Plus className="size-5 text-white" />
-                                    </Button>
-                                </div>
-                            )}
                         </CardHeader>
-                        <CardContent className="p-4 space-y-2">
+                        <CardContent className="p-3 space-y-2">
                             {roles.map(role => (
-                                <button
+                                <div
                                     key={role.id}
-                                    onClick={() => handleSelectRole(role)}
                                     className={cn(
-                                        "w-full text-left px-5 py-4 rounded-3xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 group",
+                                        "flex items-center justify-between p-3 rounded-lg transition-all cursor-pointer group",
                                         selectedRole?.id === role.id 
-                                        ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100 translate-x-1" 
-                                        : "bg-transparent text-gray-500 hover:bg-gray-50/80"
+                                        ? "bg-indigo-50 border-2 border-indigo-200" 
+                                        : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
                                     )}
+                                    onClick={() => handleSelectRole(role)}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <span className="truncate mr-2">{role.name.replace('_', ' ')}</span>
-                                        <Badge className={cn(
-                                            "text-[9px] font-black tracking-normal px-2 rounded-lg",
-                                            selectedRole?.id === role.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
+                                    <div className="flex-1 min-w-0">
+                                        <p className={cn(
+                                            "text-sm font-bold truncate",
+                                            selectedRole?.id === role.id ? "text-indigo-900" : "text-gray-700"
                                         )}>
-                                            {role.permissions.length} PERMS
-                                        </Badge>
+                                            {role.name.replace('_', ' ').toUpperCase()}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {role.permissions.length} permisos
+                                        </p>
                                     </div>
-                                </button>
+                                    
+                                    {selectedRole?.id === role.id && (
+                                        <div className="flex items-center gap-1 ml-2">
+                                            {can('seguridad.roles.editar') && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 hover:bg-indigo-100"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openEditModal();
+                                                    }}
+                                                    title={systemRoles.includes(role.name) ? "Editar configuración de trabajador" : "Editar rol"}
+                                                >
+                                                    <Edit className="size-4 text-indigo-600" />
+                                                </Button>
+                                            )}
+                                            {can('seguridad.roles.eliminar') && !systemRoles.includes(role.name) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 hover:bg-red-100"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openDeleteModal();
+                                                    }}
+                                                >
+                                                    <Trash2 className="size-4 text-red-600" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </CardContent>
                     </Card>
 
-                    <div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100/50 space-y-3 relative overflow-hidden group">
-                        <div className="absolute top-[-20px] right-[-20px] size-24 bg-indigo-100/30 rounded-full blur-3xl group-hover:bg-indigo-200/50 transition-all duration-500" />
-                        <div className="flex items-center gap-2 text-indigo-600 relative z-10">
-                            <Lock className="size-4" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Auditoría Activa</span>
+                    {selectedRole && systemRoles.includes(selectedRole.name) && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                                <Lock className="size-5 text-blue-600 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-sm font-bold text-blue-900">Rol del Sistema</p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        Este rol no puede ser eliminado ni renombrado. Solo puedes modificar sus permisos.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-[11px] text-indigo-900/60 font-bold leading-relaxed relative z-10 uppercase tracking-tight">
-                            La lógica de selección es recursiva. Al desmarcar un módulo se desmarcan sus acciones automáticamente.
-                        </p>
-                    </div>
+                    )}
                 </div>
 
-                {/* Editor Jerárquico */}
+                {/* Editor de Permisos */}
                 <div className="lg:col-span-8">
                     {selectedRole ? (
-                        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
-                            <CardHeader className="border-b border-gray-50 bg-white sticky top-0 z-20 px-4 py-8 md:px-10">
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-3">
-                                                <CardTitle className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">
-                                                    Matriz: <span className="text-indigo-600 underline decoration-indigo-200 decoration-8 underline-offset-[-2px]">{selectedRole.name.replace('_', ' ')}</span>
-                                                </CardTitle>
-                                            </div>
-                                            <CardDescription className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] font-mono">
-                                                Jerarquía de Accesos Recursiva
+                        <Card>
+                            <CardHeader className="border-b pb-4">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <CardTitle className="text-xl font-bold">
+                                                Permisos: <span className="text-indigo-600">{selectedRole.name.replace('_', ' ').toUpperCase()}</span>
+                                            </CardTitle>
+                                            <CardDescription className="text-xs mt-1">
+                                                Selecciona los permisos que tendrá este rol
                                             </CardDescription>
                                         </div>
-                                        <div className="flex items-center gap-3 w-full md:w-auto">
-                                            <div className="relative flex-1 md:w-64">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                                                <input 
-                                                    className="w-full text-xs font-bold border-2 border-gray-100 rounded-2xl pl-10 pr-4 h-14 outline-none focus:border-indigo-500 transition-all bg-gray-50/50" 
-                                                    placeholder="BUSCAR PERMISO..." 
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                />
-                                            </div>
+                                        <div className="flex items-center gap-2">
+                                            {can('seguridad.roles.editar') && systemRoles.includes(selectedRole.name) && (
+                                                <Button
+                                                    onClick={handleResetPermissions}
+                                                    disabled={processing}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2"
+                                                >
+                                                    <RotateCcw className="size-4" /> Restablecer
+                                                </Button>
+                                            )}
                                             {can('seguridad.roles.editar') && (
                                                 <Button 
                                                     onClick={handleSavePermissions} 
                                                     disabled={processing}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[11px] tracking-[0.15em] px-8 h-14 rounded-2xl shadow-xl shadow-indigo-100 transition-all hover:scale-105 active:scale-95 whitespace-nowrap shrink-0"
+                                                    size="sm"
+                                                    className="bg-indigo-600 hover:bg-indigo-700 gap-2"
                                                 >
-                                                    <Save className="size-4 mr-2" /> {processing ? 'Procesando...' : 'Guardar Cambios'}
+                                                    <Save className="size-4" /> {processing ? 'Guardando...' : 'Guardar'}
                                                 </Button>
                                             )}
                                         </div>
                                     </div>
                                     
-                                    {/* Botón de Restablecer Permisos - Solo para roles del sistema */}
-                                    {can('seguridad.roles.editar') && systemRoles.includes(selectedRole.name) && (
-                                        <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-amber-100 rounded-xl">
-                                                    <RotateCcw className="size-4 text-amber-600" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-black text-amber-900 uppercase tracking-wide">Rol del Sistema</p>
-                                                    <p className="text-[10px] text-amber-700 font-bold">Puedes restaurar los permisos originales si algo salió mal</p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                onClick={handleResetPermissions}
-                                                disabled={processing}
-                                                variant="outline"
-                                                className="border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-800 font-black uppercase text-[10px] tracking-wider px-6 h-11 rounded-xl whitespace-nowrap shrink-0"
-                                            >
-                                                <RotateCcw className="size-3.5 mr-2" /> Restablecer
-                                            </Button>
-                                        </div>
-                                    )}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                                        <Input 
+                                            className="pl-10" 
+                                            placeholder="Buscar permiso..." 
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </CardHeader>
                             
-                            <CardContent className="p-4 md:p-10">
-                                <div className="flex flex-col gap-2">
+                            <CardContent className="p-6">
+                                <div className="space-y-2">
                                     {permissionTree.map(node => (
                                         <PermissionNodeComponent key={node.fullName} node={node} />
                                     ))}
@@ -507,18 +572,132 @@ export default function AccessControlManager() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="h-[600px] flex flex-col items-center justify-center text-center p-20 bg-gray-50/30 rounded-[3rem] border-2 border-dashed border-gray-100">
-                            <div className="size-24 rounded-[3rem] bg-gray-100 flex items-center justify-center mb-8 animate-bounce">
-                                <Shield className="size-12 text-gray-300" />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">Selecciona un Rol</h3>
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-3 max-w-xs leading-relaxed">
-                                Debes elegir un nivel de acceso del panel izquierdo para auditar la jerarquía.
+                        <div className="h-[600px] flex flex-col items-center justify-center text-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                            <Shield className="size-16 text-gray-300 mb-4" />
+                            <h3 className="text-lg font-bold text-gray-900">Selecciona un Rol</h3>
+                            <p className="text-sm text-gray-500 mt-2 max-w-sm">
+                                Elige un rol del panel izquierdo para ver y editar sus permisos
                             </p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Modales */}
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle asChild>
+                            <TitleForm>Crear Nuevo Rol</TitleForm>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <FormField
+                            label="Nombre del Rol"
+                            required
+                            value={newRoleName}
+                            onChange={setNewRoleName}
+                            placeholder="Ej: supervisor, coordinador..."
+                        />
+                        
+                        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <Checkbox 
+                                id="new-es-trabajador"
+                                checked={newRoleEsTrabajador}
+                                onCheckedChange={(checked) => setNewRoleEsTrabajador(!!checked)}
+                                className="size-5"
+                            />
+                            <div className="flex-1">
+                                <Label htmlFor="new-es-trabajador" className="text-sm font-bold text-blue-900 cursor-pointer flex items-center gap-2">
+                                    <Briefcase className="size-4" />
+                                    Rol de Trabajador / Personal
+                                </Label>
+                                <p className="text-xs text-blue-700 mt-1">
+                                    Los usuarios con este rol aparecerán en el módulo de Recursos Humanos
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500">
+                            El nombre se convertirá automáticamente a minúsculas y los espacios a guiones bajos
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleCreateRole} disabled={processing || !newRoleName.trim()}>
+                            {processing ? 'Creando...' : 'Crear Rol'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle asChild>
+                            <TitleForm>Editar Rol</TitleForm>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {selectedRole && systemRoles.includes(selectedRole.name) ? (
+                            <div>
+                                <Label className="text-sm font-medium text-gray-700">Nombre del Rol</Label>
+                                <div className="mt-2 p-3 bg-gray-100 border border-gray-200 rounded-lg">
+                                    <p className="text-sm font-bold text-gray-900">{editingRoleName.replace('_', ' ').toUpperCase()}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Los roles del sistema no pueden ser renombrados</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <FormField
+                                label="Nombre del Rol"
+                                required
+                                value={editingRoleName}
+                                onChange={setEditingRoleName}
+                                placeholder="Nombre del rol..."
+                            />
+                        )}
+                        
+                        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <Checkbox 
+                                id="edit-es-trabajador"
+                                checked={editingRoleEsTrabajador}
+                                onCheckedChange={(checked) => setEditingRoleEsTrabajador(!!checked)}
+                                className="size-5"
+                            />
+                            <div className="flex-1">
+                                <Label htmlFor="edit-es-trabajador" className="text-sm font-bold text-blue-900 cursor-pointer flex items-center gap-2">
+                                    <Briefcase className="size-4" />
+                                    Rol de Trabajador / Personal
+                                </Label>
+                                <p className="text-xs text-blue-700 mt-1">
+                                    Los usuarios con este rol aparecerán en el módulo de Recursos Humanos
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleEditRole} disabled={processing || !editingRoleName.trim()}>
+                            {processing ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ConfirmModal
+                open={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDeleteRole}
+                title="Eliminar Rol"
+                message={`¿Estás seguro de que deseas eliminar el rol "${selectedRole?.name.replace('_', ' ')}"? Esta acción no se puede deshacer y todos los usuarios con este rol perderán sus permisos.`}
+                processing={processing}
+                confirmText="Eliminar Rol"
+                variant="danger"
+            />
         </>
     );
 }

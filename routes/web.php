@@ -158,9 +158,25 @@ Route::middleware(['auth.token'])->group(function () {
     Route::get('/aulas',                  fn () => Inertia::render('Aulas/index'))->middleware('permission:academico.aulas.ver')->name('aulas.index');
     Route::get('/horarios',               fn () => Inertia::render('Horarios/index'))->middleware('permission:horarios.asistencia.ver')->name('horarios.index');
     Route::get('/horario-clases',         fn () => Inertia::render('HorarioClases/index'))->name('horario-clases.index');
+
+    // Módulo de Recursos Humanos
+    Route::prefix('rh')->name('rh.')->middleware('permission:rh.ver')->group(function () {
+        Route::get('/contratos', fn () => Inertia::render('RH/Contratos/index'))->middleware('permission:rh.contratos.ver')->name('contratos.index');
+        Route::get('/asistencia', fn () => Inertia::render('RH/Asistencia/index'))->middleware('permission:rh.asistencia.ver')->name('asistencia.index');
+        Route::get('/nomina', fn () => Inertia::render('RH/Nomina/index'))->middleware('permission:rh.nomina.ver')->name('nomina.index');
+        Route::get('/reportes', fn () => Inertia::render('RH/Reportes/index'))->middleware('permission:rh.reportes.ver')->name('reportes.index');
+    });
     Route::get('/usuarios',               fn () => Inertia::render('Usuarios/index'))->middleware('permission:seguridad.usuarios.ver')->name('usuarios.index');
     Route::get('/roles-permisos',         fn () => Inertia::render('Seguridad/index'))->middleware('permission:seguridad.roles.ver')->name('seguridad.roles');
     Route::get('/seguridad/fotocheck',   fn () => Inertia::render('Seguridad/ConfiguracionFotocheck'))->middleware('permission:seguridad.fotochecks.diseno')->name('seguridad.fotocheck');
+
+    // ── RECURSOS HUMANOS (RH) ────────────────────────────────────────────────
+    Route::prefix('rh')->name('rh.')->middleware('permission:rh.ver')->group(function () {
+        Route::get('/contratos',    fn () => Inertia::render('RH/Contratos/index'))->middleware('permission:rh.contratos.ver')->name('contratos.index');
+        Route::get('/asistencia',   fn () => Inertia::render('RH/Asistencia/index'))->middleware('permission:rh.asistencia.ver')->name('asistencia.index');
+        Route::get('/nomina',       fn () => Inertia::render('RH/Nomina/index'))->middleware('permission:rh.nomina.ver')->name('nomina.index');
+        Route::get('/reportes',     fn () => Inertia::render('RH/Reportes/index'))->middleware('permission:rh.reportes.ver')->name('reportes.index');
+    });
 });
 
 require __DIR__.'/settings.php';

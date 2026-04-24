@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'estado',
+        'es_trabajador',
     ];
 
     protected $appends = ['nombre_completo', 'avatar'];
@@ -43,6 +44,7 @@ class User extends Authenticatable
             'email_verified_at'       => 'datetime',
             'password'                => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'es_trabajador'           => 'boolean',
         ];
     }
 
@@ -84,6 +86,17 @@ class User extends Authenticatable
         return $this->hasMany(LoginHistory::class, 'user_id');
     }
 
+    public function rhAsistencias(): HasMany
+    {
+        return $this->hasMany(RhAsistenciaPersonal::class, 'user_id');
+    }
+
+    public function horarioAsistencia(): HasOne
+    {
+        return $this->hasOne(HorarioAsistencia::class, 'rol_id', 'rol_id')
+            ->where('tipo_usuario', 'T');
+    }
+
     public function isActivo(): bool
     {
         return $this->estado === '1';
@@ -110,5 +123,31 @@ class User extends Authenticatable
             return asset('storage/' . $perfil->foto_perfil);
         }
         return null;
+    }
+
+    /**
+     * Determina si el usuario es trabajador basado en su rol
+     * Un usuario es trabajador si tiene rol de docente o rh
+     */
+    public function getEsTrabajadorAttribute(): bool
+    {
+        // Si tiene el campo es_trabajador en la BD, usarlo
+        if (isset($this->attributes['es_trabajador'])) {
+            return (bool) $this->attributes['es_trabajador'];
+        }
+
+        // Determinar automáticamente por rol
+        return $this->hasAnyRole(['docente', 'rh']);
+    }
+
+    /**
+     * Scope para filtrar solo trabajadores
+     */
+    public function scopeTrabajadores($query)
+    {
+        return $query->where('es_trabajador', true)
+            ->orWhereHas('roles', function ($q) {
+                $q->whereIn('name', ['docente', 'rh']);
+            });
     }
 }

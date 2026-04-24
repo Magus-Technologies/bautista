@@ -13,9 +13,13 @@ class UsuarioResource extends JsonResource
             'id'       => $this->id,
             'username' => $this->username,
             'name'     => $this->name,
+            'nombre_completo' => $this->nombre_completo,
             'email'    => $this->email,
             'estado'   => $this->estado,
+            'es_trabajador' => $this->es_trabajador,
             'rol'      => $this->rol?->name,
+            'rol_name' => $this->rol?->name,
+            'rol_display_name' => $this->rol?->display_name,
             'perfil'   => $this->whenLoaded('perfil', fn () => $this->perfil ? [
                 'primer_nombre'    => $this->perfil->primer_nombre,
                 'segundo_nombre'   => $this->perfil->segundo_nombre,

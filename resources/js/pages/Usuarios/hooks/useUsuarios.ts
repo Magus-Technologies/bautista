@@ -20,6 +20,7 @@ export type Usuario = {
     email:    string | null;
     estado:   '1' | '0' | '5';
     rol:      string | null;
+    es_trabajador: boolean;
     perfil:   UsuarioPerfil | null;
 };
 

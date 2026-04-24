@@ -185,6 +185,14 @@ class AppServiceProvider extends ServiceProvider
         // Aulas
         $this->app->bind(\App\Repositories\Interfaces\AulaRepositoryInterface::class, \App\Repositories\Implements\AulaRepository::class);
         $this->app->bind(\App\Services\Interfaces\AulaServiceInterface::class, \App\Services\Implements\AulaService::class);
+
+        // Recursos Humanos (RH)
+        $this->app->bind(\App\Repositories\Interfaces\RhContratoRepositoryInterface::class, \App\Repositories\Implements\RhContratoRepository::class);
+        $this->app->bind(\App\Services\Interfaces\RhContratoServiceInterface::class, \App\Services\Implements\RhContratoService::class);
+        $this->app->bind(\App\Repositories\Interfaces\RhAsistenciaPersonalRepositoryInterface::class, \App\Repositories\Implements\RhAsistenciaPersonalRepository::class);
+        $this->app->bind(\App\Services\Interfaces\RhAsistenciaPersonalServiceInterface::class, \App\Services\Implements\RhAsistenciaPersonalService::class);
+        $this->app->bind(\App\Repositories\Interfaces\RhNominaRepositoryInterface::class, \App\Repositories\Implements\RhNominaRepository::class);
+        $this->app->bind(\App\Services\Interfaces\RhNominaServiceInterface::class, \App\Services\Implements\RhNominaService::class);
     }
 
     /**

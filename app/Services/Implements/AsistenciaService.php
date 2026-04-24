@@ -16,6 +16,7 @@ class AsistenciaService implements AsistenciaServiceInterface
 {
     public function __construct(
         private readonly AsistenciaRepositoryInterface $repository,
+        private readonly \App\Services\Interfaces\RhAsistenciaPersonalServiceInterface $rhService
     ) {}
 
     public function calendarioPersona(int $instiId, int $personaId, string $tipo, int $anio, int $mes): array

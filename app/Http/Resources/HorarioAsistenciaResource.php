@@ -14,13 +14,32 @@ class HorarioAsistenciaResource extends JsonResource
             'insti_id' => $this->insti_id,
             'nivel_id' => $this->nivel_id,
             'tipo_usuario' => $this->tipo_usuario,
-            'tipo_usuario_texto' => $this->tipo_usuario === 'E' ? 'Estudiante' : 'Docente',
+            'rol_id' => $this->rol_id,
+            'tipo_usuario_texto' => match($this->tipo_usuario) {
+                'E' => 'Estudiante',
+                'D' => 'Docente',
+                'T' => 'Trabajador',
+                default => '—',
+            },
             'turno' => $this->turno,
-            'turno_texto' => $this->turno === 'M' ? 'Mañana' : 'Tarde',
+            'turno_texto' => match($this->turno) {
+                'M' => 'Mañana',
+                'T' => 'Tarde',
+                'N' => 'Noche',
+                default => '—',
+            },
             'hora_ingreso' => $this->hora_ingreso,
             'hora_salida' => $this->hora_salida,
+            'minutos_tolerancia' => $this->minutos_tolerancia ?? 15,
             
             // Relaciones
+            'rol' => $this->whenLoaded('rol', function () {
+                return [
+                    'id' => $this->rol->id,
+                    'name' => $this->rol->name,
+                ];
+            }),
+            
             'nivel' => $this->whenLoaded('nivel', function () {
                 return [
                     'nivel_id' => $this->nivel->nivel_id,

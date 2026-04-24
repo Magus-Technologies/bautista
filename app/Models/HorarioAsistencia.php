@@ -11,8 +11,8 @@ class HorarioAsistencia extends Model
     protected $primaryKey = 'horario_id';
 
     protected $fillable = [
-        'insti_id', 'nivel_id', 'tipo_usuario', 'turno',
-        'hora_ingreso', 'hora_salida',
+        'insti_id', 'nivel_id', 'tipo_usuario', 'rol_id', 'turno',
+        'hora_ingreso', 'hora_salida', 'minutos_tolerancia',
     ];
 
     public function nivel(): BelongsTo
@@ -23,5 +23,10 @@ class HorarioAsistencia extends Model
     public function institucion(): BelongsTo
     {
         return $this->belongsTo(InstitucionEducativa::class, 'insti_id', 'insti_id');
+    }
+
+    public function rol(): BelongsTo
+    {
+        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'rol_id', 'id');
     }
 }

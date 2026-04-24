@@ -101,6 +101,20 @@ class RolesAndPermissionsSeeder extends Seeder
                 'dashboard.ver',
                 'perfil.ver', 'perfil.editar',
             ],
+
+            // RH: Gestión de recursos humanos
+            'rh' => [
+                'dashboard.ver',
+                'dashboard.rh.resumen',
+                'perfil.ver', 'perfil.editar',
+                'rh.ver',
+                'rh.contratos.ver', 'rh.contratos.crear', 'rh.contratos.editar', 'rh.contratos.eliminar',
+                'rh.asistencia.ver', 'rh.asistencia.crear', 'rh.asistencia.editar', 'rh.asistencia.eliminar',
+                'rh.nomina.ver', 'rh.nomina.crear', 'rh.nomina.editar', 'rh.nomina.eliminar',
+                'rh.reportes.ver', 'rh.reportes.exportar',
+                'personal.docentes.ver', 'personal.estudiantes.ver',
+                'recursos.mensajeria.ver', 'recursos.mensajeria.enviar',
+            ],
         ];
 
         return $defaults[$roleName] ?? [];
@@ -139,6 +153,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'dashboard.estudiante.resumen',
             'dashboard.estudiante.stats',
             'dashboard.padre.resumen',
+            'dashboard.rh.resumen',
             
             // ─────────────────────────────────────────────────────────
             // 2. PERFIL
@@ -310,6 +325,25 @@ class RolesAndPermissionsSeeder extends Seeder
             'portal.padre.cursos',
             'portal.padre.profesores',
             'portal.padre.horario',
+            
+            // ─────────────────────────────────────────────────────────
+            // 12. RECURSOS HUMANOS (RH)
+            // ─────────────────────────────────────────────────────────
+            'rh.ver',
+            'rh.contratos.ver',
+            'rh.contratos.crear',
+            'rh.contratos.editar',
+            'rh.contratos.eliminar',
+            'rh.asistencia.ver',
+            'rh.asistencia.crear',
+            'rh.asistencia.editar',
+            'rh.asistencia.eliminar',
+            'rh.nomina.ver',
+            'rh.nomina.crear',
+            'rh.nomina.editar',
+            'rh.nomina.eliminar',
+            'rh.reportes.ver',
+            'rh.reportes.exportar',
         ];
 
         foreach ($permissions as $permission) {
@@ -345,6 +379,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $apoderado = Role::findOrCreate('apoderado', 'web');
         $apoderado->syncPermissions(self::getDefaultPermissions('apoderado'));
+
+        // RH
+        $rh = Role::findOrCreate('rh', 'web');
+        $rh->syncPermissions(self::getDefaultPermissions('rh'));
 
         // Sincronizar Usuarios Existentes
         $this->command->info('Sincronizando roles...');

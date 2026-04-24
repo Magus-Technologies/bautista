@@ -1,12 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
+    Briefcase,
     Building2,
     CalendarDays,
     ChevronRight,
     ClipboardList,
     CreditCard,
-    DoorOpen,
     GraduationCap,
     LayoutDashboard,
     MessageSquare,
@@ -15,7 +15,6 @@ import {
     Library,
     Newspaper,
     Users,
-    Gamepad2,
     QrCode,
     Calendar,
     Shield
@@ -134,6 +133,15 @@ const navigation: NavItem[] = [
     { type: 'section', label: 'RECURSOS' },
     { type: 'link', title: 'Biblioteca', icon: Library, href: '/biblioteca', permission: 'recursos.biblioteca.ver' },
     { type: 'link', title: 'Mensajes Privados', icon: MessageSquare, href: '/mensajeria', permission: 'recursos.mensajeria.ver' },
+
+    // ── Recursos Humanos ─────────────────────────────────────────────
+    { type: 'section', label: 'RECURSOS HUMANOS', permission: 'rh.ver' },
+    { type: 'group', title: 'RH', icon: Briefcase, children: [
+        { title: 'Contratos',  href: '/rh/contratos',  permission: 'rh.contratos.ver' },
+        { title: 'Asistencia', href: '/rh/asistencia', permission: 'rh.asistencia.ver' },
+        { title: 'Nómina',     href: '/rh/nomina',     permission: 'rh.nomina.ver' },
+        { title: 'Reportes',   href: '/rh/reportes',   permission: 'rh.reportes.ver' },
+    ]},
 
     // ── Sistema ──────────────────────────────────────────────────────
     { type: 'section', label: 'SISTEMA' },

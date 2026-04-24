@@ -22,6 +22,7 @@ class UsuarioApiController extends Controller
         $paginated = $this->service->listar(
             instiId: $request->user()->insti_id,
             search:  $request->get('search') ?? '',
+            esTrabajador: $request->boolean('es_trabajador'),
             perPage: (int) $request->get('per_page', 20),
         );
 
@@ -60,6 +61,9 @@ class UsuarioApiController extends Controller
         ]);
 
         $data['insti_id'] = $request->user()->insti_id;
+
+        // Determinar automáticamente si es trabajador según el rol
+        $data['es_trabajador'] = in_array($data['rol'] ?? '', ['docente', 'rh']);
 
         $user = $this->service->crear($data);
 
@@ -142,6 +146,9 @@ class UsuarioApiController extends Controller
             'estado'           => ['nullable', 'in:1,0,5'],
             'rol'              => ['nullable', 'string', Rule::exists('roles', 'name')],
         ]);
+
+        // Determinar automáticamente si es trabajador según el rol
+        $data['es_trabajador'] = in_array($data['rol'] ?? '', ['docente', 'rh']);
 
         return new UsuarioResource($this->service->actualizar($id, $data));
     }
