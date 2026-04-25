@@ -29,9 +29,17 @@ class UserResource extends JsonResource
                 'turno'        => $this->docente->turno,
                 'estado'       => $this->docente->estado,
             ]),
-            'institucion' => $this->whenLoaded('institucion', fn () =>
-                $this->institucion?->only(['insti_id', 'insti_razon_social', 'insti_logo'])
-            ),
+            'institucion' => $this->whenLoaded('institucion', function () {
+                $inst = $this->institucion;
+                if (!$inst) return null;
+                return [
+                    'insti_id'           => $inst->insti_id,
+                    'insti_razon_social' => $inst->insti_razon_social,
+                    'insti_logo'         => $inst->insti_logo
+                        ? \Illuminate\Support\Facades\Storage::disk('public')->url($inst->insti_logo)
+                        : null,
+                ];
+            }),
         ];
     }
 }
