@@ -13,19 +13,24 @@ export default function PadreDashboard({ data }: Props) {
     return (
         <div className="flex flex-col gap-6">
             {/* Accesos rápidos */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'Mis Hijos',   href: '/padre/dashboard',  icon: Users,         color: 'bg-indigo-500' },
-                    { label: 'Asistencia',  href: '/padre/asistencia', icon: CalendarCheck, color: 'bg-emerald-500' },
-                    { label: 'Pagos',       href: '/padre/pagos',      icon: CreditCard,    color: 'bg-rose-500' },
-                    { label: 'Profesores',  href: '/padre/profesores', icon: GraduationCap, color: 'bg-amber-500' },
-                ].map(({ label, href, icon: Icon, color }) => (
+                    { label: 'Emitir Factura',   href: '/padre/dashboard',  icon: Users,         bgColor: 'bg-blue-500' },
+                    { label: 'Comprobantes',     href: '/padre/asistencia', icon: CalendarCheck, bgColor: 'bg-blue-500' },
+                    { label: 'Historial Pagos',  href: '/padre/pagos',      icon: CreditCard,    bgColor: 'bg-blue-500' },
+                ].map(({ label, href, icon: Icon, bgColor }) => (
                     <Link key={label} href={href}
-                        className="flex flex-col items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:border-gray-200 transition-all group">
-                        <div className={`size-12 rounded-2xl ${color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                            <Icon size={22} className="text-white" />
+                        className={`relative flex flex-col items-center justify-center gap-3 ${bgColor} rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all group overflow-hidden min-h-[140px]`}>
+                        {/* Recuadro oscuro que cubre todo el botón */}
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all rounded-2xl" />
+                        
+                        {/* Icono */}
+                        <div className="relative z-10">
+                            <Icon size={48} className="text-white drop-shadow-lg" strokeWidth={1.5} />
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{label}</span>
+                        
+                        {/* Label */}
+                        <span className="relative z-10 text-sm font-bold text-white text-center drop-shadow-md">{label}</span>
                     </Link>
                 ))}
             </div>

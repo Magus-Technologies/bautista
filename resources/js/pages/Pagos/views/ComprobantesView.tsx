@@ -239,6 +239,7 @@ export default function ComprobantesView() {
                     <table className="w-full text-sm">
                         <thead className="bg-[#00a65a] text-white">
                             <tr>
+                                <th className="px-4 py-3 text-center w-12">#</th>
                                 <th className="px-4 py-3 text-center w-12">
                                     <CheckSquare className="size-4 mx-auto" />
                                 </th>
@@ -255,16 +256,19 @@ export default function ComprobantesView() {
                         <tbody>
                             {comprobantesBase.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="py-8 text-center text-gray-400">
+                                    <td colSpan={10} className="py-8 text-center text-gray-400">
                                         No hay comprobantes emitidos
                                     </td>
                                 </tr>
                             ) : (
-                                comprobantesBase.map((comp) => (
+                                comprobantesBase.map((comp, index) => (
                                     <tr
                                         key={comp.id}
                                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                     >
+                                        <td className="px-4 py-3 text-center text-gray-500 font-medium">
+                                            {index + 1}
+                                        </td>
                                         <td 
                                             className="px-4 py-3 text-center cursor-pointer"
                                             onClick={() => toggleSelect(comp.id)}
@@ -375,6 +379,7 @@ export default function ComprobantesView() {
                     <table className="w-full text-sm">
                         <thead className="bg-orange-600 text-white">
                             <tr>
+                                <th className="px-4 py-3 text-center w-12">#</th>
                                 <th className="px-4 py-3 text-left">Número</th>
                                 <th className="px-4 py-3 text-left">Documento Referencia</th>
                                 <th className="px-4 py-3 text-left">Cliente</th>
@@ -388,16 +393,19 @@ export default function ComprobantesView() {
                         <tbody>
                             {notasCredito.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-8 text-center text-gray-400">
+                                    <td colSpan={9} className="py-8 text-center text-gray-400">
                                         No hay notas de crédito emitidas
                                     </td>
                                 </tr>
                             ) : (
-                                notasCredito.map((nota) => (
+                                notasCredito.map((nota, index) => (
                                     <tr
                                         key={nota.id}
                                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                     >
+                                        <td className="px-4 py-3 text-center text-gray-500 font-medium">
+                                            {index + 1}
+                                        </td>
                                         <td className="px-4 py-3 font-mono font-semibold text-gray-900">
                                             {nota.serie}-{nota.numero}
                                         </td>
@@ -458,6 +466,7 @@ export default function ComprobantesView() {
                     <table className="w-full text-sm">
                         <thead className="bg-blue-600 text-white">
                             <tr>
+                                <th className="px-4 py-3 text-center w-12">#</th>
                                 <th className="px-4 py-3 text-left">Número</th>
                                 <th className="px-4 py-3 text-left">Documento Referencia</th>
                                 <th className="px-4 py-3 text-left">Cliente</th>
@@ -471,16 +480,19 @@ export default function ComprobantesView() {
                         <tbody>
                             {notasDebito.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-8 text-center text-gray-400">
+                                    <td colSpan={9} className="py-8 text-center text-gray-400">
                                         No hay notas de débito emitidas
                                     </td>
                                 </tr>
                             ) : (
-                                notasDebito.map((nota) => (
+                                notasDebito.map((nota, index) => (
                                     <tr
                                         key={nota.id}
                                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                     >
+                                        <td className="px-4 py-3 text-center text-gray-500 font-medium">
+                                            {index + 1}
+                                        </td>
                                         <td className="px-4 py-3 font-mono font-semibold text-gray-900">
                                             {nota.serie}-{nota.numero}
                                         </td>
@@ -650,6 +662,15 @@ export default function ComprobantesView() {
                 comprobante={notaModal.comprobante}
                 tipo={notaModal.tipo}
                 onSuccess={fetchComprobantes}
+            />
+
+            {/* Alert Modal */}
+            <AlertModal
+                open={alertModal.open}
+                onClose={() => setAlertModal({ ...alertModal, open: false })}
+                variant={alertModal.variant}
+                title={alertModal.title}
+                message={alertModal.message}
             />
         </div>
     );
