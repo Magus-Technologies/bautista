@@ -188,6 +188,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}',                                  [\App\Http\Controllers\Api\ComprobanteApiController::class, 'show']);
         Route::post('/{id}/pdf-token',                       [\App\Http\Controllers\Api\ComprobanteApiController::class, 'generatePdfToken']);
         Route::get('/{id}/pdf',                              [\App\Http\Controllers\Api\ComprobanteApiController::class, 'pdf']);
+        Route::get('/{id}/pdf-base64',                       [\App\Http\Controllers\Api\ComprobanteApiController::class, 'pdfBase64']);
         Route::post('/{id}/enviar',                          [\App\Http\Controllers\Api\ComprobanteApiController::class, 'enviar']);
     });
 

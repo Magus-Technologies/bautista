@@ -177,6 +177,62 @@ class ComprobanteApiController extends Controller
         return $pdf->stream("{$comprobante->serie}-{$comprobante->numero}.pdf");
     }
 
+    /** GET /api/comprobantes/{id}/pdf-base64 — para app móvil: devuelve PDF como base64 */
+    public function pdfBase64(int $id): JsonResponse
+    {
+        $comprobante = $this->service->findById($id);
+        $institucion = \App\Models\InstitucionEducativa::findOrFail($comprobante->insti_id);
+
+        $config = \App\Models\ConfiguracionComprobante::firstOrCreate(
+            ['insti_id' => $comprobante->insti_id],
+            [
+                'mostrar_logo' => true, 'color_primario' => '#2563eb',
+                'color_secundario' => '#1e40af', 'color_fondo_header' => '#f8fafc',
+                'color_texto_comprobante' => '#1e40af', 'color_texto_secundario' => '#6b7280',
+                'mostrar_qr' => true, 'mostrar_hash' => true,
+                'mostrar_firma_digital' => true, 'mostrar_telefono' => true,
+                'mostrar_email' => true, 'digitos_numero' => 8,
+                'tamano_fuente_base' => 11, 'tamano_fuente_titulo' => 18,
+            ]
+        );
+
+        $qrCodeDataUri = null;
+        if ($config->mostrar_qr && $comprobante->qr_info) {
+            $qrCode = new \Endroid\QrCode\QrCode(
+                data: $comprobante->qr_info,
+                encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+                errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Low,
+                size: 120, margin: 5,
+                roundBlockSizeMode: \Endroid\QrCode\RoundBlockSizeMode::Margin
+            );
+            $qrCodeDataUri = (new \Endroid\QrCode\Writer\PngWriter())->write($qrCode)->getDataUri();
+        }
+
+        $tipoLabel = match($comprobante->tipo_documento) {
+            'boleta'       => 'BOLETA DE VENTA',
+            'factura'      => 'FACTURA',
+            'nota_credito' => 'NOTA DE CRÉDITO',
+            'nota_debito'  => 'NOTA DE DÉBITO',
+            default        => 'COMPROBANTE',
+        };
+
+        $html = view('pdf.comprobante', [
+            'comprobante'   => $comprobante->load('items'),
+            'institucion'   => $institucion,
+            'config'        => $config,
+            'tipoLabel'     => $tipoLabel,
+            'qrCodeDataUri' => $qrCodeDataUri,
+        ])->render();
+
+        $pdf      = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        $filename = "{$comprobante->serie}-{$comprobante->numero}.pdf";
+
+        return response()->json([
+            'filename' => $filename,
+            'base64'   => base64_encode($pdf->output()),
+        ]);
+    }
+
     /** POST /api/comprobantes/pdf-dual — generar PDF con 2 comprobantes en formato A4 media hoja */
     public function pdfDual(Request $request): \Symfony\Component\HttpFoundation\Response
     {
