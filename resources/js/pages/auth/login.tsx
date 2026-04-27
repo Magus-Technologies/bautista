@@ -27,7 +27,7 @@ export default function Login({ status }: Props) {
             const rol: string = result.data?.user?.rol ?? '';
             
             if (['padre_familia', 'madre_familia', 'apoderado'].includes(rol)) {
-                window.location.href = '/padre/dashboard';
+                window.location.href = '/dashboard';
             } else if (rol === 'docente') {
                 window.location.href = '/docente/dashboard';
             } else if (rol === 'estudiante') {

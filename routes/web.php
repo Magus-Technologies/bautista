@@ -157,7 +157,7 @@ Route::middleware(['auth.token'])->group(function () {
     });
 
     Route::prefix('padre')->name('padre.')->middleware('permission:portal.padre.ver')->group(function () {
-        Route::get('/dashboard', fn () => Inertia::render('Matricula/Padre/MisHijos'))->name('dashboard');
+        Route::get('/dashboard', fn () => redirect()->route('dashboard'))->name('dashboard');
         Route::get('/mis-hijos', fn () => Inertia::render('Matricula/Padre/MisHijos'))->name('mis-hijos');
         Route::get('/pagos', fn () => Inertia::render('Matricula/Padre/MisPagos'))->name('pagos');
         Route::get('/asistencia', fn () => Inertia::render('Matricula/Padre/AsistenciaHijos'))->name('asistencia');
