@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Briefcase, Pencil, Trash2, Eye } from 'lucide-react';
+import { Briefcase, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal from '@/components/shared/ConfirmModal';
 import PageHeader from '@/components/shared/PageHeader';
@@ -17,10 +17,10 @@ type Contrato = {
     user_id: number;
     tipo_contrato: string;
     sueldo_base: number;
+    bonificaciones: number;
     horas_semanales: number;
-    hora_entrada: string;
-    hora_salida: string;
-    minutos_tolerancia: number;
+    descuento_por_tardanza: number;
+    tipo_descuento: 'fijo' | 'porcentaje' | 'proporcional';
     fecha_inicio: string;
     fecha_fin: string | null;
     estado: 'activo' | 'suspendido' | 'finalizado';
@@ -45,6 +45,33 @@ const estadoBadge = (estado: string) => {
     };
     return <Badge variant={variants[estado] || 'default'}>{estado.toUpperCase()}</Badge>;
 };
+
+const tipoDescuentoBadge = (tipo: string) => {
+    const labels: Record<string, string> = {
+        fijo: 'Fijo',
+        porcentaje: 'Porcentaje',
+        proporcional: 'Proporcional',
+    };
+
+    const styles: Record<string, string> = {
+        fijo: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800',
+        porcentaje: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+        proporcional: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800',
+    };
+
+    const label = labels[tipo] || tipo;
+    const style = styles[tipo] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
+
+    return (
+        <Badge
+            variant="outline"
+            className={`${style} font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-all hover:shadow-md cursor-default`}
+        >
+            {label.toUpperCase()}
+        </Badge>
+    );
+};
+
 
 const tipoContratoLabel = (tipo: string) => {
     const labels: Record<string, string> = {
@@ -84,8 +111,7 @@ export default function ContratosPage() {
         { label: 'Trabajador', render: (c) => c.user?.nombre_completo || c.user?.name || '—' },
         { label: 'Tipo', render: (c) => tipoContratoLabel(c.tipo_contrato) },
         { label: 'Sueldo', render: (c) => `S/ ${c.sueldo_base.toFixed(2)}` },
-        { label: 'Horario', render: (c) => c.hora_entrada && c.hora_salida ? `${c.hora_entrada.substring(0, 5)} - ${c.hora_salida.substring(0, 5)}` : '—' },
-        { label: 'Tolerancia', render: (c) => `${c.minutos_tolerancia} min` },
+        { label: 'Tipo Descuento', render: (c) => tipoDescuentoBadge(c.tipo_descuento) },
         { label: 'Estado', render: (c) => estadoBadge(c.estado) },
         { label: 'Acciones', render: (c) => <Actions c={c} onEdit={openEdit} onDelete={setConfirmDelete} /> },
     ];
@@ -126,7 +152,7 @@ export default function ContratosPage() {
                 editing={editing}
                 onSuccess={() => {
                     setOpen(false);
-                    res.refresh();
+                    res.reload();
                 }}
             />
 

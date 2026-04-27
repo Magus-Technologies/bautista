@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Clock, Download, Filter, Search, Plus } from 'lucide-react';
+import { Clock, Download, Search, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import ResourceTable from '@/components/shared/ResourceTable';
@@ -21,15 +21,24 @@ import axios from 'axios';
 type Asistencia = {
     asistencia_personal_id: number;
     user_id: number;
+    horario_id: number | null;
     fecha: string;
     hora_entrada: string | null;
     hora_salida: string | null;
     estado: 'presente' | 'ausente' | 'tardanza' | 'permiso' | 'vacaciones' | 'licencia';
     estado_label: string;
     minutos_tardanza: number;
+    minutos_salida_anticipada: number;
     descuento_aplicado: number;
     observaciones: string | null;
     tipo_registro: 'automatico' | 'manual';
+    horario: {
+        horario_id: number;
+        turno: 'M' | 'T' | 'N';
+        hora_ingreso: string;
+        hora_salida: string;
+        minutos_tolerancia: number;
+    } | null;
     user: {
         id: number;
         nombre_completo: string;
@@ -51,10 +60,8 @@ export default function AsistenciaRHPage() {
     });
     
     const res = useResource<Asistencia>('/rh/asistencia', {
-        params: {
-            ...filters,
-            estado: filters.estado === 'todos' ? null : filters.estado
-        }
+        ...filters,
+        estado: filters.estado === 'todos' ? null : filters.estado,
     });
 
     const [personal, setPersonal] = useState<any[]>([]);
@@ -78,7 +85,12 @@ export default function AsistenciaRHPage() {
         { label: 'Trabajador', render: (a) => a.user?.nombre_completo || '—' },
         { label: 'Fecha', render: (a) => format(new Date(a.fecha + 'T00:00:00'), 'dd/MM/yyyy', { locale: es }) },
         { label: 'Entrada', render: (a) => a.hora_entrada?.substring(0, 5) || '—' },
-        { label: 'Salida', render: (a) => a.hora_salida?.substring(0, 5) || '—' },
+        {
+            label: 'Salida',
+            render: (a) => a.hora_salida
+                ? a.hora_salida.substring(0, 5)
+                : <span className="text-xs text-slate-400 italic">Sin registrar</span>
+        },
         { 
             label: 'Estado', 
             render: (a) => {
@@ -93,25 +105,38 @@ export default function AsistenciaRHPage() {
                 return <Badge variant={variants[a.estado] || 'outline'}>{a.estado.toUpperCase()}</Badge>;
             }
         },
-        { 
-            label: 'Tardanza', 
+        {
+            label: 'Turno',
+            render: (a) => {
+                const label: Record<string, string> = { M: 'Mañana', T: 'Tarde', N: 'Noche' };
+                return a.horario ? (
+                    <Badge variant="outline">{label[a.horario.turno] ?? a.horario.turno}</Badge>
+                ) : '—';
+            }
+        },
+        {
+            label: 'Tardanza',
             render: (a) => a.minutos_tardanza > 0 ? (
                 <span className="text-orange-600 font-medium">{a.minutos_tardanza} min</span>
             ) : '—'
         },
-        { 
-            label: 'Descuento', 
+        {
+            label: 'Salida Antic.',
+            render: (a) => a.minutos_salida_anticipada > 0 ? (
+                <span className="text-orange-500 font-medium">{a.minutos_salida_anticipada} min</span>
+            ) : '—'
+        },
+        {
+            label: 'Descuento',
             render: (a) => a.descuento_aplicado > 0 ? (
                 <span className="text-red-600 font-medium">S/ {a.descuento_aplicado.toFixed(2)}</span>
             ) : '—'
         },
-        { 
-            label: 'Tipo', 
-            render: (a) => (
-                <Badge variant="outline" className={a.tipo_registro === 'manual' ? 'bg-blue-50 text-blue-700' : ''}>
-                    {a.tipo_registro.toUpperCase()}
-                </Badge>
-            )
+        {
+            label: 'Tipo',
+            render: (a) => a.tipo_registro === 'manual'
+                ? <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">MANUAL</Badge>
+                : <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">AUTO</Badge>
         },
     ];
 

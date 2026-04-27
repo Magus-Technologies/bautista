@@ -19,7 +19,7 @@ class UpdateRhContratoRequest extends FormRequest
             'bonificaciones' => 'nullable|numeric|min:0',
             'horas_semanales' => 'sometimes|integer|min:1|max:168',
             'descuento_por_tardanza' => 'sometimes|numeric|min:0',
-            'tipo_descuento' => 'sometimes|in:fijo,porcentaje',
+            'tipo_descuento' => 'sometimes|in:fijo,porcentaje,proporcional',
             'fecha_inicio' => 'sometimes|date',
             'fecha_fin' => 'nullable|date|after:fecha_inicio',
             'estado' => 'sometimes|in:activo,suspendido,finalizado',

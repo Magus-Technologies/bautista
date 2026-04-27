@@ -91,6 +91,10 @@ class User extends Authenticatable
         return $this->hasMany(RhAsistenciaPersonal::class, 'user_id');
     }
 
+    /**
+     * @deprecated Usar HorarioResolverService::resolverParaTrabajador() — devuelve el horario
+     * activo según proximidad temporal ±2h, no un único horario estático por rol.
+     */
     public function horarioAsistencia(): HasOne
     {
         return $this->hasOne(HorarioAsistencia::class, 'rol_id', 'rol_id')

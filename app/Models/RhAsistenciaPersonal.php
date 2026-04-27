@@ -11,8 +11,8 @@ class RhAsistenciaPersonal extends Model
     protected $primaryKey = 'asistencia_personal_id';
 
     protected $fillable = [
-        'user_id', 'contrato_id', 'insti_id', 'fecha', 'hora_entrada', 'hora_salida',
-        'estado', 'minutos_tardanza', 'descuento_aplicado', 'observaciones',
+        'user_id', 'contrato_id', 'horario_id', 'insti_id', 'fecha', 'hora_entrada', 'hora_salida',
+        'estado', 'minutos_tardanza', 'minutos_salida_anticipada', 'descuento_aplicado', 'observaciones',
         'tipo_registro', 'registrado_por',
     ];
 
@@ -34,6 +34,11 @@ class RhAsistenciaPersonal extends Model
     public function institucion(): BelongsTo
     {
         return $this->belongsTo(InstitucionEducativa::class, 'insti_id', 'insti_id');
+    }
+
+    public function horario(): BelongsTo
+    {
+        return $this->belongsTo(HorarioAsistencia::class, 'horario_id', 'horario_id');
     }
 
     public function registradoPor(): BelongsTo

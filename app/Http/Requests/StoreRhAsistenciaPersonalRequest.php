@@ -16,6 +16,7 @@ class StoreRhAsistenciaPersonalRequest extends FormRequest
         return [
             'user_id' => 'required|exists:users,id',
             'contrato_id' => 'nullable|exists:rh_contratos,contrato_id',
+            'horario_id' => 'nullable|exists:horarios_asistencia,horario_id',
             'fecha' => 'required|date',
             'hora_entrada' => 'nullable|date_format:H:i:s',
             'hora_salida' => 'nullable|date_format:H:i:s',

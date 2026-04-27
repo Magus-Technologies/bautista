@@ -71,6 +71,31 @@ export default function HorarioFormModal({ open, editing, form, niveles, rolesTr
                             </div>
                         )}
 
+                        {!isEstudiante && (
+                            <div className="space-y-2">
+                                <Label>Nivel Educativo <span className="text-gray-400 font-normal">(opcional)</span></Label>
+                                <Select
+                                    value={form.nivel_id || 'ninguno'}
+                                    onValueChange={(v) => onFormChange({ ...form, nivel_id: v === 'ninguno' ? '' : v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Todos los niveles" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ninguno">Todos los niveles</SelectItem>
+                                        {niveles.map(n => (
+                                            <SelectItem key={n.nivel_id} value={n.nivel_id.toString()}>
+                                                {n.nombre_nivel}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-gray-500">
+                                    Permite distinguir horarios cuando el mismo rol tiene horarios distintos por nivel
+                                </p>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label>Turno</Label>
                             <Select

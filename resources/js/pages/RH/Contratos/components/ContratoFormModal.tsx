@@ -242,7 +242,24 @@ export default function ContratoFormModal({ open, onClose, editing, onSuccess }:
                             required
                         />
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Tipo de Descuento</Label>
+                            <Select value={form.tipo_descuento} onValueChange={(v) => setForm({ ...form, tipo_descuento: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="fijo">Monto Fijo</SelectItem>
+                                    <SelectItem value="porcentaje">Porcentaje</SelectItem>
+                                    <SelectItem value="proporcional">Proporcional por minuto</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {form.tipo_descuento === 'fijo' && 'Se resta S/ fijo por cada tardanza o salida anticipada.'}
+                                {form.tipo_descuento === 'porcentaje' && 'Se resta el % configurado del sueldo diario.'}
+                                {form.tipo_descuento === 'proporcional' && 'Descuento exacto por minuto: Sueldo ÷ (horas semanales × 4 × 60). No requiere monto fijo.'}
+                            </p>
+                        </div>
+
+                        {form.tipo_descuento !== 'proporcional' && (
                             <FormField
                                 label="Descuento por Tardanza"
                                 type="number"
@@ -250,17 +267,7 @@ export default function ContratoFormModal({ open, onClose, editing, onSuccess }:
                                 value={form.descuento_por_tardanza}
                                 onChange={(v) => setForm({ ...form, descuento_por_tardanza: v })}
                             />
-                            <div className="space-y-2">
-                                <Label>Tipo de Descuento</Label>
-                                <Select value={form.tipo_descuento} onValueChange={(v) => setForm({ ...form, tipo_descuento: v })}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="fijo">Monto Fijo</SelectItem>
-                                        <SelectItem value="porcentaje">Porcentaje</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <FormField

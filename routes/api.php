@@ -440,12 +440,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('asistencia/salida',                [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'registrarSalida']);
         Route::post('asistencia/manual',                [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'registrarManual']);
         Route::get('asistencia/reporte-periodo',        [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'reportePeriodo']);
+        Route::get('asistencia/exportar-pdf',           [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'exportarPdf']);
+        Route::get('asistencia/exportar-excel',         [\App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class, 'exportarExcel']);
         Route::apiResource('asistencia', \App\Http\Controllers\Api\RhAsistenciaPersonalApiController::class)->names('api.rh.asistencia');
         // Nómina
         Route::get('nomina',                            [\App\Http\Controllers\Api\RhNominaApiController::class, 'index']);
         Route::post('nomina/generar',                   [\App\Http\Controllers\Api\RhNominaApiController::class, 'generar']);
         Route::post('nomina/{id}/aprobar',              [\App\Http\Controllers\Api\RhNominaApiController::class, 'aprobar']);
         Route::post('nomina/{id}/pagar',                [\App\Http\Controllers\Api\RhNominaApiController::class, 'pagar']);
+        Route::get('nomina/{id}/boleta',                [\App\Http\Controllers\Api\RhNominaApiController::class, 'boleta']);
         Route::delete('nomina/{id}',                    [\App\Http\Controllers\Api\RhNominaApiController::class, 'destroy']);
     });
 

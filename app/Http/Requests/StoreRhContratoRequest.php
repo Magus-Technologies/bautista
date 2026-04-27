@@ -20,7 +20,7 @@ class StoreRhContratoRequest extends FormRequest
             'bonificaciones' => 'nullable|numeric|min:0',
             'horas_semanales' => 'required|integer|min:1|max:168',
             'descuento_por_tardanza' => 'required|numeric|min:0',
-            'tipo_descuento' => 'required|in:fijo,porcentaje',
+            'tipo_descuento' => 'required|in:fijo,porcentaje,proporcional',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after:fecha_inicio',
             'estado' => 'nullable|in:activo,suspendido,finalizado',

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { DollarSign, FileText, CheckCircle2, CreditCard, Trash2, Filter, Search } from 'lucide-react';
+import { DollarSign, FileText, CheckCircle2, CreditCard, Trash2, Search } from 'lucide-react';
 import { useState } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import ResourceTable from '@/components/shared/ResourceTable';
@@ -16,19 +16,22 @@ import { formatCurrency } from '@/lib/utils';
 import GenerateNominaModal from './components/GenerateNominaModal';
 import axios from 'axios';
 import ConfirmModal from '@/components/shared/ConfirmModal';
+import AlertModal from '@/components/shared/AlertModal';
 
 type Nomina = {
     nomina_id: number;
     user_id: number;
-    user: {
-        nombre_completo: string;
-    };
+    user: { nombre_completo: string };
     mes: number;
     anio: number;
     periodo: string;
     sueldo_base: number;
     bonificaciones: number;
+    descuentos_tardanzas: number;
     total_descuentos: number;
+    dias_trabajados: number;
+    dias_ausentes: number;
+    total_tardanzas: number;
     sueldo_neto: number;
     estado: 'pendiente' | 'aprobado' | 'pagado';
     estado_label: string;
@@ -47,34 +50,45 @@ export default function NominaPage() {
     const [estado, setEstado] = useState<string>('todos');
     
     const res = useResource<Nomina>('/rh/nomina', {
-        params: { 
-            mes: mes === 'todos' ? null : mes, 
-            anio: anio,
-            estado: estado === 'todos' ? null : estado
-        }
+        mes: mes === 'todos' ? null : mes,
+        anio,
+        estado: estado === 'todos' ? null : estado,
     });
 
     const [genModalOpen, setGenModalOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ id: number, type: 'aprobar' | 'pagar' | 'eliminar' } | null>(null);
+    const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'success' | 'error' }>({ open: false, message: '', variant: 'success' });
+
+    const showAlert = (message: string, variant: 'success' | 'error') => setAlertModal({ open: true, message, variant });
+
+    const handleVerBoleta = async (nominaId: number) => {
+        try {
+            const response = await axios.get(`/api/rh/nomina/${nominaId}/boleta`, { responseType: 'blob' });
+            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            window.open(url, '_blank');
+        } catch {
+            showAlert('Error al generar la boleta', 'error');
+        }
+    };
 
     const handleAction = async () => {
         if (!confirmAction) return;
         try {
             if (confirmAction.type === 'aprobar') {
                 await axios.post(`/api/rh/nomina/${confirmAction.id}/aprobar`);
-                alert('Nómina aprobada');
+                showAlert('Nómina aprobada exitosamente', 'success');
             } else if (confirmAction.type === 'pagar') {
                 await axios.post(`/api/rh/nomina/${confirmAction.id}/pagar`, {
                     fecha_pago: new Date().toISOString().split('T')[0]
                 });
-                alert('Pago registrado');
+                showAlert('Pago registrado exitosamente', 'success');
             } else if (confirmAction.type === 'eliminar') {
                 await res.remove(confirmAction.id);
-                alert('Nómina eliminada');
+                showAlert('Nómina eliminada exitosamente', 'success');
             }
             res.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error al procesar la acción');
+            showAlert(error.response?.data?.message || 'Error al procesar la acción', 'error');
         } finally {
             setConfirmAction(null);
         }
@@ -91,8 +105,12 @@ export default function NominaPage() {
         { 
             label: 'Estado', 
             render: (n) => {
-                const variants: any = { pendiente: 'warning', aprobado: 'default', pagado: 'success' };
-                return <Badge variant={variants[n.estado]}>{n.estado_label}</Badge>;
+                const styles: Record<string, string> = {
+                    pendiente: 'bg-amber-100 text-amber-700 border-amber-200',
+                    aprobado:  'bg-green-100 text-green-700 border-green-200',
+                    pagado:    'bg-emerald-100 text-emerald-700 border-emerald-200',
+                };
+                return <Badge variant="outline" className={styles[n.estado] ?? ''}>{n.estado_label}</Badge>;
             }
         },
         { 
@@ -109,7 +127,7 @@ export default function NominaPage() {
                             <CreditCard className="h-4 w-4 text-green-600" />
                         </Button>
                     )}
-                    <Button size="icon" variant="ghost" title="Ver Boleta">
+                    <Button size="icon" variant="ghost" title="Ver Boleta" onClick={() => handleVerBoleta(n.nomina_id)}>
                         <FileText className="h-4 w-4 text-gray-600" />
                     </Button>
                     {n.estado !== 'pagado' && (
@@ -194,11 +212,12 @@ export default function NominaPage() {
                 )}
             </div>
 
-            <GenerateNominaModal 
-                open={genModalOpen} 
-                onClose={() => setGenModalOpen(false)} 
-                onSuccess={() => { setGenModalOpen(false); res.reload(); }} 
+            <GenerateNominaModal
+                open={genModalOpen}
+                onClose={() => setGenModalOpen(false)}
+                onSuccess={() => { setGenModalOpen(false); res.reload(); }}
             />
+
 
             <ConfirmModal
                 open={!!confirmAction}
@@ -207,6 +226,13 @@ export default function NominaPage() {
                 title={confirmAction?.type === 'eliminar' ? 'Eliminar Nómina' : 'Confirmar Acción'}
                 message={`¿Estás seguro de que deseas ${confirmAction?.type} esta nómina?`}
                 variant={confirmAction?.type === 'eliminar' ? 'danger' : 'default'}
+            />
+
+            <AlertModal
+                open={alertModal.open}
+                onClose={() => setAlertModal(a => ({ ...a, open: false }))}
+                message={alertModal.message}
+                variant={alertModal.variant}
             />
         </AppLayout>
     );

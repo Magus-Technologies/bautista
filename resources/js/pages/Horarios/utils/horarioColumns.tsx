@@ -53,8 +53,8 @@ export function getTrabajadorColumns(
             label: '#', 
             render: (_h, i) => (currentPage - 1) * perPage + (i || 0) + 1 
         },
-        { 
-            label: 'Rol', 
+        {
+            label: 'Rol',
             render: (h) => h.rol?.name ? (
                 <span className="font-medium text-gray-900">
                     {h.rol.name.replace('_', ' ').toUpperCase()}
@@ -63,9 +63,15 @@ export function getTrabajadorColumns(
                 <span className="text-gray-400">Sin rol asignado</span>
             )
         },
-        { 
-            label: 'Turno', 
-            render: (h) => turnoLabel(h.turno) 
+        {
+            label: 'Nivel',
+            render: (h) => h.nivel?.nombre_nivel
+                ? <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{h.nivel.nombre_nivel}</span>
+                : <span className="text-gray-400 text-xs">Todos</span>
+        },
+        {
+            label: 'Turno',
+            render: (h) => turnoLabel(h.turno)
         },
         { 
             label: 'Ingreso', 

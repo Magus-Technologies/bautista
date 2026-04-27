@@ -31,7 +31,7 @@ export default function HorariosPage() {
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         const data = {
-            nivel_id: form.tipo_usuario === 'E' && form.nivel_id ? parseInt(form.nivel_id) : null,
+            nivel_id: form.nivel_id ? parseInt(form.nivel_id) : null,
             tipo_usuario: form.tipo_usuario,
             rol_id: form.tipo_usuario === 'T' && form.rol_id ? parseInt(form.rol_id) : null,
             turno: form.turno,

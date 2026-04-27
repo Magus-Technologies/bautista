@@ -16,7 +16,8 @@ class AsistenciaService implements AsistenciaServiceInterface
 {
     public function __construct(
         private readonly AsistenciaRepositoryInterface $repository,
-        private readonly \App\Services\Interfaces\RhAsistenciaPersonalServiceInterface $rhService
+        private readonly \App\Services\Interfaces\RhAsistenciaPersonalServiceInterface $rhService,
+        private readonly HorarioResolverService $horarioResolver
     ) {
     }
 
@@ -139,17 +140,33 @@ class AsistenciaService implements AsistenciaServiceInterface
         $hora = now()->toTimeString();
         $instiId = $user->insti_id ?? 1;
 
-        $turno = now()->hour < 13 ? 'M' : 'T';
-
-        // Get schedule from user relation (unified logic)
-        $horario = $user->horarioAsistencia;
-
+        $horario = null;
         $estado = '1';
-        if ($horario) {
-            $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
-            $horaActual = Carbon::parse($hora);
-            if ($horaActual->greaterThan($horaLimite)) {
-                $estado = 'T';
+        $turno = 'M';
+
+        if ($user->es_trabajador) {
+            try {
+                $horario = $this->horarioResolver->resolverParaTrabajador($user->id, $instiId);
+                $turno = $horario->turno;
+                
+                $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
+            } catch (\Exception $e) {
+                // Fallback si no hay horario configurado para este momento
+                $turno = now()->hour < 13 ? 'M' : 'T';
+            }
+        } else {
+            // Lógica para estudiantes (basada en nivel si existe)
+            $horario = $user->horarioAsistencia; // Fallback actual
+            $turno = now()->hour < 13 ? 'M' : 'T';
+            
+            if ($horario) {
+                $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
             }
         }
 
@@ -231,16 +248,33 @@ class AsistenciaService implements AsistenciaServiceInterface
         $hora = now()->toTimeString();
         $instiId = $user->insti_id ?? 1;
 
-        $turno = now()->hour < 13 ? 'M' : 'T';
-
-        // Get schedule from user relation (unified logic)
-        $horario = $user->horarioAsistencia;
-
+        $horario = null;
         $estado = '1';
-        if ($horario) {
-            $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
-            if (Carbon::parse($hora)->greaterThan($horaLimite)) {
-                $estado = 'T';
+        $turno = 'M';
+
+        if ($user->es_trabajador) {
+            try {
+                $horario = $this->horarioResolver->resolverParaTrabajador($user->id, $instiId);
+                $turno = $horario->turno;
+                
+                $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
+            } catch (\Exception $e) {
+                // Fallback si no hay horario configurado para este momento
+                $turno = now()->hour < 13 ? 'M' : 'T';
+            }
+        } else {
+            // Lógica para estudiantes (basada en nivel si existe)
+            $horario = $user->horarioAsistencia; // Fallback actual
+            $turno = now()->hour < 13 ? 'M' : 'T';
+            
+            if ($horario) {
+                $horaLimite = Carbon::parse($horario->hora_ingreso)->addMinutes($horario->minutos_tolerancia ?? 0);
+                if (Carbon::parse($hora)->greaterThan($horaLimite)) {
+                    $estado = 'T';
+                }
             }
         }
 

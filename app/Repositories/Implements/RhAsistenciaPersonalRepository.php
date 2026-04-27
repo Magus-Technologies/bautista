@@ -10,7 +10,7 @@ class RhAsistenciaPersonalRepository implements RhAsistenciaPersonalRepositoryIn
 {
     public function paginate(int $instiId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        return RhAsistenciaPersonal::with(['user.perfil', 'contrato'])
+        return RhAsistenciaPersonal::with(['user.perfil', 'contrato', 'horario'])
             ->where('insti_id', $instiId)
             ->when($filters['user_id'] ?? null, fn($q, $userId) => $q->where('user_id', $userId))
             ->when($filters['fecha_desde'] ?? null, fn($q, $fecha) => $q->where('fecha', '>=', $fecha))
@@ -23,25 +23,29 @@ class RhAsistenciaPersonalRepository implements RhAsistenciaPersonalRepositoryIn
 
     public function findById(int $id): RhAsistenciaPersonal
     {
-        return RhAsistenciaPersonal::with(['user.perfil', 'contrato'])->findOrFail($id);
+        return RhAsistenciaPersonal::with(['user.perfil', 'contrato', 'horario'])->findOrFail($id);
     }
 
     public function findByUserAndDate(int $userId, string $fecha): ?RhAsistenciaPersonal
     {
-        return RhAsistenciaPersonal::where('user_id', $userId)
+        return RhAsistenciaPersonal::with(['horario', 'contrato'])
+            ->where('user_id', $userId)
             ->where('fecha', $fecha)
             ->first();
     }
 
     public function create(array $data): RhAsistenciaPersonal
     {
-        return RhAsistenciaPersonal::create($data);
+        $model = RhAsistenciaPersonal::create($data);
+        $model->load(['user.perfil', 'contrato', 'horario']);
+        return $model;
     }
 
     public function update(RhAsistenciaPersonal $asistencia, array $data): RhAsistenciaPersonal
     {
         $asistencia->update($data);
-        return $asistencia->fresh();
+        $asistencia->load(['user.perfil', 'contrato', 'horario']);
+        return $asistencia;
     }
 
     public function delete(RhAsistenciaPersonal $asistencia): void

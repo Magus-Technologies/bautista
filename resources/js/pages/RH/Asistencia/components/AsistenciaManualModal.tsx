@@ -17,13 +17,15 @@ interface AsistenciaManualModalProps {
 
 export function AsistenciaManualModal({ open, onClose, onSuccess }: AsistenciaManualModalProps) {
     const [usuarios, setUsuarios] = useState<any[]>([]);
+    const [horarios, setHorarios] = useState<any[]>([]);
     const [loadingUsuarios, setLoadingUsuarios] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userSearch, setUserSearch] = useState('');
     const [selectedRole, setSelectedRole] = useState<string>('all');
-    
+
     const [formData, setFormData] = useState({
         user_id: '',
+        horario_id: '',
         fecha: new Date().toISOString().split('T')[0],
         hora_entrada: '',
         hora_salida: '',
@@ -34,8 +36,29 @@ export function AsistenciaManualModal({ open, onClose, onSuccess }: AsistenciaMa
     useEffect(() => {
         if (open) {
             loadUsuarios();
+            loadHorarios();
+            setUserSearch('');
+            setSelectedRole('all');
+            setFormData({
+                user_id: '',
+                horario_id: '',
+                fecha: new Date().toISOString().split('T')[0],
+                hora_entrada: '',
+                hora_salida: '',
+                estado: 'presente',
+                observaciones: '',
+            });
         }
     }, [open]);
+
+    const loadHorarios = async () => {
+        try {
+            const response = await axios.get('/api/horarios-asistencia', { params: { tipo_usuario: 'T' } });
+            setHorarios(response.data.data || response.data || []);
+        } catch {
+            setHorarios([]);
+        }
+    };
 
     const loadUsuarios = async () => {
         setLoadingUsuarios(true);
@@ -91,7 +114,14 @@ export function AsistenciaManualModal({ open, onClose, onSuccess }: AsistenciaMa
         setIsSubmitting(true);
         
         try {
-            await axios.post('/api/rh/asistencia/manual', formData);
+            const toTimeWithSeconds = (t: string) => t && !t.includes(':00', 4) ? `${t}:00` : t;
+            const payload = {
+                ...formData,
+                horario_id: formData.horario_id ? parseInt(formData.horario_id) : null,
+                hora_entrada: formData.hora_entrada ? toTimeWithSeconds(formData.hora_entrada) : null,
+                hora_salida: formData.hora_salida ? toTimeWithSeconds(formData.hora_salida) : null,
+            };
+            await axios.post('/api/rh/asistencia/manual', payload);
             onSuccess();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Error al registrar asistencia');
@@ -186,6 +216,33 @@ export function AsistenciaManualModal({ open, onClose, onSuccess }: AsistenciaMa
                         />
                     </div>
 
+                    <div className="space-y-2">
+                        <OptLabel>Turno / Horario</OptLabel>
+                        <Select
+                            value={formData.horario_id}
+                            onValueChange={(v) => handleChange('horario_id', v === 'none' ? '' : v)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sin horario asignado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Sin horario asignado</SelectItem>
+                                {horarios.map((h: any) => {
+                                    const turno = h.turno === 'M' ? 'Mañana' : h.turno === 'T' ? 'Tarde' : 'Noche';
+                                    return (
+                                        <SelectItem key={h.horario_id} value={h.horario_id.toString()}>
+                                            {turno} — {h.hora_ingreso?.substring(0, 5)} a {h.hora_salida?.substring(0, 5)}
+                                            {h.rol?.name ? ` (${h.rol.name})` : ''}
+                                        </SelectItem>
+                                    );
+                                })}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-slate-400">
+                            Seleccionar el turno permite calcular tardanzas y salidas anticipadas correctamente.
+                        </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <OptLabel>Hora Entrada</OptLabel>
@@ -220,6 +277,7 @@ export function AsistenciaManualModal({ open, onClose, onSuccess }: AsistenciaMa
                                 <SelectItem value="ausente">Ausente</SelectItem>
                                 <SelectItem value="permiso">Permiso</SelectItem>
                                 <SelectItem value="vacaciones">Vacaciones</SelectItem>
+                                <SelectItem value="licencia">Licencia</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

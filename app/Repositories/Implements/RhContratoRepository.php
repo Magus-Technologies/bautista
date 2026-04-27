@@ -10,7 +10,7 @@ class RhContratoRepository implements RhContratoRepositoryInterface
 {
     public function paginate(int $instiId, string $search = '', string $estado = '', int $perPage = 15): LengthAwarePaginator
     {
-        return RhContrato::with(['user.perfil', 'user.horarioAsistencia', 'institucion'])
+        return RhContrato::with(['user.perfil', 'institucion'])
             ->where('insti_id', $instiId)
             ->when($search, function ($query, $search) {
                 $query->whereHas('user', function ($q) use ($search) {
@@ -29,7 +29,7 @@ class RhContratoRepository implements RhContratoRepositoryInterface
 
     public function findById(int $id): RhContrato
     {
-        return RhContrato::with(['user.perfil', 'user.horarioAsistencia', 'institucion'])->findOrFail($id);
+        return RhContrato::with(['user.perfil', 'institucion'])->findOrFail($id);
     }
 
     public function findByUserId(int $userId): ?RhContrato
@@ -57,7 +57,7 @@ class RhContratoRepository implements RhContratoRepositoryInterface
 
     public function getContratosActivos(int $instiId): \Illuminate\Support\Collection
     {
-        return RhContrato::with(['user.perfil', 'user.horarioAsistencia'])
+        return RhContrato::with(['user.perfil'])
             ->where('insti_id', $instiId)
             ->where('estado', 'activo')
             ->get();

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RhNominaResource;
+use App\Models\RhNomina;
 use App\Services\Interfaces\RhNominaServiceInterface;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -75,6 +77,19 @@ class RhNominaApiController extends Controller
             'message' => 'Pago registrado exitosamente',
             'data' => new RhNominaResource($nomina),
         ]);
+    }
+
+    public function boleta(int $id, Request $request)
+    {
+        $nomina = RhNomina::with(['user.perfil', 'user.institucion'])->findOrFail($id);
+        $institucion = $request->user()->institucion;
+
+        $pdf = Pdf::loadView('pdf.boleta-nomina', [
+            'nomina'      => $nomina,
+            'institucion' => $institucion,
+        ])->setPaper([0, 0, 420, 595], 'portrait'); // A5 landscape aprox
+
+        return $pdf->stream("boleta_{$nomina->user->nombre_completo}_{$nomina->periodo}.pdf");
     }
 
     public function destroy(int $id): JsonResponse
