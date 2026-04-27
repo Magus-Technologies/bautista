@@ -38,28 +38,31 @@ import {
 import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
 
-type NavChild = { 
-    title: string; 
+type NavChild = {
+    title: string;
     href: string;
     permission?: string;
 };
 
-type NavItem = { 
-    type: 'section'; 
-    label: string; 
+type NavItem = {
+    type: 'section';
+    label: string;
     permission?: string;
-} | { 
-    type: 'link'; 
-    title: string; 
-    icon: React.ElementType; 
-    href: string; 
+    trabajador?: boolean;
+} | {
+    type: 'link';
+    title: string;
+    icon: React.ElementType;
+    href: string;
     permission?: string;
-} | { 
-    type: 'group'; 
-    title: string; 
-    icon: React.ElementType; 
-    children: NavChild[]; 
+    trabajador?: boolean;
+} | {
+    type: 'group';
+    title: string;
+    icon: React.ElementType;
+    children: NavChild[];
     permission?: string;
+    trabajador?: boolean;
 };
 
 const navigation: NavItem[] = [
@@ -136,12 +139,16 @@ const navigation: NavItem[] = [
     { type: 'link', title: 'Mensajes Privados', icon: MessageSquare, href: '/mensajeria', permission: 'recursos.mensajeria.ver' },
 
     // ── Recursos Humanos ─────────────────────────────────────────────
-    { type: 'section', label: 'RECURSOS HUMANOS', permission: 'rh.ver' },
-    { type: 'group', title: 'RH', icon: Briefcase, children: [
+    { type: 'section', label: 'RECURSOS HUMANOS', permission: 'rh.ver', trabajador: true },
+    { type: 'group', title: 'RH Admin', icon: Briefcase, permission: 'rh.ver', children: [
         { title: 'Contratos',  href: '/rh/contratos',  permission: 'rh.contratos.ver' },
         { title: 'Asistencia', href: '/rh/asistencia', permission: 'rh.asistencia.ver' },
         { title: 'Nómina',     href: '/rh/nomina',     permission: 'rh.nomina.ver' },
         { title: 'Reportes',   href: '/rh/reportes',   permission: 'rh.reportes.ver' },
+    ]},
+    { type: 'group', title: 'Mi RH', icon: Briefcase, trabajador: true, children: [
+        { title: 'Mi Asistencia', href: '/rh/mi-asistencia' },
+        { title: 'Mis Boletas',   href: '/rh/mis-boletas' },
     ]},
 
     // ── Sistema ──────────────────────────────────────────────────────
@@ -238,11 +245,17 @@ function NavGroupItem({ item }: { item: Extract<NavItem, { type: 'group' }> }) {
 }
 
 export function AppSidebar() {
-    const { can } = usePermission();
+    const { can, isTrabajador } = usePermission();
     const { state, isMobile } = useSidebar();
 
     const filteredNavigation = useMemo(() => {
         return navigation.map(item => {
+            // Si el item requiere ser trabajador y el usuario no lo es, ocultar
+            if ('trabajador' in item && item.trabajador && !isTrabajador()) {
+                // Excepto si también tiene permission de admin y lo cumple
+                if (!item.permission || !can(item.permission)) return null;
+            }
+
             if (item.type === 'link') {
                 if (item.permission && !can(item.permission)) return null;
                 return item;
@@ -255,12 +268,21 @@ export function AppSidebar() {
                 });
 
                 const groupPermissionMet = item.permission ? can(item.permission) : false;
-                if (visibleChildren.length === 0 && !groupPermissionMet) return null;
+                const esTrabajadorGroup = 'trabajador' in item && item.trabajador && isTrabajador();
+
+                if (visibleChildren.length === 0 && !groupPermissionMet && !esTrabajadorGroup) return null;
+                if ('trabajador' in item && item.trabajador && !isTrabajador() && !groupPermissionMet) return null;
                 return { ...item, children: visibleChildren };
             }
 
             if (item.type === 'section') {
-                if (item.permission && !can(item.permission)) return null;
+                if (item.permission && !can(item.permission)) {
+                    // Mostrar la sección si el usuario es trabajador (para el grupo Mi RH)
+                    const hasTrabajadorItems = navigation.some(
+                        n => n.type === 'group' && 'trabajador' in n && n.trabajador && isTrabajador()
+                    );
+                    if (!hasTrabajadorItems) return null;
+                }
                 return item;
             }
 

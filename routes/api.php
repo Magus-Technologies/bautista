@@ -450,6 +450,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('nomina/{id}/pagar',                [\App\Http\Controllers\Api\RhNominaApiController::class, 'pagar']);
         Route::get('nomina/{id}/boleta',                [\App\Http\Controllers\Api\RhNominaApiController::class, 'boleta']);
         Route::delete('nomina/{id}',                    [\App\Http\Controllers\Api\RhNominaApiController::class, 'destroy']);
+
+        // Portal Trabajador (acceso propio)
+        Route::middleware('es.trabajador')->group(function () {
+            Route::get('trabajador/mi-asistencia',           [\App\Http\Controllers\Api\RhTrabajadorApiController::class, 'miAsistencia']);
+            Route::get('trabajador/mis-boletas',             [\App\Http\Controllers\Api\RhTrabajadorApiController::class, 'misBoletas']);
+            Route::get('trabajador/mis-boletas/{id}/boleta', [\App\Http\Controllers\Api\RhTrabajadorApiController::class, 'descargarBoleta']);
+        });
     });
 
     // Perfil del usuario autenticado

@@ -13,10 +13,14 @@ export function usePermission() {
 
     const can = (permission: string | string[]) => {
         if (!user || !user.can_list) return false;
-        
+
         const permissions = Array.isArray(permission) ? permission : [permission];
         return permissions.some(p => user.can_list.includes(p));
     };
 
-    return { hasRole, can, user };
+    const isTrabajador = (): boolean => {
+        return !!user?.es_trabajador;
+    };
+
+    return { hasRole, can, isTrabajador, user };
 }

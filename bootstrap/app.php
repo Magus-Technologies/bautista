@@ -30,12 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'auth.token' => AuthenticateWithToken::class,
-            'check.role' => \App\Http\Middleware\CheckRole::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'role'       => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'verify.docente.curso' => \App\Http\Middleware\VerifyDocenteCurso::class,
+            'auth.token'              => AuthenticateWithToken::class,
+            'check.role'              => \App\Http\Middleware\CheckRole::class,
+            'permission'              => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role'                    => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'verify.docente.curso'    => \App\Http\Middleware\VerifyDocenteCurso::class,
             'verify.estudiante.curso' => \App\Http\Middleware\VerifyEstudianteCurso::class,
+            'es.trabajador'           => \App\Http\Middleware\CheckEsTrabajador::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
