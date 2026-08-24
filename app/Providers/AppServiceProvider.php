@@ -94,6 +94,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Auth
         $this->app->bind(AuthServiceInterface::class, AuthService::class);
+        $this->app->bind(\App\Services\Interfaces\WhatsAppServiceInterface::class, \App\Services\Implements\WhatsAppService::class);
 
         // Dashboard
         $this->app->bind(\App\Services\Interfaces\DashboardServiceInterface::class, \App\Services\Implements\DashboardService::class);

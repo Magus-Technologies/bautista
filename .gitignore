@@ -31,3 +31,7 @@ yarn-error.log
 # Python cache
 __pycache__/
 *.pyc
+
+/whatsapp-service/node_modules
+/whatsapp-service/auth_info
+/whatsapp-service/.env

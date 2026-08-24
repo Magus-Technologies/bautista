@@ -1,0 +1,30 @@
+; Daemon del servicio de WhatsApp.
+;
+; Instalación en el servidor (como root):
+;   cp whatsapp-service/bautista-whatsapp.service /etc/systemd/system/
+;   systemctl daemon-reload
+;   systemctl enable --now bautista-whatsapp
+;
+; Ajusta WorkingDirectory y User si la ruta del proyecto es distinta.
+
+[Unit]
+Description=Servicio WhatsApp (Baileys) - Bautista La Pascana
+After=network.target
+
+[Service]
+Type=simple
+User=apache
+Group=apache
+WorkingDirectory=/var/www/bautista/whatsapp-service
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=10
+
+; Solo escucha en localhost; Laravel es el único que le habla.
+Environment=NODE_ENV=production
+
+StandardOutput=append:/var/log/bautista-whatsapp.log
+StandardError=append:/var/log/bautista-whatsapp.log
+
+[Install]
+WantedBy=multi-user.target

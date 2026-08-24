@@ -7,6 +7,7 @@ use App\Models\Docente;
 use App\Models\Estudiante;
 use App\Models\HorarioAsistencia;
 use App\Models\User;
+use App\Jobs\NotificarAsistenciaPadres;
 use Carbon\Carbon;
 use App\Repositories\Interfaces\AsistenciaRepositoryInterface;
 use App\Services\Interfaces\AsistenciaServiceInterface;
@@ -19,6 +20,29 @@ class AsistenciaService implements AsistenciaServiceInterface
         private readonly \App\Services\Interfaces\RhAsistenciaPersonalServiceInterface $rhService,
         private readonly HorarioResolverService $horarioResolver
     ) {
+    }
+
+    /**
+     * Avisa por WhatsApp a los apoderados. Solo aplica a estudiantes y
+     * respeta los interruptores de config/whatsapp.php.
+     *
+     * Se encola: nunca debe demorar ni romper el marcado de asistencia.
+     */
+    private function notificarApoderados(string $tipo, int $idPersona, string $tipoMarcado, string $hora): void
+    {
+        if ($tipo !== 'E') {
+            return;
+        }
+
+        $activo = $tipoMarcado === 'entrada'
+            ? config('whatsapp.asistencia.notificar_entrada')
+            : config('whatsapp.asistencia.notificar_salida');
+
+        if (! $activo) {
+            return;
+        }
+
+        NotificarAsistenciaPadres::dispatch($idPersona, $tipoMarcado, $hora);
     }
 
     public function calendarioPersona(int $instiId, int $personaId, string $tipo, int $anio, int $mes): array
@@ -187,6 +211,8 @@ class AsistenciaService implements AsistenciaServiceInterface
 
         $asistencia = $this->repository->marcar($payload);
 
+        $this->notificarApoderados($tipo, $idPersona, $tipoMarcado, $hora);
+
         // --- AUTOMATIC SYNC WITH RH IF WORKER ---
         if ($user->es_trabajador && $tipoMarcado === 'entrada') {
             try {
@@ -294,6 +320,8 @@ class AsistenciaService implements AsistenciaServiceInterface
         }
 
         $asistencia = $this->repository->marcar($payload);
+
+        $this->notificarApoderados($tipo, $idPersona, $tipoMarcado, $hora);
 
         // --- AUTOMATIC SYNC WITH RH IF WORKER ---
         if ($user->es_trabajador && $tipoMarcado === 'entrada') {

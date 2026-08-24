@@ -198,6 +198,7 @@ Route::middleware(['auth.token'])->group(function () {
     Route::get('/usuarios',             fn () => Inertia::render('Usuarios/index'))->middleware('permission:seguridad.usuarios.ver')->name('usuarios.index');
     Route::get('/roles-permisos',       fn () => Inertia::render('Seguridad/index'))->middleware('permission:seguridad.roles.ver')->name('seguridad.roles');
     Route::get('/seguridad/fotocheck',  fn () => Inertia::render('Seguridad/ConfiguracionFotocheck'))->middleware('permission:seguridad.fotochecks.diseno')->name('seguridad.fotocheck');
+    Route::get('/seguridad/whatsapp',   fn () => Inertia::render('Seguridad/WhatsApp'))->middleware('permission:seguridad.whatsapp.ver')->name('seguridad.whatsapp');
 });
 
 require __DIR__.'/settings.php';

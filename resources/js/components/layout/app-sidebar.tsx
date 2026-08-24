@@ -157,6 +157,7 @@ const navigation: NavItem[] = [
         { title: 'Usuarios', href: '/usuarios', permission: 'seguridad.usuarios.ver' },
         { title: 'Roles y Permisos', href: '/roles-permisos', permission: 'seguridad.roles.ver' },
         { title: 'Config. Fotochecks', href: '/seguridad/fotocheck', permission: 'seguridad.fotochecks.diseno' },
+        { title: 'WhatsApp', href: '/seguridad/whatsapp', permission: 'seguridad.whatsapp.ver' },
     ]},
 ];
 

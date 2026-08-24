@@ -348,6 +348,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('asistencia/marcar-qr',  [AsistenciaGeneralApiController::class, 'marcarQR'])->middleware('permission:asistencia.scanner.ver');
     Route::post('asistencia/marcar-dni', [AsistenciaGeneralApiController::class, 'marcarDni'])->middleware('permission:asistencia.scanner.ver');
 
+    // Vinculación del WhatsApp institucional (QR y estado del servicio).
+    Route::get('whatsapp/estado', [\App\Http\Controllers\Api\WhatsAppApiController::class, 'estado'])->middleware('permission:seguridad.whatsapp.ver');
+    Route::post('whatsapp/desvincular', [\App\Http\Controllers\Api\WhatsAppApiController::class, 'desvincular'])->middleware('permission:seguridad.whatsapp.ver');
+
     // Reniec
     Route::get('reniec/dni/{dni}', [ReniecApiController::class, 'searchDni']);
 
