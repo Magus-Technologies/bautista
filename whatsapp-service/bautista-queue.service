@@ -20,8 +20,8 @@ After=network.target mysqld.service
 Type=simple
 User=apache
 Group=apache
-WorkingDirectory=/var/www/bautista
-ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+WorkingDirectory=/var/www/html/bautista
+ExecStart=/usr/bin/php83 artisan queue:work --sleep=3 --tries=3 --max-time=3600
 Restart=always
 RestartSec=10
 

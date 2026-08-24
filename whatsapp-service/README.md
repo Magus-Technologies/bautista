@@ -67,6 +67,17 @@ systemctl daemon-reload
 systemctl enable --now bautista-queue
 ```
 
+## Cuidado con el PHP del servidor
+
+En este servidor `php` es 8.2 pero el proyecto exige 8.3. Usa siempre
+`php83` para artisan, y para compilar el frontend hay que forzar el PATH,
+porque Vite invoca `php artisan wayfinder:generate` por dentro:
+
+```bash
+mkdir -p /tmp/phpbin && ln -sf /usr/bin/php83 /tmp/phpbin/php
+PATH=/tmp/phpbin:$PATH npm run build
+```
+
 ## Después de cada despliegue
 
 Los dos daemons guardan el código viejo en memoria. Reinícialos siempre:
