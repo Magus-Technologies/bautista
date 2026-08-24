@@ -167,7 +167,7 @@ class PagoRepository implements PagoRepositoryInterface
         return array_map(fn ($r) => (array) $r, $rows);
     }
 
-    public function vencidos(int $instiId): Collection
+    public function vencidos(int $instiId, int $diasGracia = 30): Collection
     {
         $caseMonth = "CASE pag_mes
             WHEN 'ENERO' THEN 1 WHEN 'FEBRERO' THEN 2 WHEN 'MARZO' THEN 3 WHEN 'ABRIL' THEN 4
@@ -175,7 +175,7 @@ class PagoRepository implements PagoRepositoryInterface
             WHEN 'SEPTIEMBRE' THEN 9 WHEN 'OCTUBRE' THEN 10 WHEN 'NOVIEMBRE' THEN 11 WHEN 'DICIEMBRE' THEN 12
             ELSE 1 END";
 
-        $fechaLimite = now()->subDays(30)->toDateString();
+        $fechaLimite = now()->subDays($diasGracia)->toDateString();
 
         return Pago::with(['estudiante.perfil'])
             ->where('insti_id', $instiId)

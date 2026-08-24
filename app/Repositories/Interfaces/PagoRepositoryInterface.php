@@ -22,7 +22,7 @@ interface PagoRepositoryInterface
 
     public function dashboard(int $instiId, string $mes, int $anio): array;
 
-    public function vencidos(int $instiId): Collection;
+    public function vencidos(int $instiId, int $diasGracia = 30): Collection;
 
     public function historialAlumno(int $instiId, int $estuId): array;
 

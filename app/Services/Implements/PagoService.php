@@ -90,9 +90,9 @@ class PagoService implements PagoServiceInterface
         return $this->repo->dashboard($instiId, $mes, $anio);
     }
 
-    public function vencidos(int $instiId): Collection
+    public function vencidos(int $instiId, int $diasGracia = 30): Collection
     {
-        return $this->repo->vencidos($instiId);
+        return $this->repo->vencidos($instiId, $diasGracia);
     }
 
     public function historialAlumno(int $instiId, int $estuId): array
