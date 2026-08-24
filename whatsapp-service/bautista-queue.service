@@ -1,0 +1,32 @@
+; Worker de colas de Laravel.
+;
+; Sin esto los avisos de WhatsApp se encolan y nunca salen: el marcado de
+; asistencia responde igual, así que el fallo pasa desapercibido.
+;
+; Instalación (como root):
+;   cp whatsapp-service/bautista-queue.service /etc/systemd/system/
+;   systemctl daemon-reload
+;   systemctl enable --now bautista-queue
+;
+; Tras cada despliegue hay que reiniciarlo, porque el worker mantiene el
+; código viejo en memoria:
+;   systemctl restart bautista-queue
+
+[Unit]
+Description=Worker de colas - Bautista La Pascana
+After=network.target mysqld.service
+
+[Service]
+Type=simple
+User=apache
+Group=apache
+WorkingDirectory=/var/www/bautista
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/bautista-queue.log
+StandardError=append:/var/log/bautista-queue.log
+
+[Install]
+WantedBy=multi-user.target

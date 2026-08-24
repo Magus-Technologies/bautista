@@ -57,11 +57,25 @@ sin tocar la consola.
 
 ## El worker de Laravel
 
-Sin worker los avisos se encolan pero nunca salen. En producción también
-debe ser un daemon:
+Sin worker los avisos se encolan y nunca salen. Y como el marcado de
+asistencia responde igual, el fallo pasa desapercibido: hay que instalarlo
+como daemon, no dejarlo a mano.
 
 ```bash
-php artisan queue:work --sleep=3 --tries=3
+cp bautista-queue.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now bautista-queue
+```
+
+## Después de cada despliegue
+
+Los dos daemons guardan el código viejo en memoria. Reinícialos siempre:
+
+```bash
+php artisan migrate --force
+npm run build
+php artisan optimize:clear
+systemctl restart bautista-whatsapp bautista-queue
 ```
 
 ## Endpoints
